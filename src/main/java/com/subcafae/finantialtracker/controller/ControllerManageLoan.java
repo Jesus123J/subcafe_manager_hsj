@@ -18,13 +18,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.text.JTextComponent;
 
 /**
  *
  * @author Jesus Gutierrez
  */
-public class ControllerManageLoan extends ModelManageLoan implements ActionListener, KeyListener {
+public class ControllerManageLoan extends ModelManageLoan implements ActionListener, KeyListener, ChangeListener {
 
     public ControllerManageLoan(ComponentManageLoan componentManageLoan) {
         super(componentManageLoan);
@@ -33,6 +35,9 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
         componentManageLoan.buttonRegisterLoan.addActionListener(this);
         componentManageLoan.buttonCleanApplicant.addActionListener(this);
         componentManageLoan.buttonCleanAval.addActionListener(this);
+        componentManageLoan.jTabbedPane1.addChangeListener(this);
+        componentManageLoan.jButtonCalcularDemo.addActionListener(this);
+        componentManageLoan.jButtonReportLiquidation.addActionListener(this);
     }
 
     @Override
@@ -59,6 +64,12 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
             }
             insertDataLoan(employeeApplicant, employeeAval, componentManageLoan.textAmountLoan, componentManageLoan.jComboBoxCuotas.getSelectedItem());
+        }
+        if (e.getSource().equals(componentManageLoan.jButtonCalcularDemo)) {
+            generateLoanDemo();
+        }
+        if (e.getSource().equals(componentManageLoan.jButtonReportLiquidation)) {
+            generateExcelLiquidación();
         }
     }
 
@@ -88,7 +99,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                     }
 
                     System.out.println("Class applicant -> " + employeeApplicant.toString());
-                    
+
                     //((JTextField) componentManageLoan.comboBoxApplicant.getEditor().getEditorComponent()).setText(componentManageLoan.comboBoxApplicant.getSelectedItem().toString());
                     try {
                         if (employeeAval.getNationalId().equalsIgnoreCase(employeeApplicant.getNationalId())) {
@@ -157,6 +168,24 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
             }
 
+        }
+
+    }
+
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        int index = componentManageLoan.jTabbedPane1.getSelectedIndex();
+        System.out.println("Index " + index);
+        switch (index) {
+            case 0:
+
+                break;
+            case 1:
+
+                break;
+            case 2:
+                fillLoanTable(componentManageLoan.jTable1);
+                break;
         }
 
     }

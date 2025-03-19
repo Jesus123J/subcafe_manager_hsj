@@ -76,10 +76,10 @@ public class EmployeeDao {
     }
 
     // Buscar por ID
-    protected Optional<EmployeeTb> findById(int employeeId) throws SQLException {
-        String sql = "SELECT * FROM employees WHERE employee_id = ?";
+    public Optional<EmployeeTb> findById(String dni) throws SQLException {
+        String sql = "SELECT * FROM employees WHERE national_id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setInt(1, employeeId);
+            stmt.setString(1, dni);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
