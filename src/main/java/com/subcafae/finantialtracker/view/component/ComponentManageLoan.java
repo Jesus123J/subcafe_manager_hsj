@@ -6,7 +6,10 @@ package com.subcafae.finantialtracker.view.component;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Font;
+import javax.swing.JLabel;
 import javax.swing.JTable;
+import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 
 /**
@@ -21,40 +24,59 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
     public ComponentManageLoan() {
         super("GESTIÓN DE PRESTAMOS", false, true, false);
         initComponents();
-        jTable1.getTableHeader().setReorderingAllowed(false);
+        jLabel8.setText("Hello \n component");
+        jTableLoanList.getTableHeader().setReorderingAllowed(false);
         setSize(1090, 700);
+        dcBirthDate1.getDateEditor().setEnabled(false);
+        dcBirthDate.getDateEditor().setEnabled(false);
+        dcBirthDate2.getDateEditor().setEnabled(false);
         // Configurar el renderizador de celdas personalizado
-        jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer(){
+
+        jTableLoanList.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
+                // Centrar el texto
+                ((JLabel) c).setHorizontalAlignment(SwingConstants.CENTER);
+                c.setFont(new Font("Arial", Font.PLAIN, 14)); // Cambia "14" por el tamaño deseado
                 // Obtener el valor de la columna "Estado" en la fila actual
                 String estado = table.getValueAt(row, 5).toString();
 
                 // Configurar colores según el estado
-                if (estado.equals("Pendiente")) {
-                    c.setBackground(new Color(204, 153, 0)); // Marrón
-                } else if (estado.equals("Aceptado")) {
-                    c.setBackground(new Color(0, 153, 0)); // Verde
-                } else if (estado.equals("Denegado")) {
-                    c.setBackground(new Color(204, 51, 0)); // Rojo claro
-                } else if (estado.equals("Refinanciado")) {
-                    c.setBackground(new Color(255, 204, 153)); // Color piel
-                } else {
-                    c.setBackground(Color.WHITE); // Por defecto, fondo blanco
+                switch (estado) {
+                    case "Pendiente":
+                        c.setBackground(new Color(204, 153, 0)); // Marrón
+                        break;
+                    case "Aceptado":
+                        c.setBackground(new Color(0, 153, 0)); // Verde
+                        break;
+                    case "Denegado":
+                        c.setBackground(new Color(204, 51, 0)); // Rojo claro
+                        break;
+                    case "Refinanciado":
+                        c.setBackground(new Color(255, 204, 153)); // Color piel
+                        break;
+                    default:
+                        c.setBackground(Color.WHITE); // Por defecto, fondo blanco
+                        break;
                 }
 
+                Color initial = c.getBackground();
                 // Asegurar que el texto sea legible
                 if (isSelected) {
+                    c.setBackground(Color.WHITE);
                     c.setForeground(Color.BLACK);
                 } else {
+                    c.setBackground(initial);
                     c.setForeground(Color.BLACK);
                 }
 
                 return c;
             }
         });
+
+        jTableLoanList.setRowHeight(25);
     }
 
     /**
@@ -67,6 +89,14 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
     private void initComponents() {
 
         jDialog1 = new javax.swing.JDialog();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
+        dcBirthDate2 = new com.toedter.calendar.JDateChooser();
+        dcBirthDate3 = new com.toedter.calendar.JDateChooser();
+        jLabel8 = new javax.swing.JLabel();
+        jLabel9 = new javax.swing.JLabel();
+        jButton9 = new javax.swing.JButton();
+        jLabel10 = new javax.swing.JLabel();
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
@@ -100,15 +130,15 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jSeparator5 = new javax.swing.JSeparator();
         jPanel4 = new javax.swing.JPanel();
         jPanel13 = new javax.swing.JPanel();
-        jButton6 = new javax.swing.JButton();
-        jButton7 = new javax.swing.JButton();
-        jButton8 = new javax.swing.JButton();
+        jButtonReporteCompromisoPago = new javax.swing.JButton();
+        jButtonReporteCompromisoAval = new javax.swing.JButton();
+        jButtonSolicitudLoan = new javax.swing.JButton();
         jButton5 = new javax.swing.JButton();
-        jTextField1 = new javax.swing.JTextField();
+        textSearchLoanSoli = new javax.swing.JTextField();
         jLabel7 = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
+        jTableLoanList = new javax.swing.JTable();
         jSeparator3 = new javax.swing.JSeparator();
         dcBirthDate = new com.toedter.calendar.JDateChooser();
         dcBirthDate1 = new com.toedter.calendar.JDateChooser();
@@ -129,15 +159,83 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jPanel12 = new javax.swing.JPanel();
         jLabel6 = new javax.swing.JLabel();
 
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null}
+            },
+            new String [] {
+                "N, SOLICITUD", "AVAL", "MONTO ORIGINAL", "MONTO", "ESTADO"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane2.setViewportView(jTable1);
+
+        dcBirthDate2.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        dcBirthDate2.setPreferredSize(new java.awt.Dimension(190, 30));
+
+        dcBirthDate3.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        dcBirthDate3.setPreferredSize(new java.awt.Dimension(190, 30));
+
+        jLabel8.setText("Hola  \\n com");
+        jLabel8.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+
+        jLabel9.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+
+        jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        jLabel10.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel10.setText("->");
+
         javax.swing.GroupLayout jDialog1Layout = new javax.swing.GroupLayout(jDialog1.getContentPane());
         jDialog1.getContentPane().setLayout(jDialog1Layout);
         jDialog1Layout.setHorizontalGroup(
             jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jDialog1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel8, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jDialog1Layout.createSequentialGroup()
+                        .addComponent(dcBirthDate2, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(dcBirthDate3, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 173, Short.MAX_VALUE)
+                        .addComponent(jButton9, javax.swing.GroupLayout.PREFERRED_SIZE, 208, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap())
         );
         jDialog1Layout.setVerticalGroup(
             jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jDialog1Layout.createSequentialGroup()
+                .addGroup(jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jDialog1Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addComponent(dcBirthDate2, javax.swing.GroupLayout.DEFAULT_SIZE, 53, Short.MAX_VALUE)
+                            .addComponent(dcBirthDate3, javax.swing.GroupLayout.DEFAULT_SIZE, 53, Short.MAX_VALUE)
+                            .addComponent(jButton9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                    .addGroup(jDialog1Layout.createSequentialGroup()
+                        .addGap(15, 15, 15)
+                        .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel9, javax.swing.GroupLayout.DEFAULT_SIZE, 33, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 313, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         jTabbedPane1.setBackground(new java.awt.Color(255, 255, 255));
@@ -264,30 +362,37 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jPanel8.setBackground(new java.awt.Color(204, 204, 204));
         jPanel8.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DETALLES DE LA DEMOSTRACIÓN", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
+        jTextFieldCapitalMensual.setEditable(false);
         jTextFieldCapitalMensual.setBackground(new java.awt.Color(204, 204, 204));
         jTextFieldCapitalMensual.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldCapitalMensual.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CAPITAL MENSUAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
+        jTextFieldInteresMensual.setEditable(false);
         jTextFieldInteresMensual.setBackground(new java.awt.Color(204, 204, 204));
         jTextFieldInteresMensual.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldInteresMensual.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "INTERES MENSUAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
+        jTextFieldMontoPrestar.setEditable(false);
         jTextFieldMontoPrestar.setBackground(new java.awt.Color(204, 204, 204));
         jTextFieldMontoPrestar.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldMontoPrestar.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO A PRESTAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
+        jTextFieldMontoGirar.setEditable(false);
         jTextFieldMontoGirar.setBackground(new java.awt.Color(204, 204, 204));
         jTextFieldMontoGirar.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldMontoGirar.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO A GIRAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
+        jTextFieldInteresTotal.setEditable(false);
         jTextFieldInteresTotal.setBackground(new java.awt.Color(204, 204, 204));
         jTextFieldInteresTotal.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldInteresTotal.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "INTERES TOTAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
+        jTextFieldTotalPagar.setEditable(false);
         jTextFieldTotalPagar.setBackground(new java.awt.Color(204, 204, 204));
         jTextFieldTotalPagar.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldTotalPagar.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "TOTAL A PAGAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
+        jTextFieldCuotaMensual.setEditable(false);
         jTextFieldCuotaMensual.setBackground(new java.awt.Color(204, 204, 204));
         jTextFieldCuotaMensual.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldCuotaMensual.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CUOTA MENSUAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
@@ -421,20 +526,20 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jPanel13.setBackground(new java.awt.Color(255, 255, 255));
         jPanel13.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
-        jButton6.setBackground(new java.awt.Color(102, 153, 0));
-        jButton6.setForeground(new java.awt.Color(255, 255, 255));
-        jButton6.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
-        jButton6.setText("DESCARGAR REPORTE DE COMPROMISO DE PAGO");
+        jButtonReporteCompromisoPago.setBackground(new java.awt.Color(102, 153, 0));
+        jButtonReporteCompromisoPago.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonReporteCompromisoPago.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
+        jButtonReporteCompromisoPago.setText("DESCARGAR REPORTE DE COMPROMISO DE PAGO");
 
-        jButton7.setBackground(new java.awt.Color(102, 153, 0));
-        jButton7.setForeground(new java.awt.Color(255, 255, 255));
-        jButton7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
-        jButton7.setText("DESCARGAR REPORTE COMPROMISO AVAL");
+        jButtonReporteCompromisoAval.setBackground(new java.awt.Color(102, 153, 0));
+        jButtonReporteCompromisoAval.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonReporteCompromisoAval.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
+        jButtonReporteCompromisoAval.setText("DESCARGAR REPORTE COMPROMISO AVAL");
 
-        jButton8.setBackground(new java.awt.Color(102, 153, 0));
-        jButton8.setForeground(new java.awt.Color(255, 255, 255));
-        jButton8.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
-        jButton8.setText("DESCARGAR SOLICITUD DE PRÉSTAMO");
+        jButtonSolicitudLoan.setBackground(new java.awt.Color(102, 153, 0));
+        jButtonSolicitudLoan.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonSolicitudLoan.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
+        jButtonSolicitudLoan.setText("DESCARGAR SOLICITUD DE PRÉSTAMO");
 
         javax.swing.GroupLayout jPanel13Layout = new javax.swing.GroupLayout(jPanel13);
         jPanel13.setLayout(jPanel13Layout);
@@ -443,20 +548,20 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
             .addGroup(jPanel13Layout.createSequentialGroup()
                 .addGap(258, 258, 258)
                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(jButton8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton6, javax.swing.GroupLayout.DEFAULT_SIZE, 463, Short.MAX_VALUE))
+                    .addComponent(jButtonSolicitudLoan, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jButtonReporteCompromisoAval, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jButtonReporteCompromisoPago, javax.swing.GroupLayout.DEFAULT_SIZE, 463, Short.MAX_VALUE))
                 .addGap(305, 305, 305))
         );
         jPanel13Layout.setVerticalGroup(
             jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel13Layout.createSequentialGroup()
                 .addGap(114, 114, 114)
-                .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jButtonReporteCompromisoPago, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jButton7, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jButtonReporteCompromisoAval, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jButton8, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jButtonSolicitudLoan, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(114, Short.MAX_VALUE))
         );
 
@@ -464,7 +569,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jButton5.setForeground(new java.awt.Color(0, 0, 0));
         jButton5.setText("BUSCAR");
 
-        jTextField1.setBackground(new java.awt.Color(255, 255, 255));
+        textSearchLoanSoli.setBackground(new java.awt.Color(255, 255, 255));
 
         jLabel7.setText("INGRESAR EL NÚMERO DE SOLICITUD");
 
@@ -478,7 +583,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, 553, Short.MAX_VALUE)
-                    .addComponent(jTextField1))
+                    .addComponent(textSearchLoanSoli))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addGroup(jPanel4Layout.createSequentialGroup()
                 .addContainerGap()
@@ -492,7 +597,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 .addComponent(jLabel7)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(textSearchLoanSoli, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jButton5, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel13, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -503,7 +608,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        jTableLoanList.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
 
             },
@@ -519,7 +624,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 return canEdit [columnIndex];
             }
         });
-        jScrollPane1.setViewportView(jTable1);
+        jScrollPane1.setViewportView(jTableLoanList);
 
         dcBirthDate.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
         dcBirthDate.setPreferredSize(new java.awt.Dimension(190, 30));
@@ -744,27 +849,33 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
     public javax.swing.JComboBox<String> comboBoxAval;
     public com.toedter.calendar.JDateChooser dcBirthDate;
     public com.toedter.calendar.JDateChooser dcBirthDate1;
+    public com.toedter.calendar.JDateChooser dcBirthDate2;
+    public com.toedter.calendar.JDateChooser dcBirthDate3;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
-    private javax.swing.JButton jButton5;
-    private javax.swing.JButton jButton6;
-    private javax.swing.JButton jButton7;
-    private javax.swing.JButton jButton8;
+    public javax.swing.JButton jButton5;
+    private javax.swing.JButton jButton9;
     public javax.swing.JButton jButtonCalcularDemo;
     public javax.swing.JButton jButtonReportLiquidation;
+    public javax.swing.JButton jButtonReporteCompromisoAval;
+    public javax.swing.JButton jButtonReporteCompromisoPago;
+    public javax.swing.JButton jButtonSolicitudLoan;
     private javax.swing.JComboBox<String> jComboBox1;
     public javax.swing.JComboBox<String> jComboBoxCuotas;
     public javax.swing.JComboBox<String> jComboBoxCuotasDemonstration;
-    private javax.swing.JDialog jDialog1;
+    public javax.swing.JDialog jDialog1;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel10;
     private javax.swing.JPanel jPanel11;
@@ -778,6 +889,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
     private javax.swing.JPanel jPanel7;
     private javax.swing.JPanel jPanel8;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JSeparator jSeparator3;
@@ -785,8 +897,8 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
     private javax.swing.JSeparator jSeparator5;
     private javax.swing.JSeparator jSeparator6;
     public javax.swing.JTabbedPane jTabbedPane1;
-    public javax.swing.JTable jTable1;
-    private javax.swing.JTextField jTextField1;
+    private javax.swing.JTable jTable1;
+    public javax.swing.JTable jTableLoanList;
     public javax.swing.JTextField jTextFieldCapitalMensual;
     public javax.swing.JTextField jTextFieldCuotaMensual;
     public javax.swing.JTextField jTextFieldInteresMensual;
@@ -797,5 +909,6 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
     public javax.swing.JTextField jTextFieldTotalPagar;
     public javax.swing.JTextField textAmountLoan;
     public javax.swing.JTextField textRefinanciamientoDemostration;
+    public javax.swing.JTextField textSearchLoanSoli;
     // End of variables declaration//GEN-END:variables
 }

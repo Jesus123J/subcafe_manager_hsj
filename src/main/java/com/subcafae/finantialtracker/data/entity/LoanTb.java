@@ -18,6 +18,7 @@ public class LoanTb {
     private String employeeId;
     private String guarantorIds;
     private double amount;
+    private String stateLoan;
     private double originalAmount;
     private int dues;
     private LocalDate paymentDate;
@@ -28,6 +29,14 @@ public class LoanTb {
     private LocalDateTime modifiedAt;
     private Integer modifiedBy;
     private String type;
+
+    public String getStateLoan() {
+        return stateLoan;
+    }
+
+    public void setStateLoan(String stateLoan) {
+        this.stateLoan = stateLoan;
+    }
 
     public enum LoanState {
         Pendiente, Aceptado, Denegado, Refinanciado
@@ -161,6 +170,11 @@ public class LoanTb {
 
     public void setGuarantorIds(String guarantorIds) {
         this.guarantorIds = guarantorIds;
+    }
+
+    @Override
+    public String toString() {
+        return "LoanTb{" + "id=" + id + ", soliNum=" + soliNum + ", employeeId=" + employeeId + ", guarantorIds=" + guarantorIds + ", amount=" + amount + ", stateLoan=" + stateLoan + ", originalAmount=" + originalAmount + ", dues=" + dues + ", paymentDate=" + paymentDate + ", state=" + state + ", refinanceParentId=" + refinanceParentId + ", createdBy=" + createdBy + ", createdAt=" + createdAt + ", modifiedAt=" + modifiedAt + ", modifiedBy=" + modifiedBy + ", type=" + type + '}';
     }
    
 }

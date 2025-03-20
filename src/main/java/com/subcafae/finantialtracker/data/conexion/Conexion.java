@@ -7,12 +7,14 @@ package com.subcafae.finantialtracker.data.conexion;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import javax.swing.JOptionPane;
 
 /**
  *
  * @author Jesus Gutierrez
  */
 public class Conexion {
+
     private static final String URL = "jdbc:mariadb://localhost:3306/FinancialTracker1";
     private static final String USER = "root";
     private static final String PASSWORD = "";
@@ -22,15 +24,17 @@ public class Conexion {
         try {
             connection = DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (SQLException e) {
-            throw new RuntimeException("Error al conectar a la base de datos", e);
+            JOptionPane.showMessageDialog(null, "No hay conexion , comuniquese con el administrador");
+            System.exit(0);
+            //  throw new RuntimeException("Error al conectar a la base de datos", e);
         }
     }
 
     public static Connection getConnection() {
         return connection;
     }
-    
+
     public static void main(String[] args) {
-         System.out.println("Conexion -> "  + Conexion.getConnection());
+        System.out.println("Conexion -> " + Conexion.getConnection());
     }
 }

@@ -8,6 +8,7 @@ package com.subcafae.finantialtracker.report.loanReport;
 import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.dao.EmployeeDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
+import java.awt.Desktop;
 import java.io.File;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -177,6 +178,9 @@ public class ExcelDemo {
             // Guardar el archivo Excel en la ubicación seleccionada por el usuario
             try (FileOutputStream fileOut = new FileOutputStream(fileToSave)) {
                 workbook.write(fileOut);
+                 if (Desktop.isDesktopSupported()) {
+                     Desktop.getDesktop().open(fileToSave);
+                }
                 JOptionPane.showMessageDialog(null, "Archivo Excel generado exitosamente!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
             } catch (IOException e) {
                 JOptionPane.showMessageDialog(null, "Error al guardar el archivo: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
