@@ -4,14 +4,17 @@
  */
 package com.subcafae.finantialtracker.model;
 
+import com.subcafae.finantialtracker.data.conexion.Conexion;
+import com.subcafae.finantialtracker.data.dao.AbonoDao;
 import com.subcafae.finantialtracker.view.component.ComponentManageBond;
+import java.sql.Connection;
 
 /**
  *
  * @author Jesus Gutierrez
  */
 public class ModelManageBond {
-
+    protected  AbonoDao abonoDao = new AbonoDao(Conexion.getConnection());
     ComponentManageBond componentManageBond;
     
     public ModelManageBond(ComponentManageBond componentManageBond) {
@@ -19,6 +22,8 @@ public class ModelManageBond {
     }
     
     
-    
+    public void insertDao(){
+        
+    }
     
 }   

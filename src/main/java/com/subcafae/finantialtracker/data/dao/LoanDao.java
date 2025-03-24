@@ -4,6 +4,7 @@
  */
 package com.subcafae.finantialtracker.data.dao;
 
+import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.LoanTb;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,12 +18,13 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
+import org.apache.xmlbeans.impl.store.Locale;
 
 /**
  *
  * @author Jesus Gutierrez
  */
-public class LoanDao  extends  LoanDetailsDao{
+public class LoanDao extends LoanDetailsDao {
 
     private final Connection connection;
 
@@ -39,8 +41,8 @@ public class LoanDao  extends  LoanDetailsDao{
                  l.SoliNum, 
                  CONCAT(e1.first_name, ' ', e1.last_name) AS SolicitorName,
                  CONCAT(e2.first_name, ' ', e2.last_name) AS GuarantorName,
-                 l.OriginalAmount, 
-                 l.Amount, 
+                 l.RequestedAmount, 
+                 l.AmountWithdrawn, 
                  l.State
              FROM loan l
              LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id
@@ -60,8 +62,8 @@ public class LoanDao  extends  LoanDetailsDao{
                     rs.getString("SoliNum"),
                     rs.getString("SolicitorName"),
                     rs.getString("GuarantorName"),
-                    rs.getBigDecimal("OriginalAmount"),
-                    rs.getBigDecimal("Amount"),
+                    rs.getBigDecimal("RequestedAmount"),
+                    rs.getBigDecimal("AmountWithdrawn"),
                     rs.getString("State")
                 });
             }
@@ -85,6 +87,9 @@ public class LoanDao  extends  LoanDetailsDao{
             if (hasLoanInState(newLoan.getEmployeeId(), LoanTb.LoanState.Refinanciado)) {
                 throw new SQLException(" El empleado tiene un préstamo en estado (Refinanciado).");
             }
+            if (verifRefinan(newLoan.getEmployeeId())) {
+                throw new SQLException(" El empleado ya contiene un refinanciamiento puesto");
+            }
 
             // 2. Buscar préstamo Aceptado más reciente
             Optional<LoanTb> activeLoan = findLatestLoanByState(
@@ -93,16 +98,30 @@ public class LoanDao  extends  LoanDetailsDao{
             );
             // 3. Manejar refinanciación si existe préstamo Aceptado
             if (activeLoan.isPresent()) {
+
+                Double montoRefinanciado = new LoanDetailsDao(Conexion.getConnection()).calcularMontoPendientePorLoanId(activeLoan.get().getId());
+
+                if (montoRefinanciado > newLoan.getRequestedAmount()) {
+                    JOptionPane.showMessageDialog(null, "Error el refinanciamiento es mas grande", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
                 int option = JOptionPane.showConfirmDialog(null, "Desea refinanciar el prestamo anterior ? ", "GESTIÓN PRESTAMO", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
                 if (option == JOptionPane.NO_OPTION) {
                     return null;
                 }
+
                 handleRefinancing(activeLoan.get(), newLoan);
-                monto = activeLoan.get().getOriginalAmount();
+                newLoan.setAmountWithdrawn(newLoan.getRequestedAmount() - montoRefinanciado);
+                monto = montoRefinanciado;
             }
 
             // 4. Insertar nuevo préstamo
             insertNewLoan(newLoan);
+
+            if (newLoan == null) {
+                return null;
+            }
+
             JOptionPane.showMessageDialog(null, "Se registro el prestamo", "GÉSTION PRESTAMO", JOptionPane.INFORMATION_MESSAGE);
             connection.commit();
             return monto;
@@ -126,19 +145,40 @@ public class LoanDao  extends  LoanDetailsDao{
         }
     }
 
+    private boolean verifRefinan(String employeeId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM loan WHERE StateLoan = 'Pendiente' AND EmployeeID = ? AND  RefinanceParentID is  NOT NULL";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, employeeId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        }
+    }
+
     private Optional<LoanTb> findLatestLoanByState(String employeeId, LoanTb.LoanState state) throws SQLException {
-        String sql = "SELECT * FROM loan WHERE EmployeeID = ? AND State = ?  AND StateLoan = 'Pendiente' ORDER BY CreatedAt DESC LIMIT 1";
+        String sql = """
+                     SELECT * 
+                     FROM `loan` 
+                     WHERE `EmployeeID` = ? 
+                       AND `State` = ? 
+                       AND `StateLoan` = 'Pendiente' 
+                     AND  `RefinanceParentID` IS NULL 
+                     ORDER BY `CreatedAt` DESC LIMIT 1;""";
+        System.out.println("Lola");
+
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, employeeId);
             stmt.setString(2, state.name());
+            System.out.println("Peep");
             try (ResultSet rs = stmt.executeQuery()) {
+                System.out.println("Result -> " + rs.getRow());
                 return rs.next() ? Optional.of(mapResultSetToLoan(rs)) : Optional.empty();
             }
         }
     }
 
     public Optional<LoanTb> findLoan(int idLoan) throws SQLException {
-        
+
         String sql = "SELECT * FROM loan WHERE ID = ?  ORDER BY CreatedAt DESC LIMIT 1";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, idLoan);
@@ -161,28 +201,35 @@ public class LoanDao  extends  LoanDetailsDao{
     private void handleRefinancing(LoanTb originalLoan, LoanTb newLoan) throws SQLException {
 
         // Actualizar estado del préstamo original
-        String updateSql = "UPDATE loan SET State = 'Refinanciado' WHERE ID = ?";
+        String updateSql = "UPDATE loan SET State = 'Refinanciado' , StateLoan = 'Pagado' WHERE ID = ?";
+
+        String updateSqlLoanDetail = "UPDATE loandetail SET State = 'Pagado' WHERE LoanID = ? ";
+
         try (PreparedStatement stmt = connection.prepareStatement(updateSql)) {
             stmt.setInt(1, originalLoan.getId());
             stmt.executeUpdate();
         }
-        double origin = newLoan.getOriginalAmount();
 
-        newLoan.setOriginalAmount(originalLoan.getOriginalAmount());
+        try (PreparedStatement stmt = connection.prepareStatement(updateSqlLoanDetail)) {
+            stmt.setInt(1, originalLoan.getId());
+            stmt.executeUpdate();
+        }
+        
         // Configurar nuevo préstamo como refinanciación
         newLoan.setRefinanceParentId(originalLoan.getId());
-
-        newLoan.setAmount(origin + originalLoan.getOriginalAmount());
     }
 
     private int insertNewLoan(LoanTb loan) throws SQLException {
         String insertSql = "INSERT INTO loan ("
-                + "EmployeeID, GuarantorId, Amount, OriginalAmount, Dues, PaymentDate, "
+                + "EmployeeID, GuarantorId, RequestedAmount, AmountWithdrawn, Dues, PaymentDate, "
                 + "State,StateLoan, RefinanceParentID, CreatedBy, CreatedAt, ModifiedAt, ModifiedBy, Type"
                 + ") VALUES (?, ?, ?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
             setInsertParameters(stmt, loan);
+            if (loan == null) {
+                return 0;
+            }
             stmt.executeUpdate();
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                 if (!generatedKeys.next()) {
@@ -220,10 +267,14 @@ public class LoanDao  extends  LoanDetailsDao{
     }
 
     private void setInsertParameters(PreparedStatement stmt, LoanTb loan) throws SQLException {
+
+
+     
+        
         stmt.setString(1, loan.getEmployeeId());
         stmt.setString(2, loan.getGuarantorIds() == null ? null : loan.getGuarantorIds());
-        stmt.setDouble(3, loan.getAmount());
-        stmt.setDouble(4, loan.getOriginalAmount());
+        stmt.setDouble(3, loan.getRequestedAmount());
+        stmt.setDouble(4, loan.getAmountWithdrawn());
         stmt.setInt(5, loan.getDues());
         stmt.setDate(6, Date.valueOf(loan.getPaymentDate()));
         stmt.setString(7, loan.getState().name());
@@ -240,8 +291,8 @@ public class LoanDao  extends  LoanDetailsDao{
         LoanTb loan = new LoanTb(
                 rs.getString("EmployeeID"),
                 rs.getString("GuarantorId"),
-                rs.getDouble("Amount"),
-                rs.getDouble("OriginalAmount"),
+                rs.getDouble("AmountWithdrawn"),
+                rs.getDouble("RequestedAmount"),
                 rs.getInt("Dues"),
                 rs.getDate("PaymentDate").toLocalDate(),
                 LoanTb.LoanState.valueOf(rs.getString("State")),

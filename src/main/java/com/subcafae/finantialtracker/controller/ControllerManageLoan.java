@@ -6,6 +6,7 @@ package com.subcafae.finantialtracker.controller;
 
 import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.dao.EmployeeDao;
+import com.subcafae.finantialtracker.data.dao.LoanDetailsDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
 import com.subcafae.finantialtracker.data.entity.LoanTb;
@@ -57,68 +58,79 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
         if (e.getSource().equals(componentManageLoan.jButtonSolicitudLoan)) {
 
-            Optional<LoanTb> loanSearch;
-            try {
-                loanSearch = findLoan(componentManageLoan.textSearchLoanSoli.getText());
-            } catch (SQLException ex) {
-                System.out.println("Error /| " + ex.getMessage());
-                JOptionPane.showMessageDialog(null, "Ocurrio un problema");
-            }
-            if (loanSearch.get() != null) {
-                JOptionPane.showMessageDialog(null, "inserte el numero de solicitud y precione el boton");
-            }
-
             JOptionPane optionPane = new JOptionPane("Descargando...", JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
             JDialog dialog = optionPane.createDialog(null, "Información");
 
-            dialog.setModal(false);
-            dialog.setVisible(true);
             new Thread(() -> {
                 try {
-             
+
+                    Optional<LoanTb> loanSearch;
+                    try {
+                        loanSearch = findLoan(componentManageLoan.textSearchLoanSoli.getText());
+                    } catch (SQLException ex) {
+                        System.out.println("Error /| " + ex.getMessage());
+                        JOptionPane.showMessageDialog(null, "Ocurrio un problema");
+                        return;
+                    }
+
+                    if (!loanSearch.isPresent()) {
+                        JOptionPane.showMessageDialog(null, "No se encontró número de solicitud");
+                        return;
+                    }
+
+                    dialog.setModal(false);
+                    dialog.setVisible(true);
+
                     // Número de solicitud detalle
                     // Nombre del empleado y DNI del empleado
                     Optional<EmployeeTb> employeeR = new EmployeeDao(Conexion.getConnection()).findById(loanSearch.get().getEmployeeId());
-                    
+                    Optional<EmployeeTb> employeeA = null;
+                    try {
+
+                        employeeA = new EmployeeDao(Conexion.getConnection()).findById(loanSearch.get().getGuarantorIds());
+
+                    } catch (Exception eee) {
+
+                    }
+
                     String avalName = ".....................................................................";
                     String avalDni = "...............";
                     String avalService = "...............";
-
-                    String avalDniN = loanR.getAvalId();
-
-                    if (!"00000000".equals(avalDniN)) {
-                        // Si el aval no es "00000000", buscamos los datos reales
-                        Employee employeeA = employeeDAO.search("Dni", avalDniN);
-                        if (employeeA != null) {
-                            avalName = employeeA.getName();
-                            avalDni = employeeA.getDni();
-                            avalService = employeeA.getField();
-                        }
-                    }
-
-                    String principalName = employeeR.getName();
-                    String principalDni = employeeR.getDni();
-                    String principalService = employeeR.getField();
-
-                    // double totalPagar = (loanDet.getMonthlyIntableFundFee() + loanDet.getMonthlyCapitalInstallment()) * loanR.getDues();
-                    // cuotaMensualConFondoIntangible * meses
                     SolicitudPrestamo solipres = new SolicitudPrestamo();
 
+                    String principalName = employeeR.get().getFirstName().concat(" " + employeeR.get().getLastName());
+                    String principalDni = employeeR.get().getNationalId();
+                    String principalService = "Ordinario";
+
+                    // Si el aval no es "00000000", buscamos los datos reales
+                    if (employeeA.isPresent()) {
+                        avalName = employeeA.get().getFirstName().concat(" " + employeeA.get().getLastName());
+                        avalDni = employeeA.get().getNationalId();
+                        avalService = "Ordinario";
+                    }
+
                     solipres.solicitudPrestamo(
-                            txtRNumberReport.getText(),
+                            loanSearch.get().getSoliNum(),
                             principalName,
                             principalDni,
                             principalService,
-                            loanR.getAmount(),
-                            loanR.getRefinancied(),
-                            loanDet.getTotalInterest(),
-                            loanDet.getMonthlyFeeValue(),
+                            loanSearch.get().getAmountWithdrawn(),
+                            calcularMontoPendientePorLoanId(loanSearch.get().getRefinanceParentId()),
+                            8,
+                            4,
+                            //                            loanSearch.getTotalInterest(),
+                            //                            loanSearch.getMonthlyFeeValue(),
                             loanSearch.get().getType(),
                             loanSearch.get().getDues(),
                             avalName,
                             avalDni,
                             avalService
                     );
+
+                    // double totalPagar = (loanDet.getMonthlyIntableFundFee() + loanDet.getMonthlyCapitalInstallment()) * loanR.getDues();
+                    // cuotaMensualConFondoIntangible * meses
+                } catch (SQLException ex) {
+
                 } finally {
                     dialog.dispose();
                 }
@@ -158,16 +170,28 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
             insertDataLoan(employeeApplicant, employeeAval, componentManageLoan.textAmountLoan, componentManageLoan.jComboBoxCuotas.getSelectedItem());
         }
         if (e.getSource().equals(componentManageLoan.jButtonCalcularDemo)) {
+            if (componentManageLoan.jTextFieldMontoDemostration.getText().isBlank()) {
+                JOptionPane.showMessageDialog(null, "Rellene los campos para poder el calculo demo", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (componentManageLoan.textRefinanciamientoDemostration.getText().isBlank()) {
+                componentManageLoan.textRefinanciamientoDemostration.setText("0.0");
+            }
 
             generateLoan(Integer.parseInt(String.valueOf(componentManageLoan.jComboBoxCuotasDemonstration.getSelectedItem())),
-                    Double.valueOf(String.format("%.2f", Double.parseDouble(componentManageLoan.jTextFieldMontoDemostration.getText()))),
-                    Double.valueOf(String.format("%.2f", Double.parseDouble(componentManageLoan.textRefinanciamientoDemostration.getText()))),
+                    Double.valueOf(String.format("%.2f", Double.valueOf(componentManageLoan.jTextFieldMontoDemostration.getText()))),
+                    Double.valueOf(String.format("%.2f", Double.valueOf(componentManageLoan.textRefinanciamientoDemostration.getText()))),
                     Boolean.TRUE);
         }
         if (e.getSource().equals(componentManageLoan.jButtonReportLiquidation)) {
-
-            generateExcelLiquidación(componentManageLoan.jTextFieldMontoDemostration.getText(),
-                    componentManageLoan.textRefinanciamientoDemostration.getText(), Boolean.TRUE);
+            if (componentManageLoan.jTextFieldMontoDemostration.getText().isBlank()) {
+                return;
+            }
+            if (componentManageLoan.textRefinanciamientoDemostration.getText().isBlank()) {
+                return;
+            }
+            generateExcelLiquidación(componentManageLoan.jTextFieldMontoDemostration.getText(), componentManageLoan.textRefinanciamientoDemostration.getText() == null ? "0.0" : componentManageLoan.textRefinanciamientoDemostration.getText(),
+                    Integer.valueOf(componentManageLoan.jComboBoxCuotasDemonstration.getSelectedItem().toString()), null, Boolean.TRUE);
         }
     }
 
@@ -302,8 +326,17 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
                                             Optional<LoanTb> loan = findLoan(soliNum);
 
-                                            generateLoan(loan.get().getDues(), loan.get().getOriginalAmount(),
-                                                    0.0, Boolean.FALSE);
+//                                            if (loan.get().getAmount() == 0.0) {
+//                                                double montofinal = Math.abs(loan.get().getOriginalAmount() - loan.get().getAmount());
+//                                            }
+                                            if (loan.get().getRefinanceParentId() != null) {
+                                                System.out.println("Refinanciamiento total deuda" + calcularMontoPendientePorLoanId(loan.get().getRefinanceParentId()));
+                                                generateLoan(loan.get().getDues(), loan.get().getRequestedAmount(),
+                                                        calcularMontoPendientePorLoanId(loan.get().getRefinanceParentId()), Boolean.FALSE);
+                                            } else {
+                                                generateLoan(loan.get().getDues(), loan.get().getRequestedAmount(),
+                                                        0.0, Boolean.FALSE);
+                                            }
 
                                             //insertDataLoan(loan.get(), loan.get(), loan.get().getOriginalAmount(), 3);
                                             LoanDetailsTb loanDetailsTb = new LoanDetailsTb();

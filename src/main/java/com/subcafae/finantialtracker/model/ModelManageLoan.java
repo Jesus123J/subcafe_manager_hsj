@@ -43,6 +43,8 @@ public class ModelManageLoan extends LoanDao {
         super(Conexion.getConnection());
         this.componentManageLoan = componentManageLoan;
         TextFieldValidator.applyDecimalFilter(componentManageLoan.textAmountLoan);
+        TextFieldValidator.applyDecimalFilter(componentManageLoan.textRefinanciamientoDemostration);
+        TextFieldValidator.applyDecimalFilter(componentManageLoan.jTextFieldMontoDemostration);
         componentManageLoan.buttonCleanApplicant.setEnabled(false);
         componentManageLoan.buttonCleanAval.setEnabled(false);
 
@@ -80,6 +82,7 @@ public class ModelManageLoan extends LoanDao {
 
         } catch (SQLException ex) {
             System.out.println("Message" + ex.getMessage());
+
             JOptionPane.showMessageDialog(null, "Ocurrio un problema ", "Gestion de Prestamo", JOptionPane.INFORMATION_MESSAGE);
         }
     }
@@ -104,8 +107,12 @@ public class ModelManageLoan extends LoanDao {
 
             Double refinan = createLoanWithStateValidation(loan);
 
+            if (refinan == null) {
+                return;
+            }
+            System.out.println("Meses dados -> " + loan.getDues());
             generateExcelLiquidación(componentManageLoan.textAmountLoan.getText(),
-                    refinan.toString(), Boolean.FALSE);
+                    refinan.toString(),loan.getDues(),loan.getEmployeeId(), Boolean.FALSE);
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(null, ex.getMessage(), "GESTIÓN PRESTAMO", JOptionPane.ERROR_MESSAGE);
@@ -130,18 +137,20 @@ public class ModelManageLoan extends LoanDao {
 
         double montoPrestamo = montoPrestado;
 
-        double refinanciado = refinanciadoText != null ? 0.0 : refinanciadoText;
+        if (refinanciadoText > montoPrestado) {
+            JOptionPane.showMessageDialog(null, "Error el refinanciamiento es mas grande", "Gestión Prestamos", JOptionPane.WARNING_MESSAGE);
+            montoPrestadoChange = 0.0;
+            return;
+        }
+
+        montoPrestadoChange = Math.abs(Double.parseDouble(String.format("%.2f", montoPrestamo - refinanciadoText)));
 
         tasaNominalPeriodo = Double.valueOf(String.format("%.2f", Math.pow(1 + tasaNominalMensual, meses) - 1));
 
         interesMensual = Double.valueOf(String.format("%.2f", (tasaNominalPeriodo * montoPrestamo) / meses));
 
-        montoPrestadoChange = Double.valueOf(String.format("%.2f", montoPrestamo - refinanciado));
-
         //Valor agregado '* meses'
         fondoIntangibleTotal = (Math.ceil(montoPrestamo / 500.0) * 0.50) * meses;
-
-        System.out.println("Fondo intangible -> " + fondoIntangibleTotal);
 
         // el interesTotal tiene que ir antes 
         interesTotal = interesMensual * meses;
@@ -150,27 +159,30 @@ public class ModelManageLoan extends LoanDao {
 
         //El capital mensual tiene que calcularse despues de la cuota mensual para sumarse y que salga el valor dividiendo con los meses
         capitalMensual = Double.valueOf(String.format("%.2f", (Double.parseDouble(String.format("%.2f", cuotaMensualConFondoIntangible)) + montoPrestamo) / meses));
-       
+
         capitalSinInteresMensual = Double.valueOf(String.format("%.2f", montoPrestamo / meses));
 
         if (demo) {
-            insertDataDemo(montoPrestamo , meses);
+            insertDataDemo(montoPrestadoChange,montoPrestado , meses);
         }
         //txtMonthyDue
         //txtTotalPaymentDemo
     }
 
-    public void insertDataDemo(Double montoPrestamo , int meses) {
+    public void insertDataDemo(Double montoPrestamo, Double monto , int meses) {
         componentManageLoan.jTextFieldCapitalMensual.setText(capitalSinInteresMensual.toString());
         componentManageLoan.jTextFieldInteresMensual.setText(interesMensual.toString());
-        componentManageLoan.jTextFieldInteresTotal.setText( interesTotal.toString());
+        componentManageLoan.jTextFieldInteresTotal.setText(interesTotal.toString());
         componentManageLoan.jTextFieldTotalPagar.setText(String.format("%.2f", (capitalMensual * meses)));
         componentManageLoan.jTextFieldCuotaMensual.setText(capitalMensual.toString());
-        componentManageLoan.jTextFieldMontoPrestar.setText( montoPrestadoChange.toString());
+        componentManageLoan.jTextFieldMontoPrestar.setText(monto.toString());
         componentManageLoan.jTextFieldMontoGirar.setText(montoPrestadoChange.toString());
     }
 
-    public void generateExcelLiquidación(String prestamo, String refinanaciamiento, Boolean demo) {
+    public void generateExcelLiquidación(String prestamo, String refinanaciamiento,Integer meses , String dni ,  Boolean demo) {
+        if (refinanaciamiento == null) {
+            refinanaciamiento = "0.0";
+        }
         // TODO add your handling code here:
         if (prestamo.isBlank()
                 || refinanaciamiento.isBlank()) {
@@ -180,9 +192,17 @@ public class ModelManageLoan extends LoanDao {
         try {
             // Llamar a la función de generación de demo de préstamo
             generateLoan(
-                    Integer.parseInt(String.valueOf(componentManageLoan.jComboBoxCuotasDemonstration.getSelectedItem())),
+                    meses,
                     Double.valueOf(String.format("%.2f", Double.valueOf(prestamo))),
                     Double.valueOf(String.format("%.2f", Double.valueOf(refinanaciamiento))), demo);
+           
+            //System.out.println("Ingresa");
+
+            if (montoPrestadoChange == 0.0) {
+                return;
+            }
+
+            System.out.println("No deve continuar");
 
             // Crear una instancia de ExcelDemo
             ExcelDemo excelD = new ExcelDemo();
@@ -198,13 +218,17 @@ public class ModelManageLoan extends LoanDao {
             // Calcular fondo intangible
             //double fondoIntangible = (Math.ceil(Double.parseDouble(componentManageLoan.jTextFieldMontoDemostration.getText()) / 500.0) * 0.50) * Integer.parseInt(componentManageLoan.jComboBoxCuotasDemonstration.getSelectedItem().toString());
             // Llamar al método excelDemo con los valores convertidos
+            System.out.println("Fondo intangible -> " +fondoIntangibleTotal);
+            System.out.print("refinancimientpo -> " + refinanaciamiento);
+            
             excelD.excelDemo(
-                    montoPrestadoChange,
+                    refinanaciamiento,
+                    Double.parseDouble(String.format("%.2f", Double.parseDouble(prestamo))),
                     montoPrestadoChange,
                     interesTotal,
-                    cuotaMensualConFondoIntangible,
+                    fondoIntangibleTotal,
                     capitalMensual,
-                    Integer.parseInt(String.valueOf(componentManageLoan.jComboBoxCuotasDemonstration.getSelectedItem())), null
+                    meses, dni
             );
         } catch (NumberFormatException e) {
             // Mostrar un mensaje si alguna conversión falla

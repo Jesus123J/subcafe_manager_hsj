@@ -31,6 +31,10 @@ public class Conexion {
     }
 
     public static Connection getConnection() {
+        if (connection == null) {
+            JOptionPane.showMessageDialog(null, "Error de conexión" , "" , JOptionPane.WARNING_MESSAGE);
+            System.exit(0);
+        }
         return connection;
     }
 

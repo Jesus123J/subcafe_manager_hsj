@@ -4,10 +4,10 @@
  */
 package com.subcafae.finantialtracker.report.loanReport;
 
-
 import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.dao.EmployeeDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
+import com.subcafae.finantialtracker.util.TextFieldValidator;
 import java.awt.Desktop;
 import java.io.File;
 import org.apache.poi.ss.usermodel.*;
@@ -23,6 +23,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.JTextField;
 import org.apache.poi.ss.util.CellRangeAddress;
 
 /**
@@ -32,6 +33,7 @@ import org.apache.poi.ss.util.CellRangeAddress;
 public class ExcelDemo {
 
     public void excelDemo(
+            String refinanciamiento,
             double prestamoSoli,
             double montoGir,
             double interes,
@@ -40,10 +42,15 @@ public class ExcelDemo {
             int meses,
             String dniSoli
     ) {
-         String EmployeeDNI = dniSoli;
-         
+        String EmployeeDNI = dniSoli;
+        JTextField text = new JTextField();
         if (dniSoli == null) {
-             EmployeeDNI = JOptionPane.showInputDialog(null, "Por favor, ingresa el número de DNI del trabajador:", "Número de DNI", JOptionPane.INFORMATION_MESSAGE);
+
+            TextFieldValidator.applyDecimalFilter(text);
+            int option = JOptionPane.showConfirmDialog(null, text, "Escribir DNI del trabajdor", JOptionPane.INFORMATION_MESSAGE, JOptionPane.OK_OPTION);
+            if (option == JOptionPane.OK_OPTION) {
+                EmployeeDNI = text.getText();
+            }
         }
         // Crear el workbook y la hoja
         Workbook workbook = new XSSFWorkbook();
@@ -84,11 +91,14 @@ public class ExcelDemo {
         Optional<EmployeeTb> trabajador = null;
         try {
             trabajador = new EmployeeDao(Conexion.getConnection()).findById(EmployeeDNI);
+            if (trabajador.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "No se encontro trabajador", "", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
         } catch (SQLException ex) {
             System.out.println("Message -> " + ex.getMessage());
         }
-        
-       
+
 // 5. Información personal
         String[][] personalInfo = {
             {"APELLIDOS Y NOMBRES :", trabajador.get().getFirstName().concat(" " + trabajador.get().getLastName())},
@@ -133,7 +143,7 @@ public class ExcelDemo {
 
         // 8. Agregar los montos en columnas E y F (filas 20 a 27)
         String[][] amounts = {
-            {"0.00", ""},
+            {"", refinanciamiento},
             {"", String.valueOf(prestamoSoli)},
             {"", String.valueOf(montoGir)},
             {"", String.valueOf(interes)},
@@ -164,29 +174,42 @@ public class ExcelDemo {
         sheet.setColumnWidth(4, sheet.getColumnWidth(4) * 3 / 2);
         sheet.setColumnWidth(5, sheet.getColumnWidth(5) * 3 / 2);
 
-        // Crear el JFileChooser para que el usuario seleccione la ubicación
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Guardar archivo Excel");
-        fileChooser.setSelectedFile(new File("Liquidacion_Prestamo_" + EmployeeDNI + ".xlsx")); // Preselecciona el nombre del archivo
+        fileChooser.setSelectedFile(new File("Liquidacion_Prestamo_" + EmployeeDNI + ".xlsx")); // Nombre preseleccionado
 
-        int userSelection = fileChooser.showSaveDialog(null);
+        boolean guardadoExitoso = false;
 
-        // Si el usuario selecciona un archivo y hace clic en "Guardar"
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            File fileToSave = fileChooser.getSelectedFile();
+        while (!guardadoExitoso) {
+            int userSelection = fileChooser.showSaveDialog(null);
 
-            // Guardar el archivo Excel en la ubicación seleccionada por el usuario
-            try (FileOutputStream fileOut = new FileOutputStream(fileToSave)) {
-                workbook.write(fileOut);
-                 if (Desktop.isDesktopSupported()) {
-                     Desktop.getDesktop().open(fileToSave);
+            // Si el usuario selecciona un archivo y hace clic en "Guardar"
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                File fileToSave = fileChooser.getSelectedFile();
+
+                try (FileOutputStream fileOut = new FileOutputStream(fileToSave)) {
+                    workbook.write(fileOut);
+                    guardadoExitoso = true;
+
+                    if (Desktop.isDesktopSupported()) {
+                        Desktop.getDesktop().open(fileToSave);
+                    }
+                    JOptionPane.showMessageDialog(null, "Archivo Excel generado exitosamente!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException e) {
+                    if (e.getMessage().contains("being used by another process")) {
+                        JOptionPane.showMessageDialog(null, "El archivo está abierto o en uso. Por favor, cierre el archivo o elija otro nombre.", "Archivo en uso", JOptionPane.WARNING_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(null, "Error al guardar el archivo: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                        e.printStackTrace();
+                        break; // Salir del bucle en caso de un error grave
+                    }
                 }
-                JOptionPane.showMessageDialog(null, "Archivo Excel generado exitosamente!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(null, "Error al guardar el archivo: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
+            } else {
+                // Si el usuario cancela el diálogo, salir del bucle
+                break;
             }
         }
+
     }
 
     private static CellStyle createCellStyle(Workbook workbook, boolean bold, int fontSize, HorizontalAlignment alignment) {

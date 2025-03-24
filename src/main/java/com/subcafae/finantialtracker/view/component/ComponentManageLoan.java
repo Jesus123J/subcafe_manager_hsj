@@ -375,7 +375,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jTextFieldMontoPrestar.setEditable(false);
         jTextFieldMontoPrestar.setBackground(new java.awt.Color(204, 204, 204));
         jTextFieldMontoPrestar.setForeground(new java.awt.Color(0, 0, 0));
-        jTextFieldMontoPrestar.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO A PRESTAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
+        jTextFieldMontoPrestar.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO SOLICITADO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jTextFieldMontoGirar.setEditable(false);
         jTextFieldMontoGirar.setBackground(new java.awt.Color(204, 204, 204));
@@ -613,7 +613,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
 
             },
             new String [] {
-                "N. Solicitud", "SOLICITANTE", "AVAL", "MONTO ORIGINAL", "MONTO", "ESTADO"
+                "N. Solicitud", "SOLICITANTE", "AVAL", "MONTO SOLICITADO", "MONTO GIRADO", "ESTADO"
             }
         ) {
             boolean[] canEdit = new boolean [] {

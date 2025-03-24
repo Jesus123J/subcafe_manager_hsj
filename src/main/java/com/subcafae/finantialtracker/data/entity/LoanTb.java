@@ -17,9 +17,9 @@ public class LoanTb {
     private String soliNum;
     private String employeeId;
     private String guarantorIds;
-    private double amount;
+    private double RequestedAmount;
     private String stateLoan;
-    private double originalAmount;
+    private double AmountWithdrawn;
     private int dues;
     private LocalDate paymentDate;
     private LoanState state;
@@ -43,14 +43,14 @@ public class LoanTb {
     }
 
     // Constructor sin ID y sin SoliNum
-    public LoanTb(String employeeId, String guarantorIds, double amount, double originalAmount, 
+    public LoanTb(String employeeId, String guarantorIds, double AmountWithdrawn, double RequestedAmount, 
                 int dues, LocalDate paymentDate, LoanState state, Integer refinanceParentId,
                 int createdBy, LocalDateTime createdAt, LocalDateTime modifiedAt, 
                 Integer modifiedBy, String type) {
         this.employeeId = employeeId;
         this.guarantorIds = guarantorIds;
-        this.amount = amount;
-        this.originalAmount = originalAmount;
+        this.AmountWithdrawn = AmountWithdrawn;
+        this.RequestedAmount = RequestedAmount;
         this.dues = dues;
         this.paymentDate = paymentDate;
         this.state = state;
@@ -76,21 +76,7 @@ public class LoanTb {
         this.employeeId = employeeId;
     }
 
-    public double getAmount() {
-        return amount;
-    }
 
-    public void setAmount(double amount) {
-        this.amount = amount;
-    }
-
-    public double getOriginalAmount() {
-        return originalAmount;
-    }
-
-    public void setOriginalAmount(double originalAmount) {
-        this.originalAmount = originalAmount;
-    }
 
     public int getDues() {
         return dues;
@@ -172,9 +158,27 @@ public class LoanTb {
         this.guarantorIds = guarantorIds;
     }
 
+    public double getRequestedAmount() {
+        return RequestedAmount;
+    }
+
+    public void setRequestedAmount(double RequestedAmount) {
+        this.RequestedAmount = RequestedAmount;
+    }
+
+    public double getAmountWithdrawn() {
+        return AmountWithdrawn;
+    }
+
+    public void setAmountWithdrawn(double AmountWithdrawn) {
+        this.AmountWithdrawn = AmountWithdrawn;
+    }
+
     @Override
     public String toString() {
-        return "LoanTb{" + "id=" + id + ", soliNum=" + soliNum + ", employeeId=" + employeeId + ", guarantorIds=" + guarantorIds + ", amount=" + amount + ", stateLoan=" + stateLoan + ", originalAmount=" + originalAmount + ", dues=" + dues + ", paymentDate=" + paymentDate + ", state=" + state + ", refinanceParentId=" + refinanceParentId + ", createdBy=" + createdBy + ", createdAt=" + createdAt + ", modifiedAt=" + modifiedAt + ", modifiedBy=" + modifiedBy + ", type=" + type + '}';
+        return "LoanTb{" + "id=" + id + ", soliNum=" + soliNum + ", employeeId=" + employeeId + ", guarantorIds=" + guarantorIds + ", RequestedAmount=" + RequestedAmount + ", stateLoan=" + stateLoan + ", AmountWithdrawn=" + AmountWithdrawn + ", dues=" + dues + ", paymentDate=" + paymentDate + ", state=" + state + ", refinanceParentId=" + refinanceParentId + ", createdBy=" + createdBy + ", createdAt=" + createdAt + ", modifiedAt=" + modifiedAt + ", modifiedBy=" + modifiedBy + ", type=" + type + '}';
     }
+
+  
    
 }

@@ -9,6 +9,7 @@ import com.subcafae.finantialtracker.data.entity.LoanTb;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -34,7 +35,7 @@ public class LoanDetailsDao {
                 + "MonthlyCapitalInstallment, MonthlyInterestFee, MonthlyIntangibleFundFee, "
                 + " PaymentDate, State, CreatedBy, CreatedAt) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
+
         try (PreparedStatement stmt = connection.prepareStatement(insertSql)) {
 
             LocalDate currentDate = loan.getPaymentDate();
@@ -74,4 +75,35 @@ public class LoanDetailsDao {
             stmt.executeBatch(); // Ejecutar el batch
         }
     }
+
+    public double calcularMontoPendientePorLoanId(Integer loanId) {
+        double totalPendiente = 0.0;
+        if (loanId == null) {
+            return 0.0;
+        }
+        // Consulta SQL
+        String query = "SELECT SUM(MonthlyFeeValue - IFNULL(payment, 0)) AS TotalPendingAmount "
+                + "FROM loandetail "
+                + "WHERE LoanID = ? AND State IN ('pendiente', 'parcial')";
+
+        try {
+            PreparedStatement stmt = connection.prepareStatement(query);
+            
+            // Configurar el parámetro LoanID
+            stmt.setInt(1, loanId);
+
+            // Ejecutar la consulta
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                totalPendiente = rs.getDouble("TotalPendingAmount");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return totalPendiente;
+    }
+
 }
