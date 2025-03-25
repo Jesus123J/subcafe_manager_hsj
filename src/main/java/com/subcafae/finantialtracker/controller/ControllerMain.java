@@ -4,6 +4,7 @@
  */
 package com.subcafae.finantialtracker.controller;
 
+import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.model.ModelMain;
 import com.subcafae.finantialtracker.view.ViewMain;
 import java.awt.event.ActionEvent;
@@ -18,7 +19,7 @@ import java.awt.event.MouseListener;
 public class ControllerMain extends ModelMain implements ActionListener, MouseListener {
 
     public ControllerMain() {
-        super(new ViewMain());
+        super(new ViewMain() , new UserTb());
         viewMain.jMenuMangeBond.addMouseListener(this);
         viewMain.jMenuMangeLoan.addMouseListener(this);
         viewMain.jMenuManageWorker.addMouseListener(this);

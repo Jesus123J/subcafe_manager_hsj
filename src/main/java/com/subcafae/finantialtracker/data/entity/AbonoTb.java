@@ -16,7 +16,7 @@ public class AbonoTb {
     private String serviceConceptId;
     private String employeeId;
     private int dues;
-    private BigDecimal monthly;
+    private Double monthly;
     private String paymentDate;
     private String status;
     private String discountFrom;
@@ -66,11 +66,11 @@ public class AbonoTb {
         this.dues = dues;
     }
 
-    public BigDecimal getMonthly() {
+    public Double getMonthly() {
         return monthly;
     }
 
-    public void setMonthly(BigDecimal monthly) {
+    public void setMonthly(Double monthly) {
         this.monthly = monthly;
     }
 

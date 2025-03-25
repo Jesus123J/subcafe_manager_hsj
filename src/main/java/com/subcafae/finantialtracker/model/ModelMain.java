@@ -7,6 +7,7 @@ package com.subcafae.finantialtracker.model;
 import com.subcafae.finantialtracker.controller.ControllerManageBond;
 import com.subcafae.finantialtracker.controller.ControllerManageLoan;
 import com.subcafae.finantialtracker.controller.ControllerManageWorker;
+import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.view.ViewMain;
 import com.subcafae.finantialtracker.view.component.ComponentManageBond;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
@@ -27,14 +28,14 @@ public class ModelMain {
     protected ComponentManageWorker componentManageWorker;
     public ViewMain viewMain;
 
-    public ModelMain(ViewMain viewMain) {
+    public ModelMain(ViewMain viewMain , UserTb user) {
         this.componentManageBond = new ComponentManageBond();
         this.componentManageLoan = new ComponentManageLoan();
         this.componentManageUser = new ComponentManageUser();
         this.componentManageWorker = new ComponentManageWorker();
 
-        new ControllerManageLoan(componentManageLoan);
-        new ControllerManageBond(componentManageBond);
+        new ControllerManageLoan(componentManageLoan , user);
+        new ControllerManageBond(componentManageBond , user);
         new ControllerManageWorker(componentManageWorker);
 
         this.viewMain = viewMain;

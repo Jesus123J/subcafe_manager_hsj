@@ -10,6 +10,7 @@ import com.subcafae.finantialtracker.data.dao.LoanDetailsDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
 import com.subcafae.finantialtracker.data.entity.LoanTb;
+import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.model.ModelManageLoan;
 import com.subcafae.finantialtracker.report.loanReport.SolicitudPrestamo;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
@@ -37,7 +38,7 @@ import javax.swing.text.JTextComponent;
  */
 public class ControllerManageLoan extends ModelManageLoan implements ActionListener, KeyListener, ChangeListener, ListSelectionListener {
 
-    public ControllerManageLoan(ComponentManageLoan componentManageLoan) {
+    public ControllerManageLoan(ComponentManageLoan componentManageLoan , UserTb user) {
         super(componentManageLoan);
         ((JTextField) componentManageLoan.comboBoxApplicant.getEditor().getEditorComponent()).addKeyListener(this);
         ((JTextField) componentManageLoan.comboBoxAval.getEditor().getEditorComponent()).addKeyListener(this);
@@ -184,12 +185,14 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                     Boolean.TRUE);
         }
         if (e.getSource().equals(componentManageLoan.jButtonReportLiquidation)) {
+            
             if (componentManageLoan.jTextFieldMontoDemostration.getText().isBlank()) {
                 return;
             }
             if (componentManageLoan.textRefinanciamientoDemostration.getText().isBlank()) {
                 return;
             }
+            
             generateExcelLiquidación(componentManageLoan.jTextFieldMontoDemostration.getText(), componentManageLoan.textRefinanciamientoDemostration.getText() == null ? "0.0" : componentManageLoan.textRefinanciamientoDemostration.getText(),
                     Integer.valueOf(componentManageLoan.jComboBoxCuotasDemonstration.getSelectedItem().toString()), null, Boolean.TRUE);
         }

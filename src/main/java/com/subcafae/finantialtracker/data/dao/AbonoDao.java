@@ -31,7 +31,7 @@ public class AbonoDao {
             stmt.setString(2, abono.getServiceConceptId());
             stmt.setString(3, abono.getEmployeeId());
             stmt.setInt(4, abono.getDues());
-            stmt.setBigDecimal(5, abono.getMonthly());
+            stmt.setDouble(5, abono.getMonthly());
             stmt.setString(6, abono.getPaymentDate());
             stmt.setString(7, abono.getStatus());
             stmt.setString(8, abono.getDiscountFrom());
@@ -53,7 +53,7 @@ public class AbonoDao {
             stmt.setString(2, abono.getServiceConceptId());
             stmt.setString(3, abono.getEmployeeId());
             stmt.setInt(4, abono.getDues());
-            stmt.setBigDecimal(5, abono.getMonthly());
+            stmt.setDouble(5, abono.getMonthly());
             stmt.setString(6, abono.getPaymentDate());
             stmt.setString(7, abono.getStatus());
             stmt.setString(8, abono.getDiscountFrom());
@@ -109,7 +109,7 @@ public class AbonoDao {
         abono.setServiceConceptId(rs.getString("service_concept_id"));
         abono.setEmployeeId(rs.getString("Employee_id"));
         abono.setDues(rs.getInt("dues"));
-        abono.setMonthly(rs.getBigDecimal("monthly"));
+        abono.setMonthly(rs.getDouble("monthly"));
         abono.setPaymentDate(rs.getString("paymentDate"));
         abono.setStatus(rs.getString("status"));
         abono.setDiscountFrom(rs.getString("discount_from"));
