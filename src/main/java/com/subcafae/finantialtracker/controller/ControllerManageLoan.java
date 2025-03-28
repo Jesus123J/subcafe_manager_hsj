@@ -4,14 +4,15 @@
  */
 package com.subcafae.finantialtracker.controller;
 
-import com.subcafae.finantialtracker.data.conexion.Conexion;
+
 import com.subcafae.finantialtracker.data.dao.EmployeeDao;
-import com.subcafae.finantialtracker.data.dao.LoanDetailsDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
 import com.subcafae.finantialtracker.data.entity.LoanTb;
 import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.model.ModelManageLoan;
+import com.subcafae.finantialtracker.report.loanReport.CompromisoPago;
+import com.subcafae.finantialtracker.report.loanReport.CompromisoPagoAval;
 import com.subcafae.finantialtracker.report.loanReport.SolicitudPrestamo;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
 import java.awt.event.ActionEvent;
@@ -20,8 +21,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.sql.SQLException;
 import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
@@ -30,7 +29,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.text.JTextComponent;
 
 /**
  *
@@ -38,7 +36,7 @@ import javax.swing.text.JTextComponent;
  */
 public class ControllerManageLoan extends ModelManageLoan implements ActionListener, KeyListener, ChangeListener, ListSelectionListener {
 
-    public ControllerManageLoan(ComponentManageLoan componentManageLoan , UserTb user) {
+    public ControllerManageLoan(ComponentManageLoan componentManageLoan, UserTb user) {
         super(componentManageLoan);
         ((JTextField) componentManageLoan.comboBoxApplicant.getEditor().getEditorComponent()).addKeyListener(this);
         ((JTextField) componentManageLoan.comboBoxAval.getEditor().getEditorComponent()).addKeyListener(this);
@@ -84,11 +82,11 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
                     // Número de solicitud detalle
                     // Nombre del empleado y DNI del empleado
-                    Optional<EmployeeTb> employeeR = new EmployeeDao(Conexion.getConnection()).findById(loanSearch.get().getEmployeeId());
+                    Optional<EmployeeTb> employeeR = new EmployeeDao().findById(loanSearch.get().getEmployeeId());
                     Optional<EmployeeTb> employeeA = null;
                     try {
 
-                        employeeA = new EmployeeDao(Conexion.getConnection()).findById(loanSearch.get().getGuarantorIds());
+                        employeeA = new EmployeeDao().findById(loanSearch.get().getGuarantorIds());
 
                     } catch (Exception eee) {
 
@@ -140,11 +138,80 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
         }
 
         if (e.getSource().equals(componentManageLoan.jButtonReporteCompromisoPago)) {
+            
+            CompromisoPago compromisoPago = new CompromisoPago();
 
+            if (txtRNumberReport.getText().isEmpty()) {
+
+                JOptionPane.showMessageDialog(null, "Rellena todas las casillas");
+            } else {
+                JOptionPane optionPane = new JOptionPane("Descargando...", JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
+                JDialog dialog = optionPane.createDialog(null, "Información");
+
+                dialog.setModal(false);
+                dialog.setVisible(true);
+
+                new Thread(() -> {
+                    try {
+                        Loan loanR = loanDAO.search("SoliNum", txtRNumberReport.getText());
+                        
+                        if (loanR == null) {
+                            JOptionPane.showMessageDialog(null, "No existe el numero de solicitud " + txtRNumberReport.getText());
+                            return;
+                        }
+                        
+                        
+                        Employee employeeR = employeeDAO.search("Dni", loanR.getEmployeeId());
+
+                        compromisoPago.compromisoPago(txtRNumberReport.getText(), employeeR.getName(), employeeR.getDni());
+                    } finally {
+                        dialog.dispose();
+                    }
+                }).start();
+            }
         }
+        
         if (e.getSource().equals(componentManageLoan.jButtonReporteCompromisoAval)) {
+            
+            CompromisoPagoAval compromisoAval = new CompromisoPagoAval();
+            
+            if (txtRNumberReport.getText().isEmpty()) {
+                JOptionPane.showMessageDialog(null, "Rellena todas las casillas");
+                
+            } else {
+                JOptionPane optionPane = new JOptionPane("Descargando...", JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
+                JDialog dialog = optionPane.createDialog(null, "Información");
 
+                dialog.setModal(false);
+                dialog.setVisible(true);
+
+                new Thread(() -> {
+                    try {
+                        
+                        LoanTb loanR = loanDAO.search("SoliNum", txtRNumberReport.getText());
+
+                        if (loanR == null) {
+                            JOptionPane.showMessageDialog(null, "No existe el numero de solicitud " + txtRNumberReport.getText());
+                            return;
+                        }
+
+                        Employee employeeR = employeeDAO.search("Dni", loanR.getEmployeeId());
+
+                        Employee guarantorR = employeeDAO.search("Dni", loanR.getAvalId());
+
+                        if (guarantorR == null) {
+                            compromisoAval.compromisoPagoAval(txtRNumberReport.getText(), "              ", "             ", employeeR.getName(), employeeR.getDni());
+                            return;
+                        }
+
+                        compromisoAval.compromisoPagoAval(txtRNumberReport.getText(), guarantorR.getName(), guarantorR.getDni(), employeeR.getName(), employeeR.getDni());
+                    } finally {
+                        dialog.dispose();
+                    }
+                }).start();
+            }
         }
+        
 
         if (e.getSource().equals(componentManageLoan.buttonCleanApplicant)) {
             employeeApplicant = new EmployeeTb();
@@ -185,14 +252,14 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                     Boolean.TRUE);
         }
         if (e.getSource().equals(componentManageLoan.jButtonReportLiquidation)) {
-            
+
             if (componentManageLoan.jTextFieldMontoDemostration.getText().isBlank()) {
                 return;
             }
             if (componentManageLoan.textRefinanciamientoDemostration.getText().isBlank()) {
                 return;
             }
-            
+
             generateExcelLiquidación(componentManageLoan.jTextFieldMontoDemostration.getText(), componentManageLoan.textRefinanciamientoDemostration.getText() == null ? "0.0" : componentManageLoan.textRefinanciamientoDemostration.getText(),
                     Integer.valueOf(componentManageLoan.jComboBoxCuotasDemonstration.getSelectedItem().toString()), null, Boolean.TRUE);
         }

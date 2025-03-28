@@ -15,6 +15,8 @@ import java.sql.Types;
 import java.sql.Date;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
@@ -28,9 +30,46 @@ public class LoanDao extends LoanDetailsDao {
 
     private final Connection connection;
 
-    public LoanDao(Connection connection) {
-        super(connection);
-        this.connection = connection;
+    public LoanDao() {
+        this.connection = Conexion.getConnection();
+    }
+
+    public List<LoanTb> getAllLoans() throws SQLException {
+        String sql = "SELECT ID, SoliNum, EmployeeID, GuarantorId, RequestedAmount, AmountWithdrawn, Dues, PaymentDate, "
+                + "State, StateLoan, RefinanceParentID, CreatedBy, CreatedAt, ModifiedAt, ModifiedBy, Type "
+                + "FROM loan";
+        List<LoanTb> loans = new ArrayList<>();
+
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                LoanTb loan = new LoanTb();
+
+                loan.setId(rs.getInt("ID"));
+                loan.setSoliNum(rs.getString("SoliNum"));
+                loan.setEmployeeId(rs.getString("EmployeeID"));
+                loan.setGuarantorIds(rs.getString("GuarantorId"));
+                loan.setRequestedAmount(rs.getDouble("RequestedAmount"));
+                loan.setAmountWithdrawn(rs.getDouble("AmountWithdrawn"));
+                loan.setDues(rs.getInt("Dues"));
+                loan.setPaymentDate(rs.getDate("PaymentDate").toLocalDate());
+                loan.setState(rs.getString("State"));
+
+                loan.setStateLoan(rs.getString("StateLoan"));
+                loan.setRefinanceParentId(rs.getInt("RefinanceParentID") == 0 ? null : rs.getInt("RefinanceParentID"));
+                loan.setCreatedBy(rs.getInt("CreatedBy"));
+                // Convertir CreatedAt y ModifiedAt a LocalDate
+                loan.setCreatedAt(rs.getTimestamp("CreatedAt").toLocalDateTime());
+                loan.setModifiedAt(rs.getTimestamp("ModifiedAt").toLocalDateTime());
+
+                loan.setModifiedBy(rs.getInt("ModifiedBy"));
+                loan.setType(rs.getString("Type"));
+
+                loans.add(loan);
+            }
+        }
+
+        return loans;
     }
 
     //
@@ -99,7 +138,7 @@ public class LoanDao extends LoanDetailsDao {
             // 3. Manejar refinanciación si existe préstamo Aceptado
             if (activeLoan.isPresent()) {
 
-                Double montoRefinanciado = new LoanDetailsDao(Conexion.getConnection()).calcularMontoPendientePorLoanId(activeLoan.get().getId());
+                Double montoRefinanciado = calcularMontoPendientePorLoanId(activeLoan.get().getId());
 
                 if (montoRefinanciado > newLoan.getRequestedAmount()) {
                     JOptionPane.showMessageDialog(null, "Error el refinanciamiento es mas grande", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
@@ -214,7 +253,7 @@ public class LoanDao extends LoanDetailsDao {
             stmt.setInt(1, originalLoan.getId());
             stmt.executeUpdate();
         }
-        
+
         // Configurar nuevo préstamo como refinanciación
         newLoan.setRefinanceParentId(originalLoan.getId());
     }
@@ -268,16 +307,13 @@ public class LoanDao extends LoanDetailsDao {
 
     private void setInsertParameters(PreparedStatement stmt, LoanTb loan) throws SQLException {
 
-
-     
-        
         stmt.setString(1, loan.getEmployeeId());
         stmt.setString(2, loan.getGuarantorIds() == null ? null : loan.getGuarantorIds());
         stmt.setDouble(3, loan.getRequestedAmount());
         stmt.setDouble(4, loan.getAmountWithdrawn());
         stmt.setInt(5, loan.getDues());
         stmt.setDate(6, Date.valueOf(loan.getPaymentDate()));
-        stmt.setString(7, loan.getState().name());
+        stmt.setString(7, loan.getState());
         stmt.setString(8, "Pendiente");
         stmt.setObject(9, loan.getRefinanceParentId(), Types.INTEGER);
         stmt.setInt(10, loan.getCreatedBy());
@@ -295,7 +331,7 @@ public class LoanDao extends LoanDetailsDao {
                 rs.getDouble("RequestedAmount"),
                 rs.getInt("Dues"),
                 rs.getDate("PaymentDate").toLocalDate(),
-                LoanTb.LoanState.valueOf(rs.getString("State")),
+                rs.getString("State"),
                 rs.getInt("RefinanceParentID"),
                 rs.getInt("CreatedBy"),
                 rs.getTimestamp("CreatedAt").toLocalDateTime(),

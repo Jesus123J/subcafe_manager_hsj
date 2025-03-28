@@ -4,6 +4,7 @@
  */
 package com.subcafae.finantialtracker.data.dao;
 
+import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import java.sql.*;
 import java.util.ArrayList;
@@ -14,8 +15,8 @@ public class EmployeeDao {
 
     private final Connection connection;
 
-    public EmployeeDao(Connection connection) {
-        this.connection = connection;
+    public EmployeeDao() {
+        this.connection = Conexion.getConnection();
     }
 
     // Crear empleado
@@ -29,8 +30,8 @@ public class EmployeeDao {
             stmt.setString(2, employee.getLastName());
             stmt.setString(3, employee.getNationalId());
             stmt.setString(4, employee.getPhoneNumber());
-            stmt.setString(5, employee.getGender().name());
-            stmt.setString(6, employee.getEmploymentStatus().name());
+            stmt.setString(5, employee.getGender());
+            stmt.setString(6, employee.getEmploymentStatus());
             stmt.setString(7, employee.getEmploymentStatusCode());
             stmt.setDate(8, Date.valueOf(employee.getStartDate()));
 
@@ -58,7 +59,7 @@ public class EmployeeDao {
             stmt.setString(1, employee.getFirstName());
             stmt.setString(2, employee.getLastName());
             stmt.setString(3, employee.getPhoneNumber());
-            stmt.setString(4, employee.getEmploymentStatus().name());
+            stmt.setString(4, employee.getEmploymentStatus());
             stmt.setString(5, employee.getEmploymentStatusCode());
             stmt.setInt(6, employee.getEmployeeId());
 
@@ -110,10 +111,8 @@ public class EmployeeDao {
         employee.setLastName(rs.getString("last_name"));
         employee.setNationalId(rs.getString("national_id"));
         employee.setPhoneNumber(rs.getString("phone_number"));
-        employee.setGender(rs.getString("gender").equalsIgnoreCase("Mujer")
-                ? EmployeeTb.Gender.MUJER
-                : EmployeeTb.Gender.HOMBRE);
-        employee.setEmploymentStatus(rs.getString("employment_status").equalsIgnoreCase("Nombrado") ? EmployeeTb.EmploymentStatus.NOMBRADO  : EmployeeTb.EmploymentStatus.CAS);
+        employee.setGender(rs.getString("gender"));
+        employee.setEmploymentStatus(rs.getString("employment_status"));
         employee.setEmploymentStatusCode(rs.getString("employment_status_code"));
         employee.setStartDate(rs.getDate("start_date").toLocalDate());
         employee.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());

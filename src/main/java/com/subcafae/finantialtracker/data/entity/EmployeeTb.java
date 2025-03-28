@@ -12,12 +12,16 @@ public class EmployeeTb {
     private String lastName;
     private String nationalId;
     private String phoneNumber;
-    private Gender gender;
-    private EmploymentStatus employmentStatus;
+    private String gender;
+    private String employmentStatus;
     private String employmentStatusCode;
     private LocalDate startDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public Integer getLoanId() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
 
 
     public enum Gender {
@@ -40,7 +44,7 @@ public class EmployeeTb {
     public EmployeeTb() {}
 
     public EmployeeTb(String firstName, String lastName, String nationalId,String phoneNumber ,
-                   Gender gender, EmploymentStatus employmentStatus, 
+                   String gender, String employmentStatus, 
                    String employmentStatusCode, LocalDate startDate) {
         this.firstName = firstName;
         this.lastName = lastName;
@@ -68,11 +72,11 @@ public class EmployeeTb {
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
-    public Gender getGender() { return gender; }
-    public void setGender(Gender gender) { this.gender = gender; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 
-    public EmploymentStatus getEmploymentStatus() { return employmentStatus; }
-    public void setEmploymentStatus(EmploymentStatus employmentStatus) { this.employmentStatus = employmentStatus; }
+    public String getEmploymentStatus() { return employmentStatus; }
+    public void setEmploymentStatus(String employmentStatus) { this.employmentStatus = employmentStatus; }
 
     public String getEmploymentStatusCode() { return employmentStatusCode; }
     public void setEmploymentStatusCode(String employmentStatusCode) { this.employmentStatusCode = employmentStatusCode; }

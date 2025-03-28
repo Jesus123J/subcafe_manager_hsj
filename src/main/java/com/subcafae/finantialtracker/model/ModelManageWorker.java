@@ -27,7 +27,6 @@ public class ModelManageWorker extends EmployeeDao {
     public ComponentManageWorker componentManageWorker;
 
     public ModelManageWorker(ComponentManageWorker componentManageWorker) {
-        super(Conexion.getConnection());
         this.componentManageWorker = componentManageWorker;
         ((AbstractDocument) componentManageWorker.textFieldDNI.getDocument()).setDocumentFilter(new NumericFilter(8));
         componentManageWorker.dcBirthDate.setDate(new Date());
@@ -60,8 +59,8 @@ public class ModelManageWorker extends EmployeeDao {
                     componentManageWorker.textFieldLastName.getText(),
                     componentManageWorker.textFieldDNI.getText(),
                     componentManageWorker.textFieldPhone.getText(),
-                    componentManageWorker.comboBoxSex.getSelectedIndex() != 0 ? MUJER : EmployeeTb.Gender.HOMBRE,
-                    componentManageWorker.comboStatus.getSelectedIndex() != 0 ? NOMBRADO : EmployeeTb.EmploymentStatus.CAS,
+                    componentManageWorker.comboBoxSex.getSelectedIndex() != 0 ? "MUJER" :"HOMBRE",
+                    componentManageWorker.comboStatus.getSelectedIndex() != 0 ? "NOMBRADO" : "CAS",
                     componentManageWorker.comboStatus.getSelectedIndex() != 0 ? "2154" : "2028", componentManageWorker.dcBirthDate.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             create(employee);
             cleanComponent();

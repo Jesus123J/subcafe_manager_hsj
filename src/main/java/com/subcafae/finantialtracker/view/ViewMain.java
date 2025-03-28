@@ -4,10 +4,23 @@
  */
 package com.subcafae.finantialtracker.view;
 
+import com.subcafae.finantialtracker.data.dao.EmployeeDao;
+import com.subcafae.finantialtracker.report.concept.PaymentVoucher;
+import java.beans.PropertyVetoException;
+import java.sql.SQLException;
+import java.time.ZoneId;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JOptionPane;
+
 public class ViewMain extends javax.swing.JFrame {
 
     public ViewMain() {
         initComponents();
+        jInternalFrame1.setClosable(true);
+        jInternalFrame1.setResizable(false);
+        jInternalFrame1.setTitle("REGISTRO DE VOUCHER DE PAGO");
+        jInternalFrame1.setSize(790, 371);
     }
 
     @SuppressWarnings("unchecked")
@@ -15,14 +28,40 @@ public class ViewMain extends javax.swing.JFrame {
     private void initComponents() {
 
         jInternalFrame1 = new javax.swing.JInternalFrame();
-        jPanel1 = new javax.swing.JPanel();
+        jPanel4 = new javax.swing.JPanel();
+        jPanel8 = new javax.swing.JPanel();
+        jLabel8 = new javax.swing.JLabel();
+        jLabel12 = new javax.swing.JLabel();
+        jLabel16 = new javax.swing.JLabel();
+        jTextFieldNumeroVoucher = new javax.swing.JTextField();
+        jTextFieldCuentaVoucher = new javax.swing.JTextField();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        jTextAreaDetalleVoucher = new javax.swing.JTextArea();
+        jLabel41 = new javax.swing.JLabel();
+        jLabel42 = new javax.swing.JLabel();
+        jTextFieldChequeVoucher = new javax.swing.JTextField();
+        jLabel129 = new javax.swing.JLabel();
+        jTextFieldMountVoucher = new javax.swing.JTextField();
+        jLabel130 = new javax.swing.JLabel();
+        cbConRegDateStartVoucher = new com.toedter.calendar.JDateChooser();
+        jLabel82 = new javax.swing.JLabel();
+        jButton2 = new javax.swing.JButton();
+        jPanel12 = new javax.swing.JPanel();
+        jLabel131 = new javax.swing.JLabel();
+        jComboBoxSearchClient = new javax.swing.JComboBox<>();
+        jButton1 = new javax.swing.JButton();
+        jButton3 = new javax.swing.JButton();
+        jLabel7 = new javax.swing.JLabel();
+        jLabel102 = new javax.swing.JLabel();
+        jComboBox1 = new javax.swing.JComboBox<>();
+        jButton4 = new javax.swing.JButton();
         jDesktopPane1 = new javax.swing.JDesktopPane();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
-        jLabel3 = new javax.swing.JLabel();
-        jLabel4 = new javax.swing.JLabel();
-        jLabel5 = new javax.swing.JLabel();
-        jLabel6 = new javax.swing.JLabel();
+        jLabelReportDesc = new javax.swing.JLabel();
+        jLabelReportDeuda = new javax.swing.JLabel();
+        jLabelHistoryPayment = new javax.swing.JLabel();
+        jLabelConstanciaEntrega = new javax.swing.JLabel();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenuManageUser = new javax.swing.JMenu();
         jMenuManageWorker = new javax.swing.JMenu();
@@ -33,28 +72,287 @@ public class ViewMain extends javax.swing.JFrame {
 
         jInternalFrame1.setVisible(true);
 
-        jPanel1.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel4.setBackground(new java.awt.Color(204, 204, 204));
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 478, Short.MAX_VALUE)
+        jPanel8.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel8.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Datos del Voucher de Pago", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 1, 14), new java.awt.Color(0, 0, 0))); // NOI18N
+
+        jLabel8.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel8.setText("Num * Voucher : ");
+
+        jLabel12.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel12.setText("Num * Cuenta :");
+
+        jLabel16.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel16.setText("Detalle : ");
+
+        jTextFieldNumeroVoucher.setBackground(new java.awt.Color(255, 255, 255));
+        jTextFieldNumeroVoucher.setEnabled(false);
+
+        jTextFieldCuentaVoucher.setBackground(new java.awt.Color(255, 255, 255));
+
+        jTextAreaDetalleVoucher.setBackground(new java.awt.Color(255, 255, 255));
+        jTextAreaDetalleVoucher.setColumns(20);
+        jTextAreaDetalleVoucher.setRows(5);
+        jScrollPane3.setViewportView(jTextAreaDetalleVoucher);
+
+        jLabel41.setBackground(new java.awt.Color(0, 0, 0));
+        jLabel41.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel41.setText("Fecha :");
+
+        jLabel42.setBackground(new java.awt.Color(0, 0, 0));
+        jLabel42.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel42.setText("Num * Cheque :");
+
+        jTextFieldChequeVoucher.setBackground(new java.awt.Color(255, 255, 255));
+
+        jLabel129.setBackground(new java.awt.Color(0, 0, 0));
+        jLabel129.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel129.setText("Monto :");
+
+        jTextFieldMountVoucher.setBackground(new java.awt.Color(255, 255, 255));
+
+        jLabel130.setBackground(new java.awt.Color(0, 0, 0));
+        jLabel130.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel130.setText("Banco :");
+
+        cbConRegDateStartVoucher.setBackground(new java.awt.Color(255, 255, 255));
+        cbConRegDateStartVoucher.setPreferredSize(new java.awt.Dimension(190, 30));
+
+        jLabel82.setText("Banco de la Nación del Perú");
+
+        jButton2.setBackground(new java.awt.Color(102, 0, 0));
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
+        jPanel8.setLayout(jPanel8Layout);
+        jPanel8Layout.setHorizontalGroup(
+            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel8Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel8Layout.createSequentialGroup()
+                                .addComponent(jLabel12)
+                                .addGap(18, 18, 18))
+                            .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addComponent(jLabel8)
+                                .addGap(9, 9, 9)))
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addComponent(jTextFieldNumeroVoucher, javax.swing.GroupLayout.DEFAULT_SIZE, 124, Short.MAX_VALUE)
+                            .addComponent(jTextFieldCuentaVoucher))
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addGap(39, 39, 39)
+                                .addComponent(jLabel42)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jTextFieldChequeVoucher, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jLabel41)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(cbConRegDateStartVoucher, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addComponent(jLabel130)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jLabel82)
+                                .addGap(0, 0, Short.MAX_VALUE))
+                            .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addComponent(jLabel129)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jTextFieldMountVoucher, javax.swing.GroupLayout.PREFERRED_SIZE, 92, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addComponent(jLabel16)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane3)
+                        .addContainerGap())))
         );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 335, Short.MAX_VALUE)
+        jPanel8Layout.setVerticalGroup(
+            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel8Layout.createSequentialGroup()
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jTextFieldNumeroVoucher, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel41, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(0, 3, Short.MAX_VALUE))
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(jLabel82, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jLabel130))
+                            .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addGap(0, 0, Short.MAX_VALUE)
+                                .addComponent(cbConRegDateStartVoucher, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel42, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(jTextFieldChequeVoucher)
+                        .addComponent(jLabel129)
+                        .addComponent(jTextFieldMountVoucher))
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jTextFieldCuentaVoucher, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addGap(5, 5, 5)
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addComponent(jLabel16)
+                        .addGap(0, 39, Short.MAX_VALUE))
+                    .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 55, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+
+        jPanel12.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel12.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Beneficiario", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 1, 14), new java.awt.Color(0, 0, 0))); // NOI18N
+
+        jLabel131.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jLabel131.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel131.setText("Buscar beneficiario :");
+
+        jComboBoxSearchClient.setBackground(new java.awt.Color(255, 255, 255));
+        jComboBoxSearchClient.setEditable(true);
+        jComboBoxSearchClient.setForeground(new java.awt.Color(0, 0, 0));
+        jComboBoxSearchClient.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jComboBoxSearchClientActionPerformed(evt);
+            }
+        });
+        jComboBoxSearchClient.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                jComboBoxSearchClientKeyPressed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel12Layout = new javax.swing.GroupLayout(jPanel12);
+        jPanel12.setLayout(jPanel12Layout);
+        jPanel12Layout.setHorizontalGroup(
+            jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel12Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel131, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jComboBoxSearchClient, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        jPanel12Layout.setVerticalGroup(
+            jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel12Layout.createSequentialGroup()
+                .addGroup(jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jComboBoxSearchClient, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 27, Short.MAX_VALUE)
+                    .addComponent(jLabel131, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+
+        jButton1.setBackground(new java.awt.Color(196, 65, 82));
+        jButton1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jButton1.setForeground(new java.awt.Color(0, 0, 0));
+        jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/iconVoucher/inprimirIcon.png"))); // NOI18N
+        jButton1.setText("IMPRIMIR");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        jButton3.setBackground(new java.awt.Color(196, 65, 82));
+        jButton3.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jButton3.setForeground(new java.awt.Color(0, 0, 0));
+        jButton3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/iconVoucher/agregarIcon.png"))); // NOI18N
+        jButton3.setText("AGREGAR");
+        jButton3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton3ActionPerformed(evt);
+            }
+        });
+
+        jLabel7.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        jLabel7.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel7.setText("Registro de Voucher de Pago");
+
+        jLabel102.setIcon(new javax.swing.ImageIcon(getClass().getResource("/iconVoucher/search.png"))); // NOI18N
+
+        jComboBox1.setBackground(new java.awt.Color(255, 255, 255));
+        jComboBox1.setEditable(true);
+        jComboBox1.setForeground(new java.awt.Color(0, 0, 0));
+
+        jButton4.setText("LIMPIAR");
+        jButton4.setEnabled(false);
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton4ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+        jPanel4.setLayout(jPanel4Layout);
+        jPanel4Layout.setHorizontalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGap(81, 81, 81))
+                    .addComponent(jPanel8, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel12, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel4Layout.createSequentialGroup()
+                        .addComponent(jButton1)
+                        .addGap(26, 26, 26)
+                        .addComponent(jLabel102)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 272, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButton4)
+                        .addGap(18, 18, 18)
+                        .addComponent(jButton3)))
+                .addContainerGap())
+        );
+        jPanel4Layout.setVerticalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                        .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jComboBox1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jButton1, javax.swing.GroupLayout.Alignment.LEADING))
+                    .addComponent(jLabel102, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel12, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         javax.swing.GroupLayout jInternalFrame1Layout = new javax.swing.GroupLayout(jInternalFrame1.getContentPane());
         jInternalFrame1.getContentPane().setLayout(jInternalFrame1Layout);
         jInternalFrame1Layout.setHorizontalGroup(
             jInternalFrame1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         jInternalFrame1Layout.setVerticalGroup(
             jInternalFrame1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -71,26 +369,41 @@ public class ViewMain extends javax.swing.JFrame {
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel2.setText("Hospital San Jose del Callao");
 
-        jLabel3.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/excel.png"))); // NOI18N
-        jLabel3.setText("REPORTE DE DESCUENTO");
+        jLabelReportDesc.setForeground(new java.awt.Color(255, 255, 255));
+        jLabelReportDesc.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelReportDesc.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/excel.png"))); // NOI18N
+        jLabelReportDesc.setText("REPORTE DE DESCUENTO");
+        jLabelReportDesc.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
 
-        jLabel4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
-        jLabel4.setText("REPORTE DE DEUDA");
+        jLabelReportDeuda.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabelReportDeuda.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelReportDeuda.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
+        jLabelReportDeuda.setText("REPORTE DE DEUDA");
+        jLabelReportDeuda.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
 
-        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
-        jLabel5.setText("HSITORIAL DE PAGO");
+        jLabelHistoryPayment.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabelHistoryPayment.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelHistoryPayment.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
+        jLabelHistoryPayment.setText("HSITORIAL DE PAGO");
+        jLabelHistoryPayment.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
 
-        jLabel6.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
-        jLabel6.setText("CONSTANCIA DE ENTREGA");
+        jLabelConstanciaEntrega.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabelConstanciaEntrega.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelConstanciaEntrega.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
+        jLabelConstanciaEntrega.setText("CONSTANCIA DE ENTREGA");
+        jLabelConstanciaEntrega.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        jLabelConstanciaEntrega.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jLabelConstanciaEntregaMouseClicked(evt);
+            }
+        });
 
         jDesktopPane1.setLayer(jLabel1, javax.swing.JLayeredPane.DEFAULT_LAYER);
         jDesktopPane1.setLayer(jLabel2, javax.swing.JLayeredPane.DEFAULT_LAYER);
-        jDesktopPane1.setLayer(jLabel3, javax.swing.JLayeredPane.DEFAULT_LAYER);
-        jDesktopPane1.setLayer(jLabel4, javax.swing.JLayeredPane.DEFAULT_LAYER);
-        jDesktopPane1.setLayer(jLabel5, javax.swing.JLayeredPane.DEFAULT_LAYER);
-        jDesktopPane1.setLayer(jLabel6, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jDesktopPane1.setLayer(jLabelReportDesc, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jDesktopPane1.setLayer(jLabelReportDeuda, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jDesktopPane1.setLayer(jLabelHistoryPayment, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jDesktopPane1.setLayer(jLabelConstanciaEntrega, javax.swing.JLayeredPane.DEFAULT_LAYER);
 
         javax.swing.GroupLayout jDesktopPane1Layout = new javax.swing.GroupLayout(jDesktopPane1);
         jDesktopPane1.setLayout(jDesktopPane1Layout);
@@ -101,23 +414,23 @@ public class ViewMain extends javax.swing.JFrame {
                 .addGroup(jDesktopPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                     .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, 239, Short.MAX_VALUE)
                     .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 239, Short.MAX_VALUE)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jLabelReportDeuda, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabelHistoryPayment, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabelConstanciaEntrega, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabelReportDesc, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
         jDesktopPane1Layout.setVerticalGroup(
             jDesktopPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jDesktopPane1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jLabel3)
+                .addComponent(jLabelReportDesc)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jLabelReportDeuda, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 55, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jLabelHistoryPayment, javax.swing.GroupLayout.PREFERRED_SIZE, 55, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jLabelConstanciaEntrega, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 169, Short.MAX_VALUE)
                 .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -165,15 +478,163 @@ public class ViewMain extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        if (!jTextFieldNumeroVoucher.getText().isBlank()) {
+            PaymentVoucher.cleanUnusedVouchers();
+            jTextFieldNumeroVoucher.setText("");
+            jButton3.setEnabled(true);
+        }
+    }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void jComboBoxSearchClientActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBoxSearchClientActionPerformed
+
+        try {
+            String selectionClient = jComboBoxSearchClient.getSelectedItem().toString();
+            System.out.println("Component " + selectionClient);
+        } catch (Exception e) {
+        }
+    }//GEN-LAST:event_jComboBoxSearchClientActionPerformed
+
+    private void jComboBoxSearchClientKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jComboBoxSearchClientKeyPressed
+
+    }//GEN-LAST:event_jComboBoxSearchClientKeyPressed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        if (validarCamposVoucher()) {
+            jButton2.setEnabled(false);
+            jButton3.setEnabled(true);
+            if (jButton1.getText().equalsIgnoreCase("EDITAR")) {
+                String documentDni = jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[1];
+                String nameLastName = jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[0];
+
+                PaymentVoucher paymentVoucher = new PaymentVoucher(
+                        jTextFieldNumeroVoucher.getText(), jTextFieldCuentaVoucher.getText(),
+                        jTextFieldChequeVoucher.getText(), jLabel82.getText(),
+                        Double.parseDouble(jTextFieldMountVoucher.getText()),
+                        jTextAreaDetalleVoucher.getText(), documentDni, nameLastName, cbConRegDateStartVoucher.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+
+                boolean satus = paymentVoucher.updateVoucher();
+                if (satus) {
+                    JOptionPane.showMessageDialog(null, "Se actualizó el voucher");
+                }
+
+                paymentVoucher.imprintVoucher();
+
+                cleanVoucher();
+
+            } else {
+                String documentDni = jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[1];
+                String nameLastName = jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[0];
+
+                PaymentVoucher paymentVoucher = new PaymentVoucher(
+                        jTextFieldNumeroVoucher.getText(), jTextFieldCuentaVoucher.getText(),
+                        jTextFieldChequeVoucher.getText(), jLabel82.getText(),
+                        Double.parseDouble(jTextFieldMountVoucher.getText()),
+                        jTextAreaDetalleVoucher.getText(), documentDni, nameLastName, cbConRegDateStartVoucher.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+
+                paymentVoucher.generateVoucher();
+
+                cleanVoucher();
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "LLene todos los campos");
+        }
+
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
+        jButton1.setText("IMPRIMIR");
+        cleanVoucher();
+        jButton3.setEnabled(false);
+        jButton2.setEnabled(true);
+        jTextFieldNumeroVoucher.setText(PaymentVoucher.generateAndReserveVoucher());
+    }//GEN-LAST:event_jButton3ActionPerformed
+
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+        jButton4.setEnabled(false);
+        jButton3.setEnabled(true);
+        jComboBox1.removeAllItems();
+        cleanVoucher();
+    }//GEN-LAST:event_jButton4ActionPerformed
+
+    private void jLabelConstanciaEntregaMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabelConstanciaEntregaMouseClicked
+
+        jInternalFrame1.setLocation(
+                (jDesktopPane1.getWidth() - jInternalFrame1.getWidth()) / 2,
+                (jDesktopPane1.getHeight() - jInternalFrame1.getHeight()) / 2
+        );
+        jDesktopPane1.add(jInternalFrame1);
+
+        jInternalFrame1.setVisible(true);
+    }//GEN-LAST:event_jLabelConstanciaEntregaMouseClicked
+
+    public void cleanVoucher() {
+        jTextFieldNumeroVoucher.setText("");
+        jTextFieldCuentaVoucher.setText("");
+        jTextFieldChequeVoucher.setText("");
+        jTextFieldMountVoucher.setText("");
+        jTextAreaDetalleVoucher.setText("");
+        cbConRegDateStartVoucher.setDate(null);
+        jComboBox1.removeAllItems();
+        jComboBoxSearchClient.removeAllItems();
+    }
+
+    public boolean validarCamposVoucher() {
+        // Verificar si los JTextField están vacíos
+        if (jTextFieldNumeroVoucher.getText().trim().isEmpty()
+                || jTextFieldCuentaVoucher.getText().trim().isEmpty()
+                || jTextFieldChequeVoucher.getText().trim().isEmpty()
+                || jTextFieldMountVoucher.getText().trim().isEmpty()
+                || jTextAreaDetalleVoucher.getText().trim().isEmpty()) {
+            return false;
+        }
+
+        // Verificar si la fecha es nula
+        if (cbConRegDateStartVoucher.getDate() == null) {
+            return false;
+        }
+
+        // Verificar si los JComboBox tienen elementos seleccionados
+        if (jComboBoxSearchClient.getItemCount() == 0 || jComboBoxSearchClient.getSelectedItem() == null) {
+            return false;
+        }
+        try {
+            return new EmployeeDao().findAll().stream().anyMatch(predicate -> jComboBoxSearchClient.getSelectedItem().toString().equalsIgnoreCase(predicate.getFirstName().concat(" " + predicate.getLastName()) + " - " + predicate.getNationalId()));
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, "No se registro", "REGISTRO DE VOUCHER", JOptionPane.INFORMATION_MESSAGE);
+            return false;
+        }
+
+    }
+
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private com.toedter.calendar.JDateChooser cbConRegDateStartVoucher;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
+    private javax.swing.JButton jButton3;
+    private javax.swing.JButton jButton4;
+    private javax.swing.JComboBox<String> jComboBox1;
+    private javax.swing.JComboBox<String> jComboBoxSearchClient;
     public javax.swing.JDesktopPane jDesktopPane1;
     private javax.swing.JInternalFrame jInternalFrame1;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel102;
+    private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel129;
+    private javax.swing.JLabel jLabel130;
+    private javax.swing.JLabel jLabel131;
+    private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
-    private javax.swing.JLabel jLabel5;
-    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel41;
+    private javax.swing.JLabel jLabel42;
+    private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel82;
+    public javax.swing.JLabel jLabelConstanciaEntrega;
+    public javax.swing.JLabel jLabelHistoryPayment;
+    public javax.swing.JLabel jLabelReportDesc;
+    public javax.swing.JLabel jLabelReportDeuda;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
@@ -181,6 +642,14 @@ public class ViewMain extends javax.swing.JFrame {
     public javax.swing.JMenu jMenuManageWorker;
     public javax.swing.JMenu jMenuMangeBond;
     public javax.swing.JMenu jMenuMangeLoan;
-    private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel12;
+    private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel8;
+    private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JTextArea jTextAreaDetalleVoucher;
+    private javax.swing.JTextField jTextFieldChequeVoucher;
+    private javax.swing.JTextField jTextFieldCuentaVoucher;
+    private javax.swing.JTextField jTextFieldMountVoucher;
+    private javax.swing.JTextField jTextFieldNumeroVoucher;
     // End of variables declaration//GEN-END:variables
 }

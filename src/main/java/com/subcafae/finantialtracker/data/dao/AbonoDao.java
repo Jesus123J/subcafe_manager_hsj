@@ -8,25 +8,42 @@ package com.subcafae.finantialtracker.data.dao;
  *
  * @author Jesus Gutierrez
  */
+import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.AbonoTb;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JOptionPane;
 
 public class AbonoDao {
 
     private final Connection connection;
 
-    public AbonoDao(Connection connection) {
-        this.connection = connection;
+    public AbonoDao() {
+        this.connection = Conexion.getConnection();
+    }
+
+    private void updateSoliNum(int loanId) throws SQLException {
+        String soliNum = String.format("%08d", loanId);
+        String updateSql = "UPDATE abono SET SoliNum = ? WHERE ID = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(updateSql)) {
+            stmt.setString(1, soliNum);
+            stmt.setInt(2, loanId);
+            stmt.executeUpdate();
+        }
     }
 
     // Método para insertar un nuevo abono
-    public boolean insertAbono(AbonoTb abono) throws SQLException {
-        String sql = "INSERT INTO abono (SoliNum, service_concept_id, Employee_id, dues, monthly, paymentDate, " +
-                "status, discount_from, createdBy, createdAt, modifiedBy, modifiedAt) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+    // Método para insertar un nuevo abono
+    public Integer insertAbono(AbonoTb abono) throws SQLException {
+        String sql = "INSERT INTO abono (SoliNum, service_concept_id, Employee_id, dues, monthly, paymentDate, "
+                + "status, discount_from, createdBy, createdAt, modifiedBy, modifiedAt) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        // Inicia PreparedStatement con Statement.RETURN_GENERATED_KEYS
+        try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            // Asignación de valores a la consulta
             stmt.setString(1, abono.getSoliNum());
             stmt.setString(2, abono.getServiceConceptId());
             stmt.setString(3, abono.getEmployeeId());
@@ -39,15 +56,33 @@ public class AbonoDao {
             stmt.setString(10, abono.getCreatedAt());
             stmt.setInt(11, abono.getModifiedBy());
             stmt.setString(12, abono.getModifiedAt());
-            return stmt.executeUpdate() > 0;
+
+            // Ejecuta la consulta de inserción
+            int affectedRows = stmt.executeUpdate();
+
+            // Verifica si se insertaron filas y obtiene la clave generada
+            if (affectedRows > 0) {
+                Integer newId = null;
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        newId = generatedKeys.getInt(1); // Obtiene la clave generada
+                        updateSoliNum(newId); // Genera número de solicitud
+                    } else {
+                        throw new SQLException("No se pudo obtener la clave primaria generada.");
+                    }
+                }
+                return newId;
+            } else {
+                return null;
+            }
         }
     }
 
     // Método para actualizar un abono existente
     public boolean updateAbono(AbonoTb abono) throws SQLException {
-        String sql = "UPDATE abono SET SoliNum = ?, service_concept_id = ?, Employee_id = ?, dues = ?, monthly = ?, " +
-                "paymentDate = ?, status = ?, discount_from = ?, createdBy = ?, createdAt = ?, modifiedBy = ?, modifiedAt = ? " +
-                "WHERE ID = ?";
+        String sql = "UPDATE abono SET SoliNum = ?, service_concept_id = ?, Employee_id = ?, dues = ?, monthly = ?, "
+                + "paymentDate = ?, status = ?, discount_from = ?, createdBy = ?, createdAt = ?, modifiedBy = ?, modifiedAt = ? "
+                + "WHERE ID = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, abono.getSoliNum());
             stmt.setString(2, abono.getServiceConceptId());
@@ -92,8 +127,7 @@ public class AbonoDao {
     public List<AbonoTb> findAllAbonos() throws SQLException {
         String sql = "SELECT * FROM abono";
         List<AbonoTb> abonos = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = connection.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 abonos.add(mapResultSetToAbono(rs));
             }
@@ -120,4 +154,3 @@ public class AbonoDao {
         return abono;
     }
 }
-

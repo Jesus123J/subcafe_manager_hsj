@@ -90,7 +90,7 @@ public class ExcelDemo {
         // Employee trabajador = new EmployeeD().search("Dni", EmployeeDNI);
         Optional<EmployeeTb> trabajador = null;
         try {
-            trabajador = new EmployeeDao(Conexion.getConnection()).findById(EmployeeDNI);
+            trabajador = new EmployeeDao().findById(EmployeeDNI);
             if (trabajador.isEmpty()) {
                 JOptionPane.showMessageDialog(null, "No se encontro trabajador", "", JOptionPane.INFORMATION_MESSAGE);
                 return;
@@ -103,7 +103,7 @@ public class ExcelDemo {
         String[][] personalInfo = {
             {"APELLIDOS Y NOMBRES :", trabajador.get().getFirstName().concat(" " + trabajador.get().getLastName())},
             {"DNI :", trabajador.get().getNationalId()},
-            {"MODALIDAD :", trabajador.get().getEmploymentStatus().name()},
+            {"MODALIDAD :", trabajador.get().getEmploymentStatus()},
             {"PRÉSTAMO :", "ORDINARIO"}
         };
         int personalInfoRowStart = 13;

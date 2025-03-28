@@ -19,7 +19,14 @@ import java.awt.event.MouseListener;
 public class ControllerMain extends ModelMain implements ActionListener, MouseListener {
 
     public ControllerMain() {
-        super(new ViewMain() , new UserTb());
+        super(new ViewMain(), new UserTb());
+
+        //Report
+        viewMain.jLabelConstanciaEntrega.addMouseListener(this);
+        viewMain.jLabelHistoryPayment.addMouseListener(this);
+        viewMain.jLabelReportDesc.addMouseListener(this);
+        viewMain.jLabelReportDeuda.addMouseListener(this);
+
         viewMain.jMenuMangeBond.addMouseListener(this);
         viewMain.jMenuMangeLoan.addMouseListener(this);
         viewMain.jMenuManageWorker.addMouseListener(this);
@@ -51,6 +58,18 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
     @Override
     public void mouseReleased(MouseEvent e) {
 
+        if (e.getSource().equals(viewMain.jLabelConstanciaEntrega)) {
+            
+        }
+        if (e.getSource().equals(viewMain.jLabelHistoryPayment)) {
+            historyPayment();
+        }
+        if (e.getSource().equals(viewMain.jLabelReportDesc)) {
+            generateExcel();
+        }
+        if (e.getSource().equals(viewMain.jLabelReportDeuda)) {
+            reportDeuda();
+        }
     }
 
     @Override

@@ -22,7 +22,7 @@ public class LoanTb {
     private double AmountWithdrawn;
     private int dues;
     private LocalDate paymentDate;
-    private LoanState state;
+    private String state;
     private Integer refinanceParentId;
     private int createdBy;
     private LocalDateTime createdAt;
@@ -30,6 +30,11 @@ public class LoanTb {
     private Integer modifiedBy;
     private String type;
 
+    public LoanTb() {
+    }
+
+    
+    
     public String getStateLoan() {
         return stateLoan;
     }
@@ -44,7 +49,7 @@ public class LoanTb {
 
     // Constructor sin ID y sin SoliNum
     public LoanTb(String employeeId, String guarantorIds, double AmountWithdrawn, double RequestedAmount, 
-                int dues, LocalDate paymentDate, LoanState state, Integer refinanceParentId,
+                int dues, LocalDate paymentDate, String state, Integer refinanceParentId,
                 int createdBy, LocalDateTime createdAt, LocalDateTime modifiedAt, 
                 Integer modifiedBy, String type) {
         this.employeeId = employeeId;
@@ -94,11 +99,11 @@ public class LoanTb {
         this.paymentDate = paymentDate;
     }
 
-    public LoanState getState() {
+    public String getState() {
         return state;
     }
 
-    public void setState(LoanState state) {
+    public void setState(String state) {
         this.state = state;
     }
 

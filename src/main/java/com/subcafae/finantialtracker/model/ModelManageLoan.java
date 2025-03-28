@@ -40,7 +40,7 @@ public class ModelManageLoan extends LoanDao {
     protected EmployeeTb employeeAval;
 
     public ModelManageLoan(ComponentManageLoan componentManageLoan) {
-        super(Conexion.getConnection());
+   
         this.componentManageLoan = componentManageLoan;
         TextFieldValidator.applyDecimalFilter(componentManageLoan.textAmountLoan);
         TextFieldValidator.applyDecimalFilter(componentManageLoan.textRefinanciamientoDemostration);
@@ -52,7 +52,7 @@ public class ModelManageLoan extends LoanDao {
 
     public void insertListEmployeeAvalComboBox() {
         try {
-            listEmployeeAval = new EmployeeDao(Conexion.getConnection()).findAll();
+            listEmployeeAval = findAll();
             String textSearch = ((JTextField) componentManageLoan.comboBoxAval.getEditor().getEditorComponent()).getText();
             insertListEmployeeCombo(listEmployeeAval, componentManageLoan.comboBoxAval, textSearch);
             ((JTextField) componentManageLoan.comboBoxAval.getEditor().getEditorComponent()).setText(textSearch);
@@ -74,7 +74,7 @@ public class ModelManageLoan extends LoanDao {
 
     public void insertListEmployeeApplicantComboBox() {
         try {
-            listEmployeeApplicant = new EmployeeDao(Conexion.getConnection()).findAll();
+            listEmployeeApplicant = findAll();
             String textSearch = ((JTextField) componentManageLoan.comboBoxApplicant.getEditor().getEditorComponent()).getText();
             insertListEmployeeCombo(listEmployeeApplicant, componentManageLoan.comboBoxApplicant, textSearch);
             ((JTextField) componentManageLoan.comboBoxApplicant.getEditor().getEditorComponent()).setText(textSearch);
@@ -97,7 +97,7 @@ public class ModelManageLoan extends LoanDao {
                     Double.parseDouble(componentManageLoan.textAmountLoan.getText()),
                     Integer.parseInt(selectedItem.toString()),
                     LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth()),
-                    LoanTb.LoanState.Pendiente,
+                   "Pendiente",
                     null,
                     1,
                     LocalDateTime.now(),
