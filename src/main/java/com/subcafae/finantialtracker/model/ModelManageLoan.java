@@ -4,8 +4,7 @@
  */
 package com.subcafae.finantialtracker.model;
 
-import com.subcafae.finantialtracker.data.conexion.Conexion;
-import com.subcafae.finantialtracker.data.dao.EmployeeDao;
+
 import com.subcafae.finantialtracker.data.dao.LoanDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
@@ -13,19 +12,13 @@ import com.subcafae.finantialtracker.data.entity.LoanTb;
 import com.subcafae.finantialtracker.report.loanReport.ExcelDemo;
 import com.subcafae.finantialtracker.util.TextFieldValidator;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
-import java.awt.event.KeyEvent;
-import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.InputMap;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
-import javax.swing.KeyStroke;
 
 /**
  *
@@ -79,7 +72,7 @@ public class ModelManageLoan extends LoanDao {
             insertListEmployeeCombo(listEmployeeApplicant, componentManageLoan.comboBoxApplicant, textSearch);
             ((JTextField) componentManageLoan.comboBoxApplicant.getEditor().getEditorComponent()).setText(textSearch);
             componentManageLoan.comboBoxApplicant.showPopup();
-
+            
         } catch (SQLException ex) {
             System.out.println("Message" + ex.getMessage());
 
@@ -110,6 +103,7 @@ public class ModelManageLoan extends LoanDao {
             if (refinan == null) {
                 return;
             }
+            
             System.out.println("Meses dados -> " + loan.getDues());
             generateExcelLiquidación(componentManageLoan.textAmountLoan.getText(),
                     refinan.toString(),loan.getDues(),loan.getEmployeeId(), Boolean.FALSE);

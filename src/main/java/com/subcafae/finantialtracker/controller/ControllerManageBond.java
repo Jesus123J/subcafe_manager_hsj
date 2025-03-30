@@ -8,6 +8,7 @@ import com.subcafae.finantialtracker.data.entity.AbonoTb;
 import com.subcafae.finantialtracker.data.entity.ServiceConceptTb;
 import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.model.ModelManageBond;
+import com.subcafae.finantialtracker.report.bond.ReporteAbono;
 import com.subcafae.finantialtracker.view.component.ComponentManageBond;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -29,9 +30,9 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
         super(componentManageBond, user);
         componentManageBond.jComboSearchWorker.getEditor().getEditorComponent().addKeyListener(this);
         componentManageBond.jComboBoxSearchConceptBond.getEditor().getEditorComponent().addKeyListener(this);
-        componentManageBond.jComboSearchConceptBond.getEditor().getEditorComponent().addKeyListener(this);
 //        componentManageBond.jButtonCheck.addActionListener(this);
 //        componentManageBond.jButtonClean.addActionListener(this);
+        componentManageBond.jButtonReportBond.addActionListener(this);
         componentManageBond.jButtonRegisterBond.addActionListener(this);
         componentManageBond.jButtonRegistroConcepto.addActionListener(this);
         componentManageBond.jTabbedPane1.addChangeListener(this);
@@ -40,13 +41,14 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource().equals(componentManageBond.jButtonReportBond)) {
-            if (componentManageBond.jComboSearchConceptBond.getSelectedIndex() != -1) {
-                JOptionPane.showMessageDialog(null, "Rellena la casilla de concepto.");
-
-            } else {
-                //  ReporteAbono reporteAbono = new ReporteAbono();
-                //  reporteAbono.ReporteAbono(txtConceptCode.getText());
+            if (componentManageBond.searchConcept.getText().isBlank()) {
+                JOptionPane.showMessageDialog(null, "Escriba el nombre del concepto", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+                return;
             }
+
+            ReporteAbono reporteAbono = new ReporteAbono();
+            reporteAbono.searchService(componentManageBond.searchConcept.getText());
+
         }
         if (e.getSource().equals(componentManageBond.jButtonRegistroConcepto)) {
             if (componentManageBond.jTextFieldDescription.getText().isBlank()
@@ -113,21 +115,6 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
 
     @Override
     public void keyPressed(KeyEvent e) {
-
-        if (e.getSource().equals(componentManageBond.jComboSearchConceptBond.getEditor().getEditorComponent())) {
-            if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                if (componentManageBond.jComboSearchConceptBond.getSelectedIndex() != -1) {
-
-                }
-            }
-            if ((e.getKeyCode() >= KeyEvent.VK_A && e.getKeyCode() <= KeyEvent.VK_Z)
-                    || (e.getKeyCode() >= KeyEvent.VK_0 && e.getKeyCode() <= KeyEvent.VK_9)
-                    || (e.getKeyCode() >= KeyEvent.VK_NUMPAD0 && e.getKeyCode() <= KeyEvent.VK_NUMPAD9)
-                    || e.getKeyCode() == KeyEvent.VK_BACK_SPACE
-                    || e.getKeyCode() == KeyEvent.VK_SPACE) {
-                insertListCombo(componentManageBond.jComboSearchConceptBond);
-            }
-        }
 
         if (e.getSource().equals(componentManageBond.jComboSearchWorker.getEditor().getEditorComponent())) {
 

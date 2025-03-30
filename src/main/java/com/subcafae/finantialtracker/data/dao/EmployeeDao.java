@@ -76,6 +76,19 @@ public class EmployeeDao {
         }
     }
 
+    public Optional<EmployeeTb> findById(Integer id) throws SQLException {
+        String sql = "SELECT * FROM employees WHERE employee_id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return Optional.of(mapResultSetToEmployee(rs));
+            }
+            return Optional.empty();
+        }
+    }
+
     // Buscar por ID
     public Optional<EmployeeTb> findById(String dni) throws SQLException {
         String sql = "SELECT * FROM employees WHERE national_id = ?";

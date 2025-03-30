@@ -67,10 +67,12 @@ public class HistoryPayment {
         } catch (SQLException ex) {
             //  Logger.getLogger(HistoryPayment.class.getName()).log(Level.SEVERE, null, ex);
         }
+        
+        
         if (firstEmployee == null) {
             return null;
         }
-        List<ModelPaymentAndLoan> listPaymentAndLoan = registroDAO.obtenerRegistrosPorEmpleado(Integer.parseInt(firstEmployee.getNationalId()));
+        List<ModelPaymentAndLoan> listPaymentAndLoan = registroDAO.obtenerRegistrosPorEmpleado(firstEmployee.getEmployeeId());
 
         for (ModelPaymentAndLoan paymentAndLoan : listPaymentAndLoan) {
             ModelPayment modePayment = new ModelPayment();
@@ -98,6 +100,7 @@ public class HistoryPayment {
                     break;
                 }
                 AbonoDetailsDao abonoDetailsDao = new AbonoDetailsDao();
+                
                 try {
                     List<AbonoDetailResult> resul = abonoDetailsDao.getAbonoDetailById(Integer.valueOf(string));
 

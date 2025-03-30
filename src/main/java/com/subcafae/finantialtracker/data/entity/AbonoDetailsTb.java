@@ -109,6 +109,11 @@ public class AbonoDetailsTb {
     public void setModifiedAt(String modifiedAt) {
         this.modifiedAt = modifiedAt;
     }
+
+    @Override
+    public String toString() {
+        return "AbonoDetailsTb{" + "id=" + id + ", abonoID=" + abonoID + ", dues=" + dues + ", monthly=" + monthly + ", payment=" + payment + ", paymentDate=" + paymentDate + ", state=" + state + ", createdBy=" + createdBy + ", createdAt=" + createdAt + ", modifiedBy=" + modifiedBy + ", modifiedAt=" + modifiedAt + '}';
+    }
     
     
     

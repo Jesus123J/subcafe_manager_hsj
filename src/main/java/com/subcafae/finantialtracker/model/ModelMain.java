@@ -18,8 +18,10 @@ import com.subcafae.finantialtracker.data.entity.AbonoTb;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
 import com.subcafae.finantialtracker.data.entity.LoanTb;
+import com.subcafae.finantialtracker.data.entity.ServiceConceptTb;
 import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.report.HistoryPayment.HistoryPayment;
+import com.subcafae.finantialtracker.report.concept.PaymentVoucher;
 import com.subcafae.finantialtracker.report.descuento.DatosPersona;
 import com.subcafae.finantialtracker.report.descuento.ExcelExporter;
 import com.subcafae.finantialtracker.report.deuda.ReporteDeuda;
@@ -28,6 +30,8 @@ import com.subcafae.finantialtracker.view.component.ComponentManageBond;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
 import com.subcafae.finantialtracker.view.component.ComponentManageUser;
 import com.subcafae.finantialtracker.view.component.ComponentManageWorker;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.beans.PropertyVetoException;
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -36,26 +40,24 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import javax.swing.JDialog;
+import javax.swing.JComboBox;
 import javax.swing.JInternalFrame;
 import javax.swing.JOptionPane;
+import javax.swing.JTextField;
+import javax.swing.text.JTextComponent;
 
 /**
  *
  * @author Jesus Gutierrez
  */
-public class ModelMain {
+public  class ModelMain {
 
     protected ComponentManageBond componentManageBond;
     protected ComponentManageLoan componentManageLoan;
@@ -77,9 +79,15 @@ public class ModelMain {
 
         this.viewMain = viewMain;
         init();
+        combo();
     }
 
     private void init() {
+        viewMain.loading.setUndecorated(true);
+        viewMain.loading.setSize(412, 115);
+        viewMain.loading.setLocationRelativeTo(null);
+
+        //  
         viewMain.setSize(1500, 800);
         viewMain.toFront();
         viewMain.setLocationRelativeTo(null);
@@ -124,304 +132,11 @@ public class ModelMain {
 
     public void historyPayment() {
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                EmployeeDao empleadoDao = new EmployeeDao();
+        new Thread(() -> {
 
-                String[] workerOptions = {"CAS", "Nombrado"};
+            EmployeeDao empleadoDao = new EmployeeDao();
 
-                String nombresBuscar = (String) JOptionPane.showInputDialog(
-                        null,
-                        "Selecciona el tipo de trabajador:",
-                        "Tipo de Trabajador",
-                        JOptionPane.QUESTION_MESSAGE,
-                        null,
-                        workerOptions,
-                        workerOptions[0]
-                );
-
-                List<EmployeeTb> listFilter;
-                try {
-                    listFilter = empleadoDao.findAll().stream().filter(predicate -> predicate.getEmploymentStatus().equalsIgnoreCase(nombresBuscar)).collect(Collectors.toList());
-                    System.out.println("Empleado -> " + listFilter.toString());
-                    String[] employee = new String[listFilter.size()];
-
-                    for (int i = 0; i < listFilter.size(); i++) {
-                        employee[i] = listFilter.get(i).getNationalId() + " - " + listFilter.get(i).getFirstName() + listFilter.get(i).getLastName();
-                    }
-                    if (employee.length == 0) {
-                        JOptionPane.showMessageDialog(null, "No hay Trabajador tipo ".concat(nombresBuscar));
-                        return;
-                    }
-                    String nombre = (String) JOptionPane.showInputDialog(
-                            null,
-                            "Selecciona el tipo de trabajador:",
-                            "Listado de Trabajador",
-                            JOptionPane.QUESTION_MESSAGE,
-                            null,
-                            employee,
-                            employee[0]
-                    );
-
-                    if (nombresBuscar == null) {
-                        JOptionPane.showMessageDialog(null, "No se seleccionó ningún trabajador.");
-                        return;
-                    }
-
-                    String dniSeleccionado = nombre.split(" - ")[0].trim(); // Extraer el DNI del empleado
-
-                    HistoryPayment historyPayment = new HistoryPayment();
-                    historyPayment.HistoryPatment(dniSeleccionado);
-
-                } catch (SQLException ex) {
-                    Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
-                }
-
-            }
-        }).start();
-
-    }
-
-    public void generateExcel() {
-
-        String[] contractTypeOptions = {"CAS", "Nombrado"};
-//                    String[] monthsOptions = {
-//                        "Enero", "Febrero", "Marzo", "Abril", "Mayo",
-//                        "Junio", "Julio", "Agosto", "Septiembre",
-//                        "Octubre", "Noviembre", "Diciembre"
-//                    };
-
-        String contractType = (String) JOptionPane.showInputDialog(
-                null,
-                "Selecciona el tipo de trabajador:",
-                "Tipo de Trabajador",
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                contractTypeOptions,
-                contractTypeOptions[0]
-        );
-
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd"); // Formato que coincide con el texto
-
-        List<EmployeeTb> employees = null;
-        List<AbonoDetailsTb> abonoDetailses = null;
-        List<LoanTb> loan = null;
-        List<LoanDetailsTb> loanDetails = null;
-        List<AbonoTb> bonos = null;
-        try {
-            bonos = new AbonoDao().findAllAbonos();
-            employees = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getEmploymentStatus().equals(contractType)).collect(Collectors.toList());
-            abonoDetailses = new AbonoDetailsDao().getAllAbonoDetails().stream().filter(predicate -> predicate.getState().equalsIgnoreCase("Pendiente")).collect(Collectors.toList());
-            loan = new LoanDao().getAllLoans();
-
-            if (employees.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "No hay Trabajador tipo ".concat(contractType));
-                return;
-            }
-            loanDetails = new LoanDetailsDao().getAllLoanDetails();
-
-            System.out.println("List empledo -> " + employees);
-            System.out.println("List abono -> " + bonos);
-            System.out.println("");
-
-            Map<String, DatosPersona> mapaDniDatos = new HashMap<>(); // Cambiar a clave String si el DNI es String
-
-            for (AbonoTb abono : bonos) {
-
-                int id = Integer.parseInt(abono.getEmployeeId());
-
-                for (EmployeeTb employee1 : employees) {
-
-                    if (employee1.getEmployeeId() == id) {
-
-                        for (AbonoDetailsTb detalle : abonoDetailses) {
-
-                            if (abono.getId() == detalle.getAbonoID()) {
-
-                                Date utilDate = null;
-                                try {
-                                    utilDate = formatter.parse(detalle.getPaymentDate());
-                                } catch (ParseException ex) {
-                                    System.out.println("Error -> " + ex.getMessage());
-                                }
-                                System.out.println("fecha de vencimeinto  " + utilDate.toString());
-
-                                LocalDate fechaVencimiento = utilDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-
-                                if (LocalDate.now().isAfter(fechaVencimiento)) {
-                                    System.out.println("Se guarda");
-                                    mapaDniDatos.merge(
-                                            employee1.getNationalId(),
-                                            new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly(), 0.0),
-                                            (existente, nuevo) -> {
-
-                                                existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
-                                                return existente;
-                                            }
-                                    );
-                                }
-                                if (LocalDate.now().getMonth().equals(fechaVencimiento.getMonth()) && LocalDate.now().getYear() == fechaVencimiento.getYear()) {
-                                    System.out.println("Se guarda");
-                                    mapaDniDatos.merge(
-                                            employee1.getNationalId(),
-                                            new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly(), 0.0),
-                                            (existente, nuevo) -> {
-
-                                                existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
-                                                return existente;
-                                            }
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
-
-            }
-
-            for (LoanTb loan1 : loan) {
-
-                for (EmployeeTb employee1 : employees) {
-
-                    if (employee1.getEmployeeId() == Integer.parseInt(loan1.getEmployeeId())) {
-
-                        for (LoanDetailsTb loanDetail1 : loanDetails) {
-
-                            if (loan1.getId() == loanDetail1.getLoanId()) {
-
-                                LocalDate fechaVencimiento = loanDetail1.getPaymentDate().toLocalDate();
-                                System.out.println("Fecha de vencimeinto -> " + fechaVencimiento);
-
-                                if (LocalDate.now().isAfter(fechaVencimiento)) {
-                                    System.out.println("Se guarda");
-                                    mapaDniDatos.merge(
-                                            employee1.getNationalId(),
-                                            new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()),
-                                                    employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
-                                                    loanDetail1.getMonthlyFeeValue(), 0.0),
-                                            (existente, nuevo) -> {
-                                                existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
-                                                return existente;
-                                            }
-                                    );
-                                }
-                                if (LocalDate.now().getMonth().equals(fechaVencimiento.getMonth()) && LocalDate.now().getYear() == fechaVencimiento.getYear()) {
-                                    System.out.println("Se guarda");
-                                    mapaDniDatos.merge(
-                                            employee1.getNationalId(),
-                                            new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()),
-                                                    employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
-                                                    loanDetail1.getMonthlyFeeValue(), 0.0),
-                                            (existente, nuevo) -> {
-                                                existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
-                                                return existente;
-                                            }
-                                    );
-                                }
-                            }
-                        }
-                    }
-
-                }
-            }
-            List<DatosPersona> datosLista = new ArrayList<>(mapaDniDatos.values());
-
-            Object[][] data = new Object[datosLista.size()][3];
-
-            System.out.println("Imprirmir data");
-
-            for (int i = 0; i < datosLista.size(); i++) {
-                System.out.println("Dni -> " + datosLista.get(i).getDni());
-                System.out.println("Nombre -> " + datosLista.get(i).getNombre());
-                System.out.println("Monto -> " + datosLista.get(i).getMonto());
-
-                data[i][0] = datosLista.get(i).getDni();
-                data[i][1] = datosLista.get(i).getNombre();
-                data[i][2] = datosLista.get(i).getMonto();
-            }
-
-            List<Object[]> reportData = new ArrayList<>();
-            DateTimeFormatter monthYearFormatter = DateTimeFormatter.ofPattern("MMYY");
-            String monthYear = LocalDate.now().format(monthYearFormatter);
-
-            for (int i = 0; i < data.length; i++) {
-                //2028012543718205 ABRAMONTE HOLGUIN PAULA MARIA                2018/11/04 50 84    50.00     0.00  4200.00000000
-//            System.out.println("Data -> " + data[i][0]);
-//            System.out.println("Data -> " + data[i][1]);
-//            System.out.println("Data -> " + data[i][2]);
-                Object[] row = new Object[10];
-
-                row[0] = String.valueOf(data[i][0]).split("-")[1] + monthYear;
-                row[1] = String.valueOf(data[i][0]).split("-")[0];
-                row[2] = data[i][1];
-                row[3] = new java.text.SimpleDateFormat("yyyy/MM/dd").format(new java.util.Date());
-                row[4] = 50;
-                row[5] = 84;
-                row[6] = String.format("%.2f", Double.parseDouble(String.valueOf(data[i][2])));
-                row[7] = "0.00";
-                row[8] = row[7] = String.format("%.2f", Double.parseDouble(String.valueOf(data[i][2])) * 84);
-                row[9] = "000000";
-
-                reportData.add(row);
-
-            }
-
-            Object[][] data2 = reportData.toArray(new Object[0][]);
-
-            ExcelExporter exporter = new ExcelExporter();
-            exporter.generateExcel(data2);
-        } catch (SQLException ex) {
-            System.out.println("Error -> " + ex.getMessage());
-            //  Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-    }
-
-    public void reportDeuda() {
-        List<LoanTb> loans;
-
-        try {
-            ReporteDeuda reporteDeuda = new ReporteDeuda();
-
-            List<EmployeeTb> listEmployee = new EmployeeDao().findAll();
-
-            loans = new LoanDao().getAllLoans();
-
-            Set<String> empleadosConPrestamo = loans.stream()
-                    .map(LoanTb::getEmployeeId)
-                    .collect(Collectors.toSet());
-
-            List<AbonoTb> abonos = new AbonoDao().findAllAbonos();
-
-            Set<String> empleadosConAbono = abonos.stream()
-                    .map(AbonoTb::getEmployeeId)
-                    .collect(Collectors.toSet());
-
-            Set<String> empleadosUnicos = new HashSet<>();
-
-            empleadosUnicos.addAll(empleadosConPrestamo);
-            empleadosUnicos.addAll(empleadosConAbono);
-
-            System.out.println("Map -> " + empleadosUnicos.toString());
-
-            String[] nombres = empleadosUnicos.stream()
-                    .map(dni -> {
-                        System.out.println("DNI -> " + dni);
-                        EmployeeTb employee = listEmployee.stream().filter(predicate
-                                -> predicate.getEmployeeId() == Integer.parseInt(dni)
-                                || predicate.getNationalId().equalsIgnoreCase(dni)
-                        ).findFirst().get();
-                        return employee != null ? employee.getFirstName().concat(" " + employee.getLastName()) : "";
-                    })
-                    .filter(nombre -> !nombre.isEmpty())
-                    .distinct()
-                    .toArray(String[]::new);
-
-            if (nombres.length == 0) {
-                JOptionPane.showMessageDialog(null, "No hay empleados con préstamos o abonos.", "Información", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
+            String[] workerOptions = {"CAS", "Nombrado"};
 
             String nombresBuscar = (String) JOptionPane.showInputDialog(
                     null,
@@ -429,178 +144,564 @@ public class ModelMain {
                     "Tipo de Trabajador",
                     JOptionPane.QUESTION_MESSAGE,
                     null,
-                    nombres,
-                    nombres[0]
+                    workerOptions,
+                    workerOptions[0]
             );
-
             if (nombresBuscar == null) {
-                JOptionPane.showMessageDialog(null, "No seleccionaste ningún empleado.", "Información", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            JOptionPane optionPane = new JOptionPane("Descargando...", JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
-            JDialog dialog = optionPane.createDialog(null, "Información");
-            dialog.setModal(false);
-            dialog.setVisible(true);
+            try {
+                viewMain.loading.setVisible(true);
 
-            new Thread(() -> {
-                // Employee employeeR = employeeDAO.search("Name", nombresBuscar);
-                EmployeeTb employeeR = listEmployee.stream().filter(predicate -> predicate.getFirstName().concat(" " + predicate.getLastName()).equalsIgnoreCase(nombresBuscar)).findFirst().get();
-                //ABONOS
+                String[] employee = empleadoDao.findAll()
+                        .stream().map(
+                                map -> map.getEmploymentStatus().equalsIgnoreCase(nombresBuscar)
+                                ? map.getNationalId().concat(" - ".concat(map.getFirstName().concat(" ".concat(map.getLastName())))) : ""
+                        ).toArray(String[]::new);
 
-                List<AbonoTb> conceptos_ob = abonos.stream().filter(predicate -> predicate.getEmployeeId().equalsIgnoreCase(String.valueOf(employeeR.getEmployeeId()))).collect(Collectors.toList());
+                String nombre = (String) JOptionPane.showInputDialog(
+                        null,
+                        "Selecciona el tipo de trabajador:",
+                        "Listado de Trabajador",
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        employee,
+                        employee[0]
+                );
 
-                String[] conceptos_id = new String[conceptos_ob.size()];
-                String[] conceptos = null;
-                System.out.println("conceptos_ob.size " + conceptos_ob.size());
-
-                if (conceptos_ob.size() != 0) {
-
-                    for (int i = 0; i < conceptos_ob.size(); i++) {
-                        conceptos_id[i] = conceptos_ob.get(i).getServiceConceptId();
-                    }
-
-                    conceptos_id = new HashSet<>(Arrays.asList(conceptos_id)).toArray(new String[0]);
-                    conceptos_id = Arrays.stream(conceptos_id)
-                            .sorted(Comparator.comparingInt(Integer::parseInt))
-                            .toArray(String[]::new);
-
-                    System.out.println(Arrays.toString(conceptos_id));
-
-                    try {
-                        conceptos = new ServiceConceptDao().searchByIds(nombres, "description");
-
-                    } catch (SQLException e) {
-
-                    }
-
-                    System.out.println(Arrays.toString(conceptos));
-
-                } else {
-                    conceptos = new String[1];
-                    conceptos[0] = "Vacio";
-
+                if (nombre == null) {
+                    return;
                 }
-                // PRESTAMOS
 
-                System.out.println("List -> " + employeeR.toString());
-                System.out.println("List loans -> " + loans.toString());
+                String dniSeleccionado = nombre.split(" - ")[0].trim();
+                HistoryPayment historyPayment = new HistoryPayment();
 
-                try {
+                historyPayment.HistoryPatment(dniSeleccionado);
 
-                    LoanTb loanR = loans.stream().filter(predicate -> predicate.getEmployeeId().equalsIgnoreCase(employeeR.getNationalId())).findFirst().get();
+                viewMain.loading.dispose();
 
-                    System.out.println("Loan -> " + loanR);
+            } catch (SQLException ex) {
+                System.out.println("Error -> " + ex.getMessage());
+                JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DESCUENTO", JOptionPane.WARNING_MESSAGE);
+                viewMain.loading.dispose();
+                //Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }).start();
 
-                    String soliNum = "Vacio";  // Valor por defecto si no hay préstamo
+    }
 
-                    double loanAmount = 0;    // Valor por defecto si no hay préstamo
-                    int loanDues = 0;         // Valor por defecto si no hay préstamo
-                    String[][] prestamoData = new String[1][3];  // Default size to prevent IndexOutOfBounds
-                    String[][] fondoData = new String[1][3];     // Default size to prevent IndexOutOfBounds
-                    List<LoanDetailsTb> loanDetails = null;
+    public void generateExcel() {
 
-                    if (loanR != null) {
-                        soliNum = loanR.getSoliNum();
-                        loanAmount = loanR.getAmountWithdrawn();
-                        loanDues = loanR.getDues();
+        new Thread(() -> {
+            try {
 
-                        LoanTb find = loans.stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(loanR.getSoliNum())).findFirst().get();
+                String[] contractTypeOptions = {"CAS", "Nombrado"};
+//                    String[] monthsOptions = {
+//                        "Enero", "Febrero", "Marzo", "Abril", "Mayo",
+//                        "Junio", "Julio", "Agosto", "Septiembre",
+//                        "Octubre", "Noviembre", "Diciembre"
+//                    };
 
-                        try {
-                            loanDetails = new LoanDetailsDao().getAllLoanDetails().stream().filter(predicate -> predicate.getLoanId() == find.getId()).collect(Collectors.toList());
-                        } catch (SQLException ex) {
-                            //Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+                String contractType = (String) JOptionPane.showInputDialog(
+                        null,
+                        "Selecciona el tipo de trabajador:",
+                        "Tipo de Trabajador",
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        contractTypeOptions,
+                        contractTypeOptions[0]
+                );
+                if (contractType == null) {
+                    return;
+                }
+
+                viewMain.loading.setVisible(true);
+
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd"); // Formato que coincide con el texto
+                //
+                List<ExcelExporter> listExecel = new ArrayList<>();
+                DateTimeFormatter monthYearFormatter = DateTimeFormatter.ofPattern("MMYY");
+                String monthYear = LocalDate.now().format(monthYearFormatter);
+                //
+                List<EmployeeTb> employees = null;
+                List<AbonoDetailsTb> abonoDetailses = null;
+                List<LoanTb> loan = null;
+                List<LoanDetailsTb> loanDetails = null;
+                List<AbonoTb> bonos = null;
+
+                bonos = new AbonoDao().findAllAbonos().stream().filter(predicate -> predicate.getStatus().equalsIgnoreCase("Pendiente")).collect(Collectors.toList());
+                employees = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getEmploymentStatus().equals(contractType)).collect(Collectors.toList());
+                abonoDetailses = new AbonoDetailsDao().getAllAbonoDetails().stream().filter(predicate -> predicate.getState().equalsIgnoreCase("Pendiente")).collect(Collectors.toList());
+                loan = new LoanDao().getAllLoans().stream().filter(predicate -> predicate.getState().equalsIgnoreCase("Aceptado") && predicate.getStateLoan().equalsIgnoreCase("Pendiente")).collect(Collectors.toList());
+
+                if (employees.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "No hay Trabajador tipo ".concat(contractType));
+                    viewMain.loading.dispose();
+                    return;
+                }
+
+                loanDetails = new LoanDetailsDao().getAllLoanDetails();
+
+                Map<String, DatosPersona> mapaDniDatos = new HashMap<>(); // Cambiar a clave String si el DNI es String
+
+                for (AbonoTb abono : bonos) {
+
+                    int id = Integer.parseInt(abono.getEmployeeId());
+
+                    for (EmployeeTb employee1 : employees) {
+
+                        if (employee1.getEmployeeId() == id) {
+
+                            for (AbonoDetailsTb detalle : abonoDetailses) {
+
+                                if (abono.getId() == detalle.getAbonoID()) {
+
+                                    Date utilDate = null;
+                                    try {
+                                        utilDate = formatter.parse(detalle.getPaymentDate());
+                                    } catch (ParseException ex) {
+                                        System.out.println("Error -> " + ex.getMessage());
+                                    }
+                                    System.out.println("fecha de vencimeinto  " + utilDate.toString());
+
+                                    LocalDate fechaVencimiento = utilDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+                                    if (LocalDate.now().isAfter(fechaVencimiento)) {
+                                        System.out.println("Se guarda");
+                                        mapaDniDatos.merge(
+                                                employee1.getNationalId(),
+                                                new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly(), 0.0),
+                                                (existente, nuevo) -> {
+
+                                                    existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
+                                                    return existente;
+                                                }
+                                        );
+                                    }
+                                    if (LocalDate.now().getMonth().equals(fechaVencimiento.getMonth()) && LocalDate.now().getYear() == fechaVencimiento.getYear()) {
+                                        System.out.println("Se guarda");
+                                        mapaDniDatos.merge(
+                                                employee1.getNationalId(),
+                                                new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly(), 0.0),
+                                                (existente, nuevo) -> {
+
+                                                    existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
+                                                    return existente;
+                                                }
+                                        );
+                                    }
+                                }
+                            }
                         }
-
-                        prestamoData = new String[loanDetails.size()][3]; // Adjust array size based on dues
-                        fondoData = new String[loanDetails.size()][3];    // Adjust array size based on dues
-
-                        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-                        for (int i = 0; i < loanDetails.size(); i++) {
-
-                            LoanDetailsTb detail = loanDetails.get(i);
-
-                            System.out.println("Indice -> " + i);
-                            // detail.getPaymentDate().format(dateFormatter)
-                            String paymentDateString = (detail.getPaymentDate() != null) ? detail.getPaymentDate().toString() : "Fecha no disponible";
-
-                            String cuotaLabel = String.format("%03d/%03d", detail.getDues(), loanR.getDues());
-
-                            // getMonthlyIntableFundFee
-                            Double MonthlyFee = detail.getMonthlyFeeValue() - detail.getMonthlyIntangibleFundFee();
-
-                            //Porque no se pone el total
-                            // ????????
-                            prestamoData[i][0] = cuotaLabel;
-                            prestamoData[i][1] = paymentDateString;
-                            System.out.println("Patment -> " + prestamoData[i][1]);
-
-                            prestamoData[i][2] = String.valueOf(MonthlyFee);// String.valueOf(MonthlyFee);
-
-                            fondoData[i][0] = cuotaLabel;
-                            fondoData[i][1] = paymentDateString;
-                            //MonthlyFeeValue
-                            fondoData[i][2] = String.valueOf(detail.getMonthlyIntangibleFundFee());
-                        }
-                    } else {
-                        // Si no tiene préstamo, se llenan los datos con 0 o vacío
-                        prestamoData[0][0] = "0/0";
-                        prestamoData[0][1] = "0";
-                        prestamoData[0][2] = "0";
-
-                        fondoData[0][0] = "0/0";
-                        fondoData[0][1] = "0";
-                        fondoData[0][2] = "0";
                     }
-                    if (loanDetails == null) {
-                        try {
-                            reporteDeuda.reporteDeuda(
-                                    "000000",
-                                    employeeR.getFirstName().concat(" " + employeeR.getLastName()),
-                                    employeeR.getNationalId().toLowerCase(),
-                                    conceptos,
-                                    conceptos_id,
-                                    soliNum, // SoliNum
-                                    loanAmount, // Devolver 0 si no tiene préstamo
-                                    loanDues, // Devolver 0 si no tiene préstamo
-                                    (prestamoData.length > 0 ? prestamoData[0][1] : "0"), // Fecha de último pago
-                                    prestamoData,
-                                    fondoData
-                            );
-                        } catch (SQLException ex) {
-                            Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                    } else {
-                        try {
-                            reporteDeuda.reporteDeuda(
-                                    "00000",
-                                    employeeR.getFirstName().concat(" " + employeeR.getLastName()),
-                                    employeeR.getNationalId().toLowerCase(),
-                                    conceptos,
-                                    conceptos_id,
-                                    soliNum, // SoliNum
-                                    loanAmount, // Devolver 0 si no tiene préstamo
-                                    loanDues, // Devolver 0 si no tiene préstamo
-                                    (prestamoData.length > 0 ? prestamoData[loanDetails.size() - 1][1] : "0"), // Fecha de último pago
-                                    prestamoData,
-                                    fondoData
-                            );
-                        } catch (SQLException ex) {
-                            Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                    }
-                } catch (Exception e) {
 
                 }
 
-                dialog.dispose();
-            }).start();
+                for (LoanTb loan1 : loan) {
 
-        } catch (SQLException ex) {
-            //Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+                    for (EmployeeTb employee1 : employees) {
+
+                        if (employee1.getNationalId().equalsIgnoreCase(loan1.getEmployeeId())) {
+
+                            for (LoanDetailsTb loanDetail1 : loanDetails) {
+
+                                if (loan1.getId() == loanDetail1.getLoanId() && (loanDetail1.getState().equalsIgnoreCase("Pendiente") || loanDetail1.getState().equalsIgnoreCase("Parcial"))) {
+
+                                    LocalDate fechaVencimiento = loanDetail1.getPaymentDate().toLocalDate();
+
+                                    if (LocalDate.now().isAfter(fechaVencimiento)) {
+
+                                        mapaDniDatos.merge(
+                                                employee1.getNationalId(),
+                                                new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()),
+                                                        employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
+                                                        loanDetail1.getMonthlyFeeValue(), 0.0),
+                                                (existente, nuevo) -> {
+                                                    existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
+                                                    return existente;
+                                                }
+                                        );
+                                    }
+                                    if (LocalDate.now().getMonth().equals(fechaVencimiento.getMonth()) && LocalDate.now().getYear() == fechaVencimiento.getYear()) {
+                                        mapaDniDatos.merge(
+                                                employee1.getNationalId(),
+                                                new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()),
+                                                        employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
+                                                        loanDetail1.getMonthlyFeeValue(), 0.0),
+                                                (existente, nuevo) -> {
+                                                    existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
+                                                    return existente;
+                                                }
+                                        );
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                }
+
+                List<DatosPersona> datosLista = new ArrayList<>(mapaDniDatos.values());
+
+                for (int i = 0; i < datosLista.size(); i++) {
+
+                    ExcelExporter model = new ExcelExporter();
+//
+                    model.setCodigo(datosLista.get(i).getDni().split("-")[1].trim() + monthYear);
+                    model.setDni(datosLista.get(i).getDni().split("-")[0].trim());
+                    model.setNameWork(datosLista.get(i).getNombre());
+                    model.setDate(new java.text.SimpleDateFormat("yyyy/MM/dd").format(new java.util.Date()));
+                    model.setNumberCuota("50");
+                    model.setPlazos("84");
+                    model.setCuota(String.format("%.2f", Double.valueOf(String.valueOf(datosLista.get(i).getMonto()))));
+                    model.setAporte("0.00");
+                    model.setTotalPrestar(String.format("%.2f", datosLista.get(i).getMonto() * 84));
+                    model.setNumberOperacion("000000");
+                    listExecel.add(model);
+                }
+
+                ExcelExporter exporter = new ExcelExporter();
+                exporter.generateExcel(listExecel);
+
+                viewMain.loading.dispose();
+
+            } catch (SQLException ex) {
+                System.out.println("Error -> " + ex.getMessage());
+                JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                viewMain.loading.dispose();
+                //  Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }).start();
+
+    }
+
+    public void reportDeuda() {
+
+        new Thread(() -> {
+
+            try {
+
+                List<EmployeeTb> listEmployee = new EmployeeDao().findAll();
+
+                if (listEmployee.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "No hay ningún empleado.", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                String[] namee = listEmployee.stream().map(name -> name.getNationalId().concat(" - " + name.getFirstName().concat(" " + name.getLastName()))).toArray(String[]::new);
+
+                String nombresBuscar = (String) JOptionPane.showInputDialog(
+                        null,
+                        "Listado de trabajadores",
+                        "GESTIÓN DE DEUDAS",
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        namee,
+                        namee[0]
+                );
+
+                if (nombresBuscar == null) {
+                    JOptionPane.showMessageDialog(null, "No seleccionaste ningún empleado.", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                viewMain.loading.setVisible(true);
+
+                List<ServiceConceptTb> listService = new ServiceConceptDao().getAllServiceConcepts();
+                EmployeeTb employeeFind = listEmployee.stream().filter(predicate -> predicate.getNationalId().equalsIgnoreCase(nombresBuscar.split("-")[0].trim())).findFirst().get();
+
+                List<AbonoTb> listAbond = new AbonoDao().findAllAbonos().stream().filter(
+                        predicate
+                        -> predicate.getEmployeeId().equalsIgnoreCase(employeeFind.getEmployeeId().toString())
+                        && predicate.getStatus().equalsIgnoreCase("Pendiente")
+                ).collect(Collectors.toList());
+
+                List<LoanTb> listLoan = new LoanDao().getAllLoans().stream().filter(
+                        predicate
+                        -> predicate.getEmployeeId().equalsIgnoreCase(employeeFind.getNationalId())
+                        && (predicate.getState().equalsIgnoreCase("Aceptado")
+                        || predicate.getStateLoan().equalsIgnoreCase("Pendiente"))
+                ).collect(Collectors.toList());
+
+                List<ReporteDeuda> listBono = new ArrayList<>();
+                List<ReporteDeuda> listPrestamo = new ArrayList<>();
+
+                for (AbonoTb abonoTb : listAbond) {
+                    ServiceConceptTb service = listService.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get();
+                    //
+
+                    for (AbonoDetailsTb allAbonoDetail : new AbonoDetailsDao().getAllAbonoDetails()) {
+
+                        if (allAbonoDetail.getAbonoID() == abonoTb.getId() && (allAbonoDetail.getState().equalsIgnoreCase("Parcial") || allAbonoDetail.getState().equalsIgnoreCase("Pendiente"))) {
+
+                            ReporteDeuda modelBono = new ReporteDeuda();
+
+                            modelBono.setConceptBono(service.getDescription());
+                            modelBono.setDetalleCouta(String.valueOf(allAbonoDetail.getDues()));
+                            modelBono.setFechaVencimiento(allAbonoDetail.getPaymentDate());
+                            modelBono.setMonto(String.valueOf(allAbonoDetail.getMonthly() - allAbonoDetail.getPayment()));
+                            modelBono.setNumSoli(abonoTb.getSoliNum());
+
+                            listBono.add(modelBono);
+                        }
+                    }
+
+                }
+
+                for (LoanTb loanTb : listLoan) {
+
+                    for (LoanDetailsTb allLoanDetail : new LoanDetailsDao().getAllLoanDetails()) {
+
+                        if (allLoanDetail.getLoanId() == loanTb.getId() && (allLoanDetail.getState().equalsIgnoreCase("Parcial") || allLoanDetail.getState().equalsIgnoreCase("Pendiente"))) {
+
+                            ReporteDeuda modelPrestamo = new ReporteDeuda();
+
+                            modelPrestamo.setNumSoli(loanTb.getSoliNum());
+                            modelPrestamo.setDetalleCouta(String.valueOf(allLoanDetail.getDues()));
+                            modelPrestamo.setFechaVencimiento(allLoanDetail.getPaymentDate().toString());
+                            modelPrestamo.setMonto(String.valueOf(allLoanDetail.getMonthlyFeeValue() - allLoanDetail.getPayment()));
+                            //
+                            modelPrestamo.setFondo(String.valueOf(allLoanDetail.getMonthlyIntangibleFundFee()));
+
+                            listPrestamo.add(modelPrestamo);
+
+                        }
+                    }
+                }
+
+                if (listBono.isEmpty() && listPrestamo.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "No hay bonos y préstamos con el trabajador", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                new ReporteDeuda().reporteDeuda(
+                        employeeFind.getFirstName().concat(" " + employeeFind.getLastName()), employeeFind.getNationalId(),
+                        listBono, listPrestamo);
+
+                viewMain.loading.dispose();
+
+            } catch (SQLException ex) {
+                System.out.println("Error -> " + ex.getMessage());
+                JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                viewMain.loading.dispose();
+                // Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+        }).start();
+
+    }
+
+    //
+    public void cleanVoucher() {
+        viewMain.jTextFieldNumeroVoucher.setText("");
+        viewMain.jTextFieldCuentaVoucher.setText("");
+        viewMain.jTextFieldChequeVoucher.setText("");
+        viewMain.jTextFieldMountVoucher.setText("");
+        viewMain.jTextAreaDetalleVoucher.setText("");
+        viewMain.cbConRegDateStartVoucher.setDate(null);
+        viewMain.jComboBox1.removeAllItems();
+        viewMain.jComboBoxSearchClient.removeAllItems();
+    }
+
+    public boolean validarCamposVoucher() {
+        // Verificar si los JTextField están vacíos
+        if (viewMain.jTextFieldNumeroVoucher.getText().trim().isEmpty()
+                || viewMain.jTextFieldCuentaVoucher.getText().trim().isEmpty()
+                || viewMain.jTextFieldChequeVoucher.getText().trim().isEmpty()
+                || viewMain.jTextFieldMountVoucher.getText().trim().isEmpty()
+                || viewMain.jTextAreaDetalleVoucher.getText().trim().isEmpty()) {
+            return false;
         }
 
+        // Verificar si la fecha es nula
+        if (viewMain.cbConRegDateStartVoucher.getDate() == null) {
+            return false;
+        }
+
+        // Verificar si los JComboBox tienen elementos seleccionados
+        if (viewMain.jComboBoxSearchClient.getItemCount() == 0 || viewMain.jComboBoxSearchClient.getSelectedItem() == null) {
+            return false;
+        }
+        try {
+            return new EmployeeDao().findAll().stream().anyMatch(predicate -> viewMain.jComboBoxSearchClient.getSelectedItem().toString().equalsIgnoreCase(predicate.getFirstName().concat(" " + predicate.getLastName()) + " - " + predicate.getNationalId()));
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, "No se registro", "REGISTRO DE VOUCHER", JOptionPane.INFORMATION_MESSAGE);
+            return false;
+        }
+
+    }
+
+    public void combo() {
+
+        JTextField textField = (JTextField) viewMain.jComboBoxSearchClient.getEditor().getEditorComponent();
+        viewMain.jComboBoxSearchClient.getEditor().getEditorComponent().addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getSource().equals(viewMain.jComboBoxSearchClient.getEditor().getEditorComponent())) {
+                    if (e.getKeyCode() == KeyEvent.VK_UP) {
+                        System.out.println("presionó flecha arriba - remitente");
+                    }
+                    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                        System.out.println("presionó flecha abajo - remitente");
+                    }
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent evt) {
+                String inputString = viewMain.jComboBoxSearchClient.getEditor().getItem().toString();
+
+                if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+                    String name = (String) viewMain.jComboBoxSearchClient.getSelectedItem();
+                    if (name != null) {
+                        System.out.println("clienteRemitente -> " + name.split(" - ")[0]);
+                    } else {
+
+                    }
+                }
+
+                if ((evt.getKeyCode() >= KeyEvent.VK_A && evt.getKeyCode() <= KeyEvent.VK_Z) // Letras
+                        || (evt.getKeyCode() >= KeyEvent.VK_0 && evt.getKeyCode() <= KeyEvent.VK_9) // Números
+                        || (evt.getKeyCode() >= KeyEvent.VK_NUMPAD0 && evt.getKeyCode() <= KeyEvent.VK_NUMPAD9) // Teclado numérico
+                        || evt.getKeyCode() == KeyEvent.VK_BACK_SPACE // Borrar
+                        || evt.getKeyCode() == KeyEvent.VK_SPACE) { // Espacio
+
+                    System.out.println("Insertando ----------- ");
+
+                    List<EmployeeTb> employees;
+                    try {
+                        employees = new EmployeeDao().findAll();
+                    } catch (SQLException ex) {
+
+                        JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                        System.out.println("Error en la lista -> " + ex.getMessage());
+                        return;
+                        //  Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+
+                    String cadena = textField.getText();
+
+                    actualizarComboBox(viewMain.jComboBoxSearchClient, cadena, employees);
+
+                    textField.setText(cadena);
+
+                    if (viewMain.jComboBoxSearchClient.getItemCount() > 0) {
+                        viewMain.jComboBoxSearchClient.showPopup();
+                        if (evt.getKeyCode() != 8) {
+                            ((JTextComponent) viewMain.jComboBoxSearchClient.getEditor().getEditorComponent())
+                                    .select(inputString.length(), viewMain.jComboBoxSearchClient.getEditor().getItem().toString().length());
+                        } else {
+                            viewMain.jComboBoxSearchClient.getEditor().setItem(inputString);
+                        }
+                    } else {
+                        viewMain.jComboBoxSearchClient.addItem(inputString);
+                    }
+                }
+            }
+        });
+
+        JTextField textField1 = (JTextField) viewMain.jComboBox1.getEditor().getEditorComponent();
+        viewMain.jComboBox1.getEditor().getEditorComponent().addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getSource().equals(viewMain.jComboBox1.getEditor().getEditorComponent())) {
+                    if (e.getKeyCode() == KeyEvent.VK_UP) {
+                        System.out.println("presionó flecha arriba - remitente");
+                    }
+                    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                        System.out.println("presionó flecha abajo - remitente");
+                    }
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent evt) {
+                String inputString = viewMain.jComboBox1.getEditor().getItem().toString();
+
+                if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+                    String name = (String) viewMain.jComboBox1.getSelectedItem();
+                    if (name != null) {
+                        if (!name.split(" - ")[0].isBlank()) {
+                            PaymentVoucher.cleanUnusedVouchers();
+                            viewMain.jButton1.setText("EDITAR");
+                            viewMain.jButton2.setEnabled(false);
+                            viewMain.jButton3.setEnabled(false);
+                            viewMain.jButton4.setEnabled(true);
+                            String num = name.split(" - ")[0];
+                            PaymentVoucher paymentVoucher = new PaymentVoucher();
+                            PaymentVoucher paymentVoucher1 = paymentVoucher.list().stream().filter(predicate -> predicate.getNumVoucher().equalsIgnoreCase(num)).findFirst().get();
+                            viewMain.jTextFieldNumeroVoucher.setText(paymentVoucher1.getNumVoucher());
+                            viewMain.jTextFieldCuentaVoucher.setText(paymentVoucher1.getNumAccount());
+                            viewMain.jTextFieldChequeVoucher.setText(paymentVoucher1.getNumCheck());
+                            viewMain.jTextFieldMountVoucher.setText(String.valueOf(paymentVoucher1.getAmount()));
+                            viewMain.jTextAreaDetalleVoucher.setText(paymentVoucher1.getDetails());
+                            viewMain.cbConRegDateStartVoucher.setDate(Date.from(paymentVoucher1.getDateEntry().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                            viewMain.jComboBoxSearchClient.addItem(paymentVoucher1.getNameLastName() + " - " + paymentVoucher1.getDocumentDni());
+                        }
+                    } else {
+
+                    }
+                }
+
+                if ((evt.getKeyCode() >= KeyEvent.VK_A && evt.getKeyCode() <= KeyEvent.VK_Z) // Letras
+                        || (evt.getKeyCode() >= KeyEvent.VK_0 && evt.getKeyCode() <= KeyEvent.VK_9) // Números
+                        || (evt.getKeyCode() >= KeyEvent.VK_NUMPAD0 && evt.getKeyCode() <= KeyEvent.VK_NUMPAD9) // Teclado numérico
+                        || evt.getKeyCode() == KeyEvent.VK_BACK_SPACE // Borrar
+                        || evt.getKeyCode() == KeyEvent.VK_SPACE) { // Espacio
+
+                    System.out.println("Insertando ----------- ");
+                    PaymentVoucher paymentVoucher = new PaymentVoucher();
+
+                    List<PaymentVoucher> listVoucher = paymentVoucher.list();
+                    String cadena = textField1.getText();
+
+                    actualizarComboBoxVoucher(viewMain.jComboBox1, cadena, listVoucher);
+
+                    textField1.setText(cadena);
+
+                    if (viewMain.jComboBox1.getItemCount() > 0) {
+                        viewMain.jComboBox1.showPopup();
+                        if (evt.getKeyCode() != 8) {
+                            ((JTextComponent) viewMain.jComboBox1.getEditor().getEditorComponent())
+                                    .select(inputString.length(), viewMain.jComboBox1.getEditor().getItem().toString().length());
+                        } else {
+                            viewMain.jComboBox1.getEditor().setItem(inputString);
+                        }
+                    } else {
+                        viewMain.jComboBox1.addItem(inputString);
+                    }
+                }
+            }
+        });
+    }
+
+    private void actualizarComboBox(JComboBox<String> comboBox, String text, List<EmployeeTb> employees) {
+        comboBox.removeAllItems();  // Limpia la lista, pero NO modifica el textField
+
+        for (EmployeeTb item : employees) {
+            if (item.getFirstName().concat(" " + item.getLastName()).toLowerCase().contains(text.toLowerCase())
+                    || item.getNationalId().toLowerCase().contains(text.toLowerCase())) {
+                comboBox.addItem(item.getFirstName().concat(" " + item.getLastName()) + " - " + item.getNationalId());
+            }
+        }
+
+        if (comboBox.getItemCount() > 0) {
+            comboBox.setSelectedIndex(-1);  // No selecciona nada automáticamente
+        }
+    }
+
+    private void actualizarComboBoxVoucher(JComboBox<String> comboBox, String text, List<PaymentVoucher> voucher) {
+        comboBox.removeAllItems();  // Limpia la lista, pero NO modifica el textField
+
+        for (PaymentVoucher item : voucher) {
+            if (item.getNumVoucher().toLowerCase().contains(text.toLowerCase())) {
+                comboBox.addItem(item.getNumVoucher() + " - " + item.getNameLastName());
+            }
+        }
+
+        if (comboBox.getItemCount() > 0) {
+            comboBox.setSelectedIndex(-1);  // No selecciona nada automáticamente
+        }
     }
 }

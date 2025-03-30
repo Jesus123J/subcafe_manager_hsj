@@ -39,13 +39,23 @@ public class PaymentVoucher {
     private String documentDni;  // the name client
     private String nameLastName; // lastName client
 
+    private Integer userId;
+
+    public Integer getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Integer userId) {
+        this.userId = userId;
+    }
+
     public PaymentVoucher() {
 
     }
 
     public PaymentVoucher(String numVoucher, String numAccount, String numCheck,
             String bank, Double amount, String details,
-            String documentDni, String nameLastName, LocalDate dateEntry) {
+            String documentDni, String nameLastName, LocalDate dateEntry , Integer user) {
         this.numVoucher = numVoucher;
         this.numAccount = numAccount;
         this.numCheck = numCheck;
@@ -55,6 +65,7 @@ public class PaymentVoucher {
         this.documentDni = documentDni;
         this.nameLastName = nameLastName;
         this.dateEntry = dateEntry;
+        this.userId = user;
     }
 
     public void imprintVoucher() {
@@ -76,12 +87,12 @@ public class PaymentVoucher {
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private final String INSERT_SQL
-            = "INSERT INTO vouchers (num_voucher, num_account, num_check, bank, "
-            + "date_entry, amount, details, document_dni, name_lastname) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            = "INSERT INTO voucher (num_voucher, num_account, num_check, bank, "
+            + "date_entry, amount, details, document_dni, name_lastname , userId) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?,?, ?)";
 
     private final String UPDATE_SQL
-            = "UPDATE vouchers SET "
+            = "UPDATE voucher SET "
             + "num_account = ?, "
             + "num_check = ?, "
             + "bank = ?, "
@@ -113,7 +124,7 @@ public class PaymentVoucher {
             pstmt.setString(7, getDetails());
             pstmt.setString(8, getDocumentDni());
             pstmt.setString(9, getNameLastName());
-
+            pstmt.setString(10, getUserId().toString());
             int rowsAffected = pstmt.executeUpdate();
             conn.commit();
 
@@ -172,6 +183,7 @@ public class PaymentVoucher {
     public boolean updateVoucher() {
         try {
             PreparedStatement pstmt = conn.prepareStatement(UPDATE_SQL);
+            
             pstmt.setString(1, getNumAccount());
             pstmt.setString(2, getNumCheck());
             pstmt.setString(3, getBank());
@@ -191,7 +203,7 @@ public class PaymentVoucher {
 
     public List<PaymentVoucher> list() {
         List<PaymentVoucher> listaVouchers = new ArrayList<>();
-        String SELECT_SQL = "SELECT * FROM vouchers";
+        String SELECT_SQL = "SELECT * FROM voucher";
 
         try (PreparedStatement pstmt = conn.prepareStatement(SELECT_SQL)) {
             ResultSet rs = pstmt.executeQuery();

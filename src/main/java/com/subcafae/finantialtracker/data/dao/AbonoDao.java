@@ -9,6 +9,7 @@ package com.subcafae.finantialtracker.data.dao;
  * @author Jesus Gutierrez
  */
 import com.subcafae.finantialtracker.data.conexion.Conexion;
+import com.subcafae.finantialtracker.data.entity.AbonoDetailsTb;
 import com.subcafae.finantialtracker.data.entity.AbonoTb;
 import java.sql.*;
 import java.util.ArrayList;
@@ -133,6 +134,61 @@ public class AbonoDao {
             }
         }
         return abonos;
+    }
+
+    public List<AbonoTb> getListAbonoTByConcepAndCodeEm(Integer idConcept, String codeEm) throws SQLException {
+        String sql = "SELECT  ab.* FROM financialtracker1.abono ab "
+                + "LEFT JOIN financialtracker1.employees em ON  em.employee_id = ab.Employee_id "
+                + "  WHERE ab.service_concept_id = ?  AND  em.employment_status_code = ? ";
+
+        List<AbonoTb> abonos = new ArrayList<>();
+
+        PreparedStatement stmt = connection.prepareStatement(sql);
+
+        stmt.setInt(1, idConcept);
+        stmt.setString(2, codeEm);
+
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            abonos.add(mapResultSetToAbono(rs));
+        }
+        return abonos;
+    }
+
+    public List<AbonoDetailsTb> getListAbonoBySoli(String soli) throws SQLException {
+        String sql = "SELECT abDe.* FROM financialtracker1.abonodetail abDe "
+                + "LEFT JOIN financialtracker1.abono bon ON abDe.AbonoID = bon.ID "
+                + "WHERE bon.SoliNum = ?;";
+
+        List<AbonoDetailsTb> abonoDetails = new ArrayList<>();
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, soli.trim()); // Asigna el parámetro correctamente
+
+            try (ResultSet rs = stmt.executeQuery()) { // Llamada correcta sin pasar el SQL nuevamente
+                while (rs.next()) {
+                    System.out.println("Pinrt");
+
+                    // Mapeo de los datos obtenidos
+                    AbonoDetailsTb abonoDetail = new AbonoDetailsTb();
+                    abonoDetail.setId(rs.getInt("id"));
+                    abonoDetail.setAbonoID(rs.getInt("AbonoID"));
+                    abonoDetail.setDues(rs.getInt("dues"));
+                    abonoDetail.setMonthly(rs.getDouble("monthly"));
+                    abonoDetail.setPayment(rs.getDouble("payment"));
+                    abonoDetail.setPaymentDate(rs.getString("paymentDate"));
+                    abonoDetail.setState(rs.getString("state"));
+                    abonoDetail.setCreatedBy(rs.getString("createdBy"));
+                    abonoDetail.setCreatedAt(rs.getString("createdAt"));
+                    abonoDetail.setModifiedBy(rs.getString("modifiedBy"));
+                    abonoDetail.setModifiedAt(rs.getString("modifiedAt"));
+
+                    abonoDetails.add(abonoDetail);
+                }
+            }
+        }
+
+        return abonoDetails;
     }
 
     // Método auxiliar para mapear un ResultSet a un objeto Abono

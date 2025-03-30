@@ -18,7 +18,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
     public ComponentManageBond() {
         super("GESTIÓN DE BONOS", false, true, true);
         initComponents();
-        
+        jTableListConcept.getTableHeader().setReorderingAllowed(false);
         buttonGroup1.add(jRadioButtonPaga);
         buttonGroup1.add(jRadioButtonSeOmitePago);
         setSize(880, 616);
@@ -71,7 +71,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jTableListConcept = new javax.swing.JTable();
         jPanel6 = new javax.swing.JPanel();
         jButtonReportBond = new javax.swing.JButton();
-        jComboSearchConceptBond = new javax.swing.JComboBox<>();
+        searchConcept = new javax.swing.JTextField();
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -470,9 +470,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jButtonReportBond.setForeground(new java.awt.Color(255, 255, 255));
         jButtonReportBond.setText("REPORTE DE ABONO");
 
-        jComboSearchConceptBond.setBackground(new java.awt.Color(255, 255, 255));
-        jComboSearchConceptBond.setEditable(true);
-        jComboSearchConceptBond.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "BUSCAR  CONCEPTO DE BONO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
+        searchConcept.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "INSERTE EL NOMBRE DEL CONCEPTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -480,9 +478,9 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(jTabbedPane1)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jComboSearchConceptBond, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGap(14, 14, 14)
+                .addComponent(searchConcept)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jButtonReportBond, javax.swing.GroupLayout.PREFERRED_SIZE, 264, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
@@ -490,9 +488,9 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButtonReportBond, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jComboSearchConceptBond, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jButtonReportBond, javax.swing.GroupLayout.DEFAULT_SIZE, 46, Short.MAX_VALUE)
+                    .addComponent(searchConcept))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jTabbedPane1))
         );
@@ -508,7 +506,6 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
     public javax.swing.JButton jButtonReportBond;
     public javax.swing.JComboBox<String> jComboBoxSearchConceptBond;
     public javax.swing.JComboBox<String> jComboDescont;
-    public javax.swing.JComboBox<String> jComboSearchConceptBond;
     public javax.swing.JComboBox<String> jComboSearchWorker;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
@@ -541,5 +538,6 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
     public javax.swing.JTextField jTextFieldPrioridad;
     public javax.swing.JTextField jTextFieldUnidades;
     public javax.swing.JTextField jTextFieldVenta;
+    public javax.swing.JTextField searchConcept;
     // End of variables declaration//GEN-END:variables
 }

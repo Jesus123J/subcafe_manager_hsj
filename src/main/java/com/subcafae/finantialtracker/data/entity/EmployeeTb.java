@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class EmployeeTb {
-    private int employeeId;
+    private Integer employeeId;
     private String firstName;
     private String lastName;
     private String nationalId;
@@ -57,8 +57,8 @@ public class EmployeeTb {
     }
 
     // Getters y Setters
-    public int getEmployeeId() { return employeeId; }
-    public void setEmployeeId(int employeeId) { this.employeeId = employeeId; }
+    public Integer getEmployeeId() { return employeeId; }
+    public void setEmployeeId(Integer employeeId) { this.employeeId = employeeId; }
 
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }

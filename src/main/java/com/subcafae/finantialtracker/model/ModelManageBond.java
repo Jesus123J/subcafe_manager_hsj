@@ -3,6 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.subcafae.finantialtracker.model;
+
 import com.subcafae.finantialtracker.data.dao.AbonoDao;
 import com.subcafae.finantialtracker.data.dao.AbonoDetailsDao;
 import com.subcafae.finantialtracker.data.dao.EmployeeDao;
@@ -66,9 +67,9 @@ public class ModelManageBond {
     private void insertListServiceCombo(List<ServiceConceptTb> employeeTbs, JComboBox comboBox, String textSearch) {
         comboBox.removeAllItems();
         for (ServiceConceptTb serviceConceptTb : employeeTbs) {
-            
+
             String cadena = "".concat(serviceConceptTb.getId() + " - ").concat(serviceConceptTb.getDescription()).trim();
-            
+
             if (cadena.contains(textSearch.trim())) {
                 comboBox.addItem(serviceConceptTb.getId() + " - " + serviceConceptTb.getDescription());
             }
@@ -83,11 +84,6 @@ public class ModelManageBond {
                 listEmployee = new EmployeeDao().findAll();
                 textSearch = ((JTextField) combo.getEditor().getEditorComponent()).getText();
                 insertListEmployeeCombo(listEmployee, combo, textSearch);
-            } else if (combo.equals(componentManageBond.jComboSearchConceptBond)) {
-                listConcept = null;
-                listConcept = serviceConceptDao.getAllServiceConcepts();
-                textSearch = ((JTextField) combo.getEditor().getEditorComponent()).getText();
-                insertListServiceCombo(listConcept, combo, textSearch);
             } else {
                 listConcept = null;
                 listConcept = serviceConceptDao.getAllServiceConcepts();

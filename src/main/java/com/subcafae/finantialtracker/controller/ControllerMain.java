@@ -6,11 +6,15 @@ package com.subcafae.finantialtracker.controller;
 
 import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.model.ModelMain;
+import com.subcafae.finantialtracker.report.concept.PaymentVoucher;
 import com.subcafae.finantialtracker.view.ViewMain;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.time.ZoneId;
+import java.util.Date;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -18,8 +22,12 @@ import java.awt.event.MouseListener;
  */
 public class ControllerMain extends ModelMain implements ActionListener, MouseListener {
 
-    public ControllerMain() {
-        super(new ViewMain(), new UserTb());
+    UserTb usser;
+
+    public ControllerMain(UserTb userr) {
+        super(new ViewMain(), userr);
+
+        this.usser = userr;
 
         //Report
         viewMain.jLabelConstanciaEntrega.addMouseListener(this);
@@ -30,11 +38,81 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
         viewMain.jMenuMangeBond.addMouseListener(this);
         viewMain.jMenuMangeLoan.addMouseListener(this);
         viewMain.jMenuManageWorker.addMouseListener(this);
+
+        viewMain.jButton3.addActionListener(this);
+        viewMain.jButton4.addActionListener(this);
+        viewMain.jButton1.addActionListener(this);
+        viewMain.jButton2.addActionListener(this);
+
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
+        if (e.getSource().equals(viewMain.jButton2)) {
+            if (!viewMain.jTextFieldNumeroVoucher.getText().isBlank()) {
+                PaymentVoucher.cleanUnusedVouchers();
+                viewMain.jTextFieldNumeroVoucher.setText("");
+                viewMain.jButton3.setEnabled(true);
+            }
+        }
+        if (e.getSource().equals(viewMain.jButton1)) {
+            if (validarCamposVoucher()) {
+                viewMain.jButton2.setEnabled(false);
+                viewMain.jButton3.setEnabled(true);
+                if (viewMain.jButton1.getText().equalsIgnoreCase("EDITAR")) {
+                    String documentDni = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[1];
+                    String nameLastName = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[0];
 
+                    PaymentVoucher paymentVoucher = new PaymentVoucher(
+                            viewMain.jTextFieldNumeroVoucher.getText(), viewMain.jTextFieldCuentaVoucher.getText(),
+                            viewMain.jTextFieldChequeVoucher.getText(), viewMain.jLabel82.getText(),
+                            Double.valueOf(viewMain.jTextFieldMountVoucher.getText()),
+                            viewMain.jTextAreaDetalleVoucher.getText(), documentDni, nameLastName, viewMain.cbConRegDateStartVoucher.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                            usser.getId()
+                    );
+
+                    boolean satus = paymentVoucher.updateVoucher();
+                    if (satus) {
+                        JOptionPane.showMessageDialog(null, "Se actualizó el voucher");
+                    }
+
+                    paymentVoucher.imprintVoucher();
+
+                    cleanVoucher();
+
+                } else {
+                    String documentDni = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[1];
+                    String nameLastName = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[0];
+
+                    PaymentVoucher paymentVoucher = new PaymentVoucher(
+                            viewMain.jTextFieldNumeroVoucher.getText(), viewMain.jTextFieldCuentaVoucher.getText(),
+                            viewMain.jTextFieldChequeVoucher.getText(), viewMain.jLabel82.getText(),
+                            Double.valueOf(viewMain.jTextFieldMountVoucher.getText()),
+                            viewMain.jTextAreaDetalleVoucher.getText(), documentDni, nameLastName, viewMain.cbConRegDateStartVoucher.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                            usser.getId()
+                    );
+
+                    paymentVoucher.generateVoucher();
+
+                    cleanVoucher();
+                }
+            } else {
+                JOptionPane.showMessageDialog(null, "LLene todos los campos");
+            }
+        }
+        if (e.getSource().equals(viewMain.jButton4)) {
+            viewMain.jButton4.setEnabled(false);
+            viewMain.jButton3.setEnabled(true);
+            viewMain.jComboBox1.removeAllItems();
+            cleanVoucher();
+        }
+        if (e.getSource().equals(viewMain.jButton3)) {
+            viewMain.jButton1.setText("IMPRIMIR");
+            cleanVoucher();
+            viewMain.jButton3.setEnabled(false);
+            viewMain.jButton2.setEnabled(true);
+            viewMain.jTextFieldNumeroVoucher.setText(PaymentVoucher.generateAndReserveVoucher());
+        }
     }
 
     @Override
@@ -59,8 +137,10 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
     public void mouseReleased(MouseEvent e) {
 
         if (e.getSource().equals(viewMain.jLabelConstanciaEntrega)) {
-            
+            viewMain.cbConRegDateStartVoucher.setDate(new Date());
+            centerInternalComponent(viewMain.jInternalFrame1);
         }
+
         if (e.getSource().equals(viewMain.jLabelHistoryPayment)) {
             historyPayment();
         }

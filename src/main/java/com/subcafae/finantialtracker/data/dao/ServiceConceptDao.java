@@ -27,35 +27,6 @@ public class ServiceConceptDao {
         this.connection = Conexion.getConnection();
     }
 
-    public String[] searchByIds(String[] ids, String campo) throws SQLException {
-
-        StringBuilder query = new StringBuilder("SELECT * FROM service_concept WHERE id IN (");
-        for (int i = 0; i < ids.length; i++) {
-            query.append("?");
-            if (i < ids.length - 1) {
-                query.append(", ");
-            }
-        }
-        query.append(")");
-        String[] conceptos = new String[ids.length];
-        try (PreparedStatement pst = connection.prepareStatement(query.toString())) {
-            // Asignar valores a los parámetros
-            for (int i = 0; i < ids.length; i++) {
-                pst.setString(i + 1, ids[i]);
-            }
-            int valor = 0;
-            try (ResultSet rs = pst.executeQuery()) {
-                while (rs.next()) {
-                    conceptos[valor] = rs.getString(campo);
-                    valor++;
-                }
-            }
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage(), "Excepción encontrada", JOptionPane.ERROR_MESSAGE);
-        }
-        return conceptos;
-    }
-
     public void insert(ServiceConceptTb entity) throws SQLException {
         String query = "INSERT INTO service_concept (ID, description, sale_price, cost_price, priority, unid ,"
                 + "priority_concept, createdBy, createdAt, modifiedBy, modifiedAt) "
@@ -76,6 +47,42 @@ public class ServiceConceptDao {
             stmt.executeUpdate();
             JOptionPane.showMessageDialog(null, "Se registro el Concepto", "GÉSTION DE BONO", JOptionPane.INFORMATION_MESSAGE);
         }
+    }
+
+    public ServiceConceptTb findServiceConceptByDescription(String description) {
+        String sql = "SELECT * FROM service_concept WHERE description = ? ORDER BY ID ASC LIMIT 1";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, description); // Asigna el parámetro de búsqueda
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+
+                    ServiceConceptTb serviceConcept = new ServiceConceptTb();
+                    serviceConcept.setId(rs.getInt("ID"));
+                    serviceConcept.setDescription(rs.getString("description"));
+                    serviceConcept.setSalePrice(rs.getDouble("sale_price"));
+                    serviceConcept.setCostPrice(rs.getDouble("cost_price"));
+                    serviceConcept.setPriority(rs.getInt("priority"));
+                    serviceConcept.setUnid(rs.getInt("unid"));
+                    serviceConcept.setPriorityConcept(rs.getString("priority_concept"));
+                    serviceConcept.setCreatedBy(rs.getInt("createdBy"));
+                    serviceConcept.setCreatedAt(rs.getString("createdAt"));
+                    serviceConcept.setModifiedBy(rs.getInt("modifiedBy"));
+                    serviceConcept.setModifiedAt(rs.getString("modifiedAt"));
+                    return serviceConcept;
+
+                } else {
+                    // Si no se encuentra, imprime el mensaje
+                    JOptionPane.showMessageDialog(null, "No se encontro nombre del concepto", "GENERAL", JOptionPane.INFORMATION_MESSAGE);
+
+                    return null;
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error -> " + e.getMessage());
+        }
+        return null;
     }
 
     public List<ServiceConceptTb> getAllServiceConcepts() throws SQLException {

@@ -55,6 +55,9 @@ public class ViewMain extends javax.swing.JFrame {
         jLabel102 = new javax.swing.JLabel();
         jComboBox1 = new javax.swing.JComboBox<>();
         jButton4 = new javax.swing.JButton();
+        loading = new javax.swing.JDialog();
+        jPanel1 = new javax.swing.JPanel();
+        jLabel3 = new javax.swing.JLabel();
         jDesktopPane1 = new javax.swing.JDesktopPane();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
@@ -275,11 +278,6 @@ public class ViewMain extends javax.swing.JFrame {
         jButton3.setForeground(new java.awt.Color(0, 0, 0));
         jButton3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/iconVoucher/agregarIcon.png"))); // NOI18N
         jButton3.setText("AGREGAR");
-        jButton3.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton3ActionPerformed(evt);
-            }
-        });
 
         jLabel7.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel7.setForeground(new java.awt.Color(0, 0, 0));
@@ -294,11 +292,6 @@ public class ViewMain extends javax.swing.JFrame {
 
         jButton4.setText("LIMPIAR");
         jButton4.setEnabled(false);
-        jButton4.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton4ActionPerformed(evt);
-            }
-        });
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
@@ -353,6 +346,48 @@ public class ViewMain extends javax.swing.JFrame {
         jInternalFrame1Layout.setVerticalGroup(
             jInternalFrame1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+
+        jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/loading.gif"))); // NOI18N
+        jLabel3.setText("Cargando");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(23, 23, 23)
+                .addComponent(jLabel3)
+                .addContainerGap(119, Short.MAX_VALUE))
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(23, Short.MAX_VALUE))
+        );
+
+        javax.swing.GroupLayout loadingLayout = new javax.swing.GroupLayout(loading.getContentPane());
+        loading.getContentPane().setLayout(loadingLayout);
+        loadingLayout.setHorizontalGroup(
+            loadingLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 400, Short.MAX_VALUE)
+            .addGroup(loadingLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(loadingLayout.createSequentialGroup()
+                    .addGap(0, 0, Short.MAX_VALUE)
+                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGap(0, 0, Short.MAX_VALUE)))
+        );
+        loadingLayout.setVerticalGroup(
+            loadingLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 300, Short.MAX_VALUE)
+            .addGroup(loadingLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(loadingLayout.createSequentialGroup()
+                    .addGap(0, 0, Short.MAX_VALUE)
+                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGap(0, 0, Short.MAX_VALUE)))
         );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -479,20 +514,11 @@ public class ViewMain extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        if (!jTextFieldNumeroVoucher.getText().isBlank()) {
-            PaymentVoucher.cleanUnusedVouchers();
-            jTextFieldNumeroVoucher.setText("");
-            jButton3.setEnabled(true);
-        }
+       
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jComboBoxSearchClientActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBoxSearchClientActionPerformed
 
-        try {
-            String selectionClient = jComboBoxSearchClient.getSelectedItem().toString();
-            System.out.println("Component " + selectionClient);
-        } catch (Exception e) {
-        }
     }//GEN-LAST:event_jComboBoxSearchClientActionPerformed
 
     private void jComboBoxSearchClientKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jComboBoxSearchClientKeyPressed
@@ -500,124 +526,25 @@ public class ViewMain extends javax.swing.JFrame {
     }//GEN-LAST:event_jComboBoxSearchClientKeyPressed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        if (validarCamposVoucher()) {
-            jButton2.setEnabled(false);
-            jButton3.setEnabled(true);
-            if (jButton1.getText().equalsIgnoreCase("EDITAR")) {
-                String documentDni = jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[1];
-                String nameLastName = jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[0];
-
-                PaymentVoucher paymentVoucher = new PaymentVoucher(
-                        jTextFieldNumeroVoucher.getText(), jTextFieldCuentaVoucher.getText(),
-                        jTextFieldChequeVoucher.getText(), jLabel82.getText(),
-                        Double.parseDouble(jTextFieldMountVoucher.getText()),
-                        jTextAreaDetalleVoucher.getText(), documentDni, nameLastName, cbConRegDateStartVoucher.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
-
-                boolean satus = paymentVoucher.updateVoucher();
-                if (satus) {
-                    JOptionPane.showMessageDialog(null, "Se actualizó el voucher");
-                }
-
-                paymentVoucher.imprintVoucher();
-
-                cleanVoucher();
-
-            } else {
-                String documentDni = jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[1];
-                String nameLastName = jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[0];
-
-                PaymentVoucher paymentVoucher = new PaymentVoucher(
-                        jTextFieldNumeroVoucher.getText(), jTextFieldCuentaVoucher.getText(),
-                        jTextFieldChequeVoucher.getText(), jLabel82.getText(),
-                        Double.parseDouble(jTextFieldMountVoucher.getText()),
-                        jTextAreaDetalleVoucher.getText(), documentDni, nameLastName, cbConRegDateStartVoucher.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
-
-                paymentVoucher.generateVoucher();
-
-                cleanVoucher();
-            }
-        } else {
-            JOptionPane.showMessageDialog(null, "LLene todos los campos");
-        }
+      
 
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        jButton1.setText("IMPRIMIR");
-        cleanVoucher();
-        jButton3.setEnabled(false);
-        jButton2.setEnabled(true);
-        jTextFieldNumeroVoucher.setText(PaymentVoucher.generateAndReserveVoucher());
-    }//GEN-LAST:event_jButton3ActionPerformed
-
-    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-        jButton4.setEnabled(false);
-        jButton3.setEnabled(true);
-        jComboBox1.removeAllItems();
-        cleanVoucher();
-    }//GEN-LAST:event_jButton4ActionPerformed
-
     private void jLabelConstanciaEntregaMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabelConstanciaEntregaMouseClicked
 
-        jInternalFrame1.setLocation(
-                (jDesktopPane1.getWidth() - jInternalFrame1.getWidth()) / 2,
-                (jDesktopPane1.getHeight() - jInternalFrame1.getHeight()) / 2
-        );
-        jDesktopPane1.add(jInternalFrame1);
-
-        jInternalFrame1.setVisible(true);
+    
     }//GEN-LAST:event_jLabelConstanciaEntregaMouseClicked
 
-    public void cleanVoucher() {
-        jTextFieldNumeroVoucher.setText("");
-        jTextFieldCuentaVoucher.setText("");
-        jTextFieldChequeVoucher.setText("");
-        jTextFieldMountVoucher.setText("");
-        jTextAreaDetalleVoucher.setText("");
-        cbConRegDateStartVoucher.setDate(null);
-        jComboBox1.removeAllItems();
-        jComboBoxSearchClient.removeAllItems();
-    }
-
-    public boolean validarCamposVoucher() {
-        // Verificar si los JTextField están vacíos
-        if (jTextFieldNumeroVoucher.getText().trim().isEmpty()
-                || jTextFieldCuentaVoucher.getText().trim().isEmpty()
-                || jTextFieldChequeVoucher.getText().trim().isEmpty()
-                || jTextFieldMountVoucher.getText().trim().isEmpty()
-                || jTextAreaDetalleVoucher.getText().trim().isEmpty()) {
-            return false;
-        }
-
-        // Verificar si la fecha es nula
-        if (cbConRegDateStartVoucher.getDate() == null) {
-            return false;
-        }
-
-        // Verificar si los JComboBox tienen elementos seleccionados
-        if (jComboBoxSearchClient.getItemCount() == 0 || jComboBoxSearchClient.getSelectedItem() == null) {
-            return false;
-        }
-        try {
-            return new EmployeeDao().findAll().stream().anyMatch(predicate -> jComboBoxSearchClient.getSelectedItem().toString().equalsIgnoreCase(predicate.getFirstName().concat(" " + predicate.getLastName()) + " - " + predicate.getNationalId()));
-        } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(null, "No se registro", "REGISTRO DE VOUCHER", JOptionPane.INFORMATION_MESSAGE);
-            return false;
-        }
-
-    }
-
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private com.toedter.calendar.JDateChooser cbConRegDateStartVoucher;
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
-    private javax.swing.JButton jButton4;
-    private javax.swing.JComboBox<String> jComboBox1;
-    private javax.swing.JComboBox<String> jComboBoxSearchClient;
+    public com.toedter.calendar.JDateChooser cbConRegDateStartVoucher;
+    public javax.swing.JButton jButton1;
+    public javax.swing.JButton jButton2;
+    public javax.swing.JButton jButton3;
+    public javax.swing.JButton jButton4;
+    public javax.swing.JComboBox<String> jComboBox1;
+    public javax.swing.JComboBox<String> jComboBoxSearchClient;
     public javax.swing.JDesktopPane jDesktopPane1;
-    private javax.swing.JInternalFrame jInternalFrame1;
+    public javax.swing.JInternalFrame jInternalFrame1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel102;
     private javax.swing.JLabel jLabel12;
@@ -626,11 +553,12 @@ public class ViewMain extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel131;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel41;
     private javax.swing.JLabel jLabel42;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel82;
+    public javax.swing.JLabel jLabel82;
     public javax.swing.JLabel jLabelConstanciaEntrega;
     public javax.swing.JLabel jLabelHistoryPayment;
     public javax.swing.JLabel jLabelReportDesc;
@@ -642,14 +570,16 @@ public class ViewMain extends javax.swing.JFrame {
     public javax.swing.JMenu jMenuManageWorker;
     public javax.swing.JMenu jMenuMangeBond;
     public javax.swing.JMenu jMenuMangeLoan;
+    public javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel12;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel8;
     private javax.swing.JScrollPane jScrollPane3;
-    private javax.swing.JTextArea jTextAreaDetalleVoucher;
-    private javax.swing.JTextField jTextFieldChequeVoucher;
-    private javax.swing.JTextField jTextFieldCuentaVoucher;
-    private javax.swing.JTextField jTextFieldMountVoucher;
-    private javax.swing.JTextField jTextFieldNumeroVoucher;
+    public javax.swing.JTextArea jTextAreaDetalleVoucher;
+    public javax.swing.JTextField jTextFieldChequeVoucher;
+    public javax.swing.JTextField jTextFieldCuentaVoucher;
+    public javax.swing.JTextField jTextFieldMountVoucher;
+    public javax.swing.JTextField jTextFieldNumeroVoucher;
+    public javax.swing.JDialog loading;
     // End of variables declaration//GEN-END:variables
 }
