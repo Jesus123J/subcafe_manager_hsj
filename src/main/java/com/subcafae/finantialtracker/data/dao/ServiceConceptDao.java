@@ -49,17 +49,50 @@ public class ServiceConceptDao {
         }
     }
 
-    public ServiceConceptTb findServiceConceptByDescription(String description) {
-        String sql = "SELECT * FROM service_concept WHERE description = ? ORDER BY ID ASC LIMIT 1";
+    public boolean deleteServiceConceptIfNotUsed(String codigo) throws SQLException {
+        String findServiceConceptIdQuery = "SELECT ID FROM service_concept WHERE codigo = ?";
+        String checkUsageQuery = "SELECT COUNT(*) FROM abono WHERE service_concept_id = ?";
+        String deleteQuery = "DELETE FROM service_concept WHERE ID = ?";
+
+        try (PreparedStatement stmtFindServiceId = connection.prepareStatement(findServiceConceptIdQuery); PreparedStatement stmtCheckUsage = connection.prepareStatement(checkUsageQuery); PreparedStatement stmtDelete = connection.prepareStatement(deleteQuery)) {
+
+            // Paso 1: Obtener el ID del service_concept basado en el código
+            stmtFindServiceId.setString(1, codigo);
+            ResultSet rsServiceId = stmtFindServiceId.executeQuery();
+
+            if (!rsServiceId.next()) {
+                JOptionPane.showMessageDialog(null,"No se encontró el código en service_concept.", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+                return false; // Retorna falso si el código no existe
+            }
+
+            int serviceConceptId = rsServiceId.getInt("ID");
+
+            // Paso 2: Verificar si está siendo usado en la tabla abono
+            stmtCheckUsage.setInt(1, serviceConceptId);
+            ResultSet rsUsage = stmtCheckUsage.executeQuery();
+
+            if (rsUsage.next() && rsUsage.getInt(1) == 0) {
+                // Paso 3: Si no está referenciado, eliminar el registro
+                stmtDelete.setInt(1, serviceConceptId);
+                return stmtDelete.executeUpdate() > 0;
+            } else {
+                 JOptionPane.showMessageDialog(null, "No se puede eliminar, el servicio está referenciado en abono.", "REPORTE DE ABONO" , JOptionPane.INFORMATION_MESSAGE);
+                return false;
+            }
+        }
+    }
+
+    public ServiceConceptTb findServiceConceptByCodigo(String codigo) {
+        String sql = "SELECT * FROM service_concept WHERE codigo = ? ORDER BY ID ASC LIMIT 1";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, description); // Asigna el parámetro de búsqueda
+            stmt.setString(1, codigo); // Asigna el parámetro de búsqueda
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-
                     ServiceConceptTb serviceConcept = new ServiceConceptTb();
                     serviceConcept.setId(rs.getInt("ID"));
+                    serviceConcept.setCodigo(rs.getString("codigo")); // Ahora busca por código
                     serviceConcept.setDescription(rs.getString("description"));
                     serviceConcept.setSalePrice(rs.getDouble("sale_price"));
                     serviceConcept.setCostPrice(rs.getDouble("cost_price"));
@@ -71,11 +104,9 @@ public class ServiceConceptDao {
                     serviceConcept.setModifiedBy(rs.getInt("modifiedBy"));
                     serviceConcept.setModifiedAt(rs.getString("modifiedAt"));
                     return serviceConcept;
-
                 } else {
                     // Si no se encuentra, imprime el mensaje
-                    JOptionPane.showMessageDialog(null, "No se encontro nombre del concepto", "GENERAL", JOptionPane.INFORMATION_MESSAGE);
-
+                    JOptionPane.showMessageDialog(null, "No se encontró el concepto con el código proporcionado", "GENERAL", JOptionPane.INFORMATION_MESSAGE);
                     return null;
                 }
             }
@@ -87,8 +118,7 @@ public class ServiceConceptDao {
 
     public List<ServiceConceptTb> getAllServiceConcepts() throws SQLException {
         List<ServiceConceptTb> serviceConceptList = new ArrayList<>();
-        String query = "SELECT ID, description, sale_price, cost_price, priority, unid, priority_concept, "
-                + "createdBy, createdAt, modifiedBy, modifiedAt FROM service_concept";
+        String query = "SELECT * FROM service_concept";
 
         try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
 
@@ -105,7 +135,7 @@ public class ServiceConceptDao {
                 serviceConcept.setCreatedAt(rs.getString("createdAt"));
                 serviceConcept.setModifiedBy(rs.getInt("modifiedBy"));
                 serviceConcept.setModifiedAt(rs.getString("modifiedAt"));
-
+                serviceConcept.setCodigo(rs.getString("codigo"));
                 serviceConceptList.add(serviceConcept);
             }
         }

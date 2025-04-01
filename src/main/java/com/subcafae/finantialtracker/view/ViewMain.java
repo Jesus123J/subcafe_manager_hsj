@@ -21,6 +21,10 @@ public class ViewMain extends javax.swing.JFrame {
         jInternalFrame1.setResizable(false);
         jInternalFrame1.setTitle("REGISTRO DE VOUCHER DE PAGO");
         jInternalFrame1.setSize(790, 371);
+        jInternalPagoPrestamosOtros.setTitle("REGISTRO DE PAGO Y OTROS");
+        jInternalPagoPrestamosOtros.setSize(970, 530);
+        jInternalPagoPrestamosOtros.setClosable(true);
+        jInternalPagoPrestamosOtros.setResizable(false);
     }
 
     @SuppressWarnings("unchecked")
@@ -58,6 +62,20 @@ public class ViewMain extends javax.swing.JFrame {
         loading = new javax.swing.JDialog();
         jPanel1 = new javax.swing.JPanel();
         jLabel3 = new javax.swing.JLabel();
+        jInternalPagoPrestamosOtros = new javax.swing.JInternalFrame();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTableDataEncontradaFile = new javax.swing.JTable();
+        jButtonSearchDocument = new javax.swing.JButton();
+        jLabel4 = new javax.swing.JLabel();
+        jSeparator1 = new javax.swing.JSeparator();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        jTableNoEncontrado = new javax.swing.JTable();
+        jLabel5 = new javax.swing.JLabel();
+        jSeparator2 = new javax.swing.JSeparator();
+        jButtonProcesoDescuent = new javax.swing.JButton();
+        jLabel6 = new javax.swing.JLabel();
+        jLabelCantidad = new javax.swing.JLabel();
+        jLabelCode = new javax.swing.JLabel();
         jDesktopPane1 = new javax.swing.JDesktopPane();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
@@ -70,7 +88,7 @@ public class ViewMain extends javax.swing.JFrame {
         jMenuManageWorker = new javax.swing.JMenu();
         jMenuMangeLoan = new javax.swing.JMenu();
         jMenuMangeBond = new javax.swing.JMenu();
-        jMenu1 = new javax.swing.JMenu();
+        jMenuPago = new javax.swing.JMenu();
         jMenu2 = new javax.swing.JMenu();
 
         jInternalFrame1.setVisible(true);
@@ -390,6 +408,117 @@ public class ViewMain extends javax.swing.JFrame {
                     .addGap(0, 0, Short.MAX_VALUE)))
         );
 
+        jInternalPagoPrestamosOtros.setVisible(true);
+
+        jTableDataEncontradaFile.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "ID", "CODIGO TRABAJADOR", "FECHA", "NOMBRE COMPLETO", "MONTO"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane1.setViewportView(jTableDataEncontradaFile);
+
+        jButtonSearchDocument.setText("BUSCAR DOCUMENTO DE TIPO TXT");
+
+        jLabel4.setText("MOSTRAR EMPLEADOS ENCONTRADOS Y PREPARAR PARA HACER EL DESCUENTO");
+
+        jTableNoEncontrado.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "ID", "CODIGO TRABAJADOR", "FECHA", "NOMBRE COMPLETO", "MONTO"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane2.setViewportView(jTableNoEncontrado);
+
+        jLabel5.setText("NOMBRES NO ENCONTRADOS EN EL SISTEMA ");
+
+        jButtonProcesoDescuent.setText("PROCESAR DESCUENTO");
+
+        jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        jLabel6.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel6.setText("CANTIDAD  DE REGISTROS EN EL TXT ");
+
+        jLabelCantidad.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        jLabelCantidad.setForeground(new java.awt.Color(51, 102, 0));
+        jLabelCantidad.setText("0");
+
+        jLabelCode.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+
+        javax.swing.GroupLayout jInternalPagoPrestamosOtrosLayout = new javax.swing.GroupLayout(jInternalPagoPrestamosOtros.getContentPane());
+        jInternalPagoPrestamosOtros.getContentPane().setLayout(jInternalPagoPrestamosOtrosLayout);
+        jInternalPagoPrestamosOtrosLayout.setHorizontalGroup(
+            jInternalPagoPrestamosOtrosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jInternalPagoPrestamosOtrosLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jInternalPagoPrestamosOtrosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jSeparator1, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jScrollPane1)
+                    .addComponent(jScrollPane2)
+                    .addComponent(jSeparator2, javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jInternalPagoPrestamosOtrosLayout.createSequentialGroup()
+                        .addComponent(jLabel6)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(jLabelCantidad, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jInternalPagoPrestamosOtrosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(jButtonProcesoDescuent, javax.swing.GroupLayout.PREFERRED_SIZE, 296, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(jInternalPagoPrestamosOtrosLayout.createSequentialGroup()
+                                .addComponent(jLabelCode, javax.swing.GroupLayout.DEFAULT_SIZE, 254, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jButtonSearchDocument, javax.swing.GroupLayout.PREFERRED_SIZE, 285, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addContainerGap())
+        );
+        jInternalPagoPrestamosOtrosLayout.setVerticalGroup(
+            jInternalPagoPrestamosOtrosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jInternalPagoPrestamosOtrosLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jInternalPagoPrestamosOtrosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addGroup(jInternalPagoPrestamosOtrosLayout.createSequentialGroup()
+                        .addGap(12, 12, 12)
+                        .addGroup(jInternalPagoPrestamosOtrosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jLabelCantidad, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                    .addComponent(jButtonSearchDocument, javax.swing.GroupLayout.DEFAULT_SIZE, 42, Short.MAX_VALUE)
+                    .addComponent(jLabelCode, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButtonProcesoDescuent, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(14, Short.MAX_VALUE))
+        );
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jDesktopPane1.setBackground(new java.awt.Color(51, 102, 255));
@@ -491,8 +620,8 @@ public class ViewMain extends javax.swing.JFrame {
         jMenuMangeBond.setText("GESTÓN DE BONOS");
         jMenuBar1.add(jMenuMangeBond);
 
-        jMenu1.setText("PAGOS PRESTAMOS Y OTROS");
-        jMenuBar1.add(jMenu1);
+        jMenuPago.setText("PAGOS PRESTAMOS Y OTROS");
+        jMenuBar1.add(jMenuPago);
 
         jMenu2.setText("CERRAR SESION");
         jMenuBar1.add(jMenu2);
@@ -514,7 +643,7 @@ public class ViewMain extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-       
+
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jComboBoxSearchClientActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBoxSearchClientActionPerformed
@@ -526,13 +655,13 @@ public class ViewMain extends javax.swing.JFrame {
     }//GEN-LAST:event_jComboBoxSearchClientKeyPressed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-      
+
 
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jLabelConstanciaEntregaMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabelConstanciaEntregaMouseClicked
 
-    
+
     }//GEN-LAST:event_jLabelConstanciaEntregaMouseClicked
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -541,10 +670,13 @@ public class ViewMain extends javax.swing.JFrame {
     public javax.swing.JButton jButton2;
     public javax.swing.JButton jButton3;
     public javax.swing.JButton jButton4;
+    public javax.swing.JButton jButtonProcesoDescuent;
+    public javax.swing.JButton jButtonSearchDocument;
     public javax.swing.JComboBox<String> jComboBox1;
     public javax.swing.JComboBox<String> jComboBoxSearchClient;
     public javax.swing.JDesktopPane jDesktopPane1;
     public javax.swing.JInternalFrame jInternalFrame1;
+    public javax.swing.JInternalFrame jInternalPagoPrestamosOtros;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel102;
     private javax.swing.JLabel jLabel12;
@@ -554,32 +686,43 @@ public class ViewMain extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel41;
     private javax.swing.JLabel jLabel42;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     public javax.swing.JLabel jLabel82;
+    public javax.swing.JLabel jLabelCantidad;
+    public javax.swing.JLabel jLabelCode;
     public javax.swing.JLabel jLabelConstanciaEntrega;
     public javax.swing.JLabel jLabelHistoryPayment;
     public javax.swing.JLabel jLabelReportDesc;
     public javax.swing.JLabel jLabelReportDeuda;
-    private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
     public javax.swing.JMenu jMenuManageUser;
     public javax.swing.JMenu jMenuManageWorker;
     public javax.swing.JMenu jMenuMangeBond;
     public javax.swing.JMenu jMenuMangeLoan;
+    public javax.swing.JMenu jMenuPago;
     public javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel12;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel8;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JSeparator jSeparator2;
+    public javax.swing.JTable jTableDataEncontradaFile;
+    public javax.swing.JTable jTableNoEncontrado;
     public javax.swing.JTextArea jTextAreaDetalleVoucher;
     public javax.swing.JTextField jTextFieldChequeVoucher;
     public javax.swing.JTextField jTextFieldCuentaVoucher;
     public javax.swing.JTextField jTextFieldMountVoucher;
     public javax.swing.JTextField jTextFieldNumeroVoucher;
-    public javax.swing.JDialog loading;
+    public static javax.swing.JDialog loading;
     // End of variables declaration//GEN-END:variables
 }

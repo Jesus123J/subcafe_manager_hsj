@@ -29,8 +29,17 @@ public class LoanTb {
     private LocalDateTime modifiedAt;
     private Integer modifiedBy;
     private String type;
-
+    private String paymentResponsibility;
+    
     public LoanTb() {
+    }
+
+    public String getPaymentResponsibility() {
+        return paymentResponsibility;
+    }
+
+    public void setPaymentResponsibility(String paymentResponsibility) {
+        this.paymentResponsibility = paymentResponsibility;
     }
 
     
@@ -51,7 +60,7 @@ public class LoanTb {
     public LoanTb(String employeeId, String guarantorIds, double AmountWithdrawn, double RequestedAmount, 
                 int dues, LocalDate paymentDate, String state, Integer refinanceParentId,
                 int createdBy, LocalDateTime createdAt, LocalDateTime modifiedAt, 
-                Integer modifiedBy, String type) {
+                Integer modifiedBy, String type , String PaymentResponsibility) {
         this.employeeId = employeeId;
         this.guarantorIds = guarantorIds;
         this.AmountWithdrawn = AmountWithdrawn;
@@ -65,6 +74,7 @@ public class LoanTb {
         this.modifiedAt = modifiedAt;
         this.modifiedBy = modifiedBy;
         this.type = type;
+        this.paymentResponsibility = PaymentResponsibility;
     }
 
     // Getters y Setters (implementar todos)

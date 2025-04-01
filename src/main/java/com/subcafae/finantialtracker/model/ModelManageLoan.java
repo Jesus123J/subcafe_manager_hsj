@@ -4,7 +4,6 @@
  */
 package com.subcafae.finantialtracker.model;
 
-
 import com.subcafae.finantialtracker.data.dao.LoanDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
@@ -33,8 +32,10 @@ public class ModelManageLoan extends LoanDao {
     protected EmployeeTb employeeAval;
 
     public ModelManageLoan(ComponentManageLoan componentManageLoan) {
-   
+
         this.componentManageLoan = componentManageLoan;
+        
+        TextFieldValidator.applyIntegerFilter(componentManageLoan.textSearchLoanSoli);
         TextFieldValidator.applyDecimalFilter(componentManageLoan.textAmountLoan);
         TextFieldValidator.applyDecimalFilter(componentManageLoan.textRefinanciamientoDemostration);
         TextFieldValidator.applyDecimalFilter(componentManageLoan.jTextFieldMontoDemostration);
@@ -72,7 +73,7 @@ public class ModelManageLoan extends LoanDao {
             insertListEmployeeCombo(listEmployeeApplicant, componentManageLoan.comboBoxApplicant, textSearch);
             ((JTextField) componentManageLoan.comboBoxApplicant.getEditor().getEditorComponent()).setText(textSearch);
             componentManageLoan.comboBoxApplicant.showPopup();
-            
+
         } catch (SQLException ex) {
             System.out.println("Message" + ex.getMessage());
 
@@ -90,23 +91,23 @@ public class ModelManageLoan extends LoanDao {
                     Double.parseDouble(componentManageLoan.textAmountLoan.getText()),
                     Integer.parseInt(selectedItem.toString()),
                     LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth()),
-                   "Pendiente",
+                    "Pendiente",
                     null,
                     1,
                     LocalDateTime.now(),
                     null,
                     null,
-                    "Ordinario");
+                    "Ordinario","EMPLOYEE");
 
             Double refinan = createLoanWithStateValidation(loan);
 
             if (refinan == null) {
                 return;
             }
-            
+
             System.out.println("Meses dados -> " + loan.getDues());
             generateExcelLiquidación(componentManageLoan.textAmountLoan.getText(),
-                    refinan.toString(),loan.getDues(),loan.getEmployeeId(), Boolean.FALSE);
+                    refinan.toString(), loan.getDues(), loan.getEmployeeId(), Boolean.FALSE);
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(null, ex.getMessage(), "GESTIÓN PRESTAMO", JOptionPane.ERROR_MESSAGE);
@@ -157,13 +158,13 @@ public class ModelManageLoan extends LoanDao {
         capitalSinInteresMensual = Double.valueOf(String.format("%.2f", montoPrestamo / meses));
 
         if (demo) {
-            insertDataDemo(montoPrestadoChange,montoPrestado , meses);
+            insertDataDemo(montoPrestadoChange, montoPrestado, meses);
         }
         //txtMonthyDue
         //txtTotalPaymentDemo
     }
 
-    public void insertDataDemo(Double montoPrestamo, Double monto , int meses) {
+    public void insertDataDemo(Double montoPrestamo, Double monto, int meses) {
         componentManageLoan.jTextFieldCapitalMensual.setText(capitalSinInteresMensual.toString());
         componentManageLoan.jTextFieldInteresMensual.setText(interesMensual.toString());
         componentManageLoan.jTextFieldInteresTotal.setText(interesTotal.toString());
@@ -173,7 +174,7 @@ public class ModelManageLoan extends LoanDao {
         componentManageLoan.jTextFieldMontoGirar.setText(montoPrestadoChange.toString());
     }
 
-    public void generateExcelLiquidación(String prestamo, String refinanaciamiento,Integer meses , String dni ,  Boolean demo) {
+    public void generateExcelLiquidación(String prestamo, String refinanaciamiento, Integer meses, String dni, Boolean demo) {
         if (refinanaciamiento == null) {
             refinanaciamiento = "0.0";
         }
@@ -189,9 +190,8 @@ public class ModelManageLoan extends LoanDao {
                     meses,
                     Double.valueOf(String.format("%.2f", Double.valueOf(prestamo))),
                     Double.valueOf(String.format("%.2f", Double.valueOf(refinanaciamiento))), demo);
-           
-            //System.out.println("Ingresa");
 
+            //System.out.println("Ingresa");
             if (montoPrestadoChange == 0.0) {
                 return;
             }
@@ -212,9 +212,9 @@ public class ModelManageLoan extends LoanDao {
             // Calcular fondo intangible
             //double fondoIntangible = (Math.ceil(Double.parseDouble(componentManageLoan.jTextFieldMontoDemostration.getText()) / 500.0) * 0.50) * Integer.parseInt(componentManageLoan.jComboBoxCuotasDemonstration.getSelectedItem().toString());
             // Llamar al método excelDemo con los valores convertidos
-            System.out.println("Fondo intangible -> " +fondoIntangibleTotal);
+            System.out.println("Fondo intangible -> " + fondoIntangibleTotal);
             System.out.print("refinancimientpo -> " + refinanaciamiento);
-            
+
             excelD.excelDemo(
                     refinanaciamiento,
                     Double.parseDouble(String.format("%.2f", Double.parseDouble(prestamo))),

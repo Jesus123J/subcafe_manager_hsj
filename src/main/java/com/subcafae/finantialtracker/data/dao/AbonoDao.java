@@ -12,6 +12,7 @@ import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.AbonoDetailsTb;
 import com.subcafae.finantialtracker.data.entity.AbonoTb;
 import java.sql.*;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JOptionPane;
@@ -22,6 +23,48 @@ public class AbonoDao {
 
     public AbonoDao() {
         this.connection = Conexion.getConnection();
+    }
+
+    public boolean renounceAbono(String soliNum) throws SQLException {
+        String updateQuery = "UPDATE abono SET status = 'REN' WHERE SoliNum = ?";
+
+        try (PreparedStatement stmtUpdate = connection.prepareStatement(updateQuery)) {
+            stmtUpdate.setString(1, soliNum);
+            return stmtUpdate.executeUpdate() > 0;
+        }
+    }
+
+    public boolean deleteAbonoIfNotUsed(String soliNum) throws SQLException {
+        String findAbonoIdQuery = "SELECT ID FROM abono WHERE SoliNum = ?";
+        String checkUsageQuery = "SELECT COUNT(*) FROM abonodetail WHERE AbonoID = ? AND state IN ('Pagado', 'Parcial')";
+        String deleteQuery = "DELETE FROM abono WHERE ID = ?";
+
+        try (PreparedStatement stmtFindAbonoId = connection.prepareStatement(findAbonoIdQuery); PreparedStatement stmtCheckUsage = connection.prepareStatement(checkUsageQuery); PreparedStatement stmtDelete = connection.prepareStatement(deleteQuery)) {
+
+            // Paso 1: Obtener el ID del abono basado en el SoliNum
+            stmtFindAbonoId.setString(1, soliNum);
+            ResultSet rsAbonoId = stmtFindAbonoId.executeQuery();
+
+            if (!rsAbonoId.next()) {
+                JOptionPane.showMessageDialog(null, "No se encontró el bono con el SoliNum proporcionado.", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+                return false;
+            }
+
+            int abonoId = rsAbonoId.getInt("ID");
+
+            // Paso 2: Verificar si hay cuotas con estado "Pagado" o "Parcial"
+            stmtCheckUsage.setInt(1, abonoId);
+            ResultSet rsUsage = stmtCheckUsage.executeQuery();
+
+            if (rsUsage.next() && rsUsage.getInt(1) == 0) {
+                // Paso 3: Si no hay cuotas con "Pagado" o "Parcial", eliminar el abono
+                stmtDelete.setInt(1, abonoId);
+                return stmtDelete.executeUpdate() > 0;
+            } else {
+                JOptionPane.showMessageDialog(null, "No se puede eliminar, el abono tiene cuotas con estado 'Pagado' o 'Parcial'", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+                return false;
+            }
+        }
     }
 
     private void updateSoliNum(int loanId) throws SQLException {
@@ -208,5 +251,41 @@ public class AbonoDao {
         abono.setModifiedBy(rs.getInt("modifiedBy"));
         abono.setModifiedAt(rs.getString("modifiedAt"));
         return abono;
+    }
+
+    public List<AbonoTb> findAbonosByEmployeeAndCurrentYear(String employeeId) throws SQLException {
+
+        String sql = "SELECT * FROM abono WHERE Employee_id = ? AND status = 'Pendiente' ";
+
+        List<AbonoTb> abonos = new ArrayList<>();
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, employeeId); // Asigna el ID del empleado
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    // Mapear el resultado al objeto AbonoTb
+                    AbonoTb abono = new AbonoTb();
+                    abono.setId(rs.getInt("ID"));
+                    abono.setSoliNum(rs.getString("SoliNum"));
+                    abono.setServiceConceptId(rs.getString("service_concept_id"));
+                    abono.setEmployeeId(rs.getString("Employee_id"));
+                    abono.setDues(rs.getInt("dues"));
+                    abono.setMonthly(rs.getDouble("monthly"));
+                    abono.setPaymentDate(rs.getString("paymentDate"));
+                    abono.setStatus(rs.getString("status"));
+                    abono.setDiscountFrom(rs.getString("discount_from"));
+                    abono.setCreatedBy(rs.getInt("createdBy"));
+                    abono.setCreatedAt(rs.getString("createdAt"));
+                    abono.setModifiedBy(rs.getInt("modifiedBy"));
+                    abono.setModifiedAt(rs.getString("modifiedAt"));
+
+                    // Añadir el abono a la lista
+                    abonos.add(abono);
+                }
+            }
+        }
+
+        return abonos;
     }
 }

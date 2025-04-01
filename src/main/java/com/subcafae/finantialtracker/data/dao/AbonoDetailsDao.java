@@ -33,7 +33,6 @@ public class AbonoDetailsDao {
         this.connection = Conexion.getConnection();
     }
 
-   
 
     public List<AbonoDetailsTb> getAllAbonoDetails() throws SQLException {
         String sql = "SELECT id, AbonoID, dues, monthly, payment, paymentDate, state, createdBy, createdAt, modifiedBy, modifiedAt FROM abonodetail";
@@ -107,7 +106,7 @@ public class AbonoDetailsDao {
     }
 
     public List<AbonoDetailResult> getAbonoDetailById(Integer id) throws SQLException {
-        String sql = "SELECT serv.description AS description, ab.dues AS abonoDues, abDet.dues AS abonodetailDues, abDet.monthly ,  abDet.paymentDate"
+        String sql = "SELECT serv.description AS description, ab.dues AS abonoDues, abDet.dues AS abonodetailDues, abDet.payment AS monthly ,  abDet.paymentDate"
                 + "FROM financialtracker1.abonodetail abDet "
                 + "LEFT JOIN financialtracker1.abono ab ON ab.ID = abDet.AbonoID "
                 + "LEFT JOIN financialtracker1.service_concept serv ON serv.ID = ab.service_concept_id "
@@ -134,4 +133,39 @@ public class AbonoDetailsDao {
 
         return results;
     }
+    // Método para buscar abonodetail por AbonoID
+
+    public List<AbonoDetailsTb> findAbonoDetailsByAbonoId(int abonoId) throws SQLException {
+        String sql = "SELECT * FROM abonodetail WHERE AbonoID = ?";
+
+        List<AbonoDetailsTb> abonoDetails = new ArrayList<>();
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, abonoId); // Asigna el AbonoID al parámetro
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    // Mapear el resultado al objeto AbonoDetailTb
+                    AbonoDetailsTb detail = new AbonoDetailsTb();
+                    detail.setId(rs.getInt("id"));
+                    detail.setAbonoID(rs.getInt("AbonoID"));
+                    detail.setDues(rs.getInt("dues"));
+                    detail.setMonthly(rs.getDouble("monthly"));
+                    detail.setPayment(rs.getDouble("payment"));
+                    detail.setPaymentDate(rs.getString("paymentDate"));
+                    detail.setState(rs.getString("state"));
+                    detail.setCreatedBy(rs.getString("createdBy"));
+                    detail.setCreatedAt(rs.getString("createdAt"));
+                    detail.setModifiedBy(rs.getString("modifiedBy"));
+                    detail.setModifiedAt(rs.getString("modifiedAt"));
+
+                    // Añadir el detalle del abono a la lista
+                    abonoDetails.add(detail);
+                }
+            }
+        }
+
+        return abonoDetails;
+    }
+
 }

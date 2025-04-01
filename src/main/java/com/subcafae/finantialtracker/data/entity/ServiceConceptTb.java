@@ -23,6 +23,15 @@ public class ServiceConceptTb {
     private int modifiedBy;
     private String modifiedAt;
     private int unid;
+    private String codigo;
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
+    }
 
     public int getId() {
         return id;

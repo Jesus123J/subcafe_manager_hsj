@@ -33,6 +33,98 @@ public class LoanDetailsDao extends EmployeeDao {
         this.connection = Conexion.getConnection();
     }
 
+    // Método para actualizar pagos parciales y validar si el LoanDetail debe cambiar a "Pagado"
+    public void updateLoanStateByLoandetailId(int loandetailId, double monthlyFeeValue, double newPayment) throws SQLException {
+        String findLoanIdQuery = "SELECT LoanID, payment FROM loandetail WHERE ID = ?";
+        String updateLoandetailStateQuery = "UPDATE loandetail SET payment = ?, State = ? WHERE ID = ?";
+        String findLoandetailsStateQuery = "SELECT State FROM loandetail WHERE LoanID = ?";
+        String updateLoanStateQuery = "UPDATE loan SET StateLoan = ? WHERE ID = ?";
+
+        try (PreparedStatement stmtFindLoanId = connection.prepareStatement(findLoanIdQuery); PreparedStatement stmtUpdateLoandetail = connection.prepareStatement(updateLoandetailStateQuery); PreparedStatement stmtFindLoandetailsState = connection.prepareStatement(findLoandetailsStateQuery); PreparedStatement stmtUpdateLoan = connection.prepareStatement(updateLoanStateQuery)) {
+
+            // Paso 1: Obtener LoanID y monto actual de pago en loandetail
+            stmtFindLoanId.setInt(1, loandetailId);
+            ResultSet rsLoanId = stmtFindLoanId.executeQuery();
+
+            if (rsLoanId.next()) {
+                int loanId = rsLoanId.getInt("LoanID");
+                double currentPayment = rsLoanId.getDouble("payment");
+
+                // Paso 2: Sumar el nuevo pago al total de pagos acumulados
+                double totalPayment = currentPayment + newPayment;
+
+                // Determinar el nuevo estado según el pago total
+                String loandetailState = totalPayment >= monthlyFeeValue ? "Pagado" : "Parcial";
+
+                // Actualizar loandetail con el nuevo monto acumulado y estado
+                stmtUpdateLoandetail.setDouble(1, totalPayment);
+                stmtUpdateLoandetail.setString(2, loandetailState);
+                stmtUpdateLoandetail.setInt(3, loandetailId);
+                stmtUpdateLoandetail.executeUpdate();
+
+                // Paso 3: Verificar si **todas** las cuotas (`loandetail`) están pagadas
+                stmtFindLoandetailsState.setInt(1, loanId);
+                ResultSet rsLoandetailsState = stmtFindLoandetailsState.executeQuery();
+
+                boolean allPaid = true;
+
+                while (rsLoandetailsState.next()) {
+                    if (!"Pagado".equals(rsLoandetailsState.getString("State"))) {
+                        allPaid = false;
+                        break;
+                    }
+                }
+
+                // Paso 4: Si todas las cuotas están pagadas, cambiar `StateLoan` a "Pagado"
+                if (allPaid) {
+                    stmtUpdateLoan.setString(1, "Pagado");
+                    stmtUpdateLoan.setInt(2, loanId);
+                    stmtUpdateLoan.executeUpdate();
+                }
+            }
+        }
+    }
+
+    // Método para buscar detalles de préstamos por LoanID
+    public List<LoanDetailsTb> findLoanDetailsByLoanId(int loanId) throws SQLException {
+
+        String sql = "SELECT * FROM loandetail WHERE LoanID = ?;";
+
+        List<LoanDetailsTb> loanDetails = new ArrayList<>();
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, loanId); // Asigna el LoanID al parámetro
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    // Mapear el resultado al objeto LoanDetailsTb
+                    LoanDetailsTb detail = new LoanDetailsTb();
+                    detail.setId(rs.getInt("ID"));
+                    detail.setLoanId(rs.getInt("LoanID"));
+                    detail.setDues(rs.getInt("Dues"));
+                    detail.setTotalInterest(rs.getDouble("TotalInterest"));
+                    detail.setMonthlyCapitalInstallment(rs.getDouble("MonthlyCapitalInstallment"));
+                    detail.setMonthlyInterestFee(rs.getDouble("MonthlyInterestFee"));
+                    detail.setMonthlyIntangibleFundFee(rs.getDouble("MonthlyIntangibleFundFee"));
+                    detail.setMonthlyFeeValue(rs.getDouble("MonthlyFeeValue"));
+                    detail.setPayment(rs.getDouble("payment"));
+                    detail.setPaymentDate(rs.getDate("PaymentDate"));
+                    detail.setState(rs.getString("State"));
+                    detail.setCreatedBy(rs.getInt("CreatedBy"));
+                    detail.setCreatedAt(rs.getTimestamp("CreatedAt") != null ? rs.getTimestamp("CreatedAt").toLocalDateTime() : null);
+                    detail.setModifiedBy(rs.getInt("ModifiedBy"));
+                    detail.setModifiedAt(rs.getTimestamp("ModifiedAt") != null ? rs.getTimestamp("ModifiedAt").toLocalDateTime() : null);
+
+                    // Añadir el detalle del préstamo a la lista
+                    loanDetails.add(detail);
+                }
+            }
+        }
+
+        return loanDetails;
+    }
+
+    //
     public List<LoanDetailsTb> getAllLoanDetails() throws SQLException {
         String sql = "SELECT ID, LoanID, Dues, TotalInterest, TotalIntangibleFund, MonthlyCapitalInstallment, "
                 + "MonthlyInterestFee, MonthlyIntangibleFundFee, MonthlyFeeValue, payment, PaymentDate, State, "
@@ -152,7 +244,7 @@ public class LoanDetailsDao extends EmployeeDao {
     }
 
     public LoanDetailResult getLoanDetailById(Integer id) throws SQLException {
-        String sql = "SELECT loa.dues AS loanDues, loaDet.dues AS loandetailDues, loaDet.MonthlyFeeValue, loaDet.PaymentDate "
+        String sql = "SELECT loa.dues AS loanDues, loaDet.dues AS loandetailDues, loaDet.payment AS MonthlyFeeValue , loaDet.PaymentDate "
                 + "FROM financialtracker1.loandetail loaDet "
                 + "LEFT JOIN financialtracker1.loan loa ON loaDet.LoanID = loa.ID "
                 + "WHERE loaDet.ID = ?";

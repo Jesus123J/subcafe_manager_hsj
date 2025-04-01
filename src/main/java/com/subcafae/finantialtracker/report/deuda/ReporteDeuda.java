@@ -1,36 +1,21 @@
 
 package com.subcafae.finantialtracker.report.deuda;
 
-import com.itextpdf.io.font.constants.StandardFonts;
 import com.itextpdf.kernel.colors.DeviceRgb;
-import com.itextpdf.kernel.font.PdfFont;
-import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.element.Text;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
-import com.subcafae.finantialtracker.data.dao.AbonoDao;
-import com.subcafae.finantialtracker.data.dao.AbonoDetailsDao;
-import com.subcafae.finantialtracker.data.dao.EmployeeDao;
-import com.subcafae.finantialtracker.data.entity.AbonoDetailsTb;
-import com.subcafae.finantialtracker.data.entity.AbonoTb;
-import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import javax.swing.JOptionPane;
 
 public class ReporteDeuda {
 

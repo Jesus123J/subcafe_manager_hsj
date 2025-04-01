@@ -21,7 +21,8 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jTableListConcept.getTableHeader().setReorderingAllowed(false);
         buttonGroup1.add(jRadioButtonPaga);
         buttonGroup1.add(jRadioButtonSeOmitePago);
-        setSize(880, 616);
+        jTableListBonos.getTableHeader().setReorderingAllowed(false);
+        setSize(880, 670);
     }
 
     /**
@@ -69,7 +70,16 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jButtonRegistroConcepto = new javax.swing.JButton();
         jScrollPane2 = new javax.swing.JScrollPane();
         jTableListConcept = new javax.swing.JTable();
+        jSeparator4 = new javax.swing.JSeparator();
+        jTextFieldElimanarCecepto = new javax.swing.JTextField();
+        jButtonEliminarConcept = new javax.swing.JButton();
         jPanel6 = new javax.swing.JPanel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTableListBonos = new javax.swing.JTable();
+        jTextFieldEliminarBono = new javax.swing.JTextField();
+        jButtonEliminarBono = new javax.swing.JButton();
+        jTextFieldRenunciarBono = new javax.swing.JTextField();
+        jButtonRenunciarBono = new javax.swing.JButton();
         jButtonReportBond = new javax.swing.JButton();
         searchConcept = new javax.swing.JTextField();
 
@@ -396,17 +406,17 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jTableListConcept.setBackground(new java.awt.Color(255, 255, 255));
         jTableListConcept.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null}
+                {null, null, null, null, null, null},
+                {null, null, null, null, null, null},
+                {null, null, null, null, null, null},
+                {null, null, null, null, null, null}
             },
             new String [] {
-                "DESCRIPCIÓN", "UNIDADES", "PRIORIDAD", "PRECIO DE VENTA", "PRECIO DE COSTO"
+                "CÓDIGO", "DESCRIPCIÓN", "UNIDADES", "PRIORIDAD", "PRECIO DE VENTA", "PRECIO DE COSTO"
             }
         ) {
             boolean[] canEdit = new boolean [] {
-                false, false, false, true, true
+                false, false, false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -415,16 +425,15 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         });
         jScrollPane2.setViewportView(jTableListConcept);
 
+        jTextFieldElimanarCecepto.setBackground(new java.awt.Color(255, 255, 255));
+        jTextFieldElimanarCecepto.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "ESCRIBA EL CODIGO DEL CONCEPTO PARA ELIMINAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
+
+        jButtonEliminarConcept.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/delete.png"))); // NOI18N
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 330, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButtonRegistroConcepto, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
@@ -432,8 +441,21 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
                         .addComponent(jPanel11, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addContainerGap()
-                        .addComponent(jScrollPane2)))
+                        .addComponent(jScrollPane2))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 330, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jButtonRegistroConcepto, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addComponent(jSeparator4, javax.swing.GroupLayout.Alignment.TRAILING))
                 .addContainerGap())
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jTextFieldElimanarCecepto, javax.swing.GroupLayout.PREFERRED_SIZE, 348, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButtonEliminarConcept, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -444,8 +466,14 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
                 .addComponent(jPanel11, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jButtonRegistroConcepto, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 307, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jSeparator4, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButtonEliminarConcept, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jTextFieldElimanarCecepto, javax.swing.GroupLayout.DEFAULT_SIZE, 56, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 235, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
 
@@ -453,24 +481,81 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
 
         jPanel6.setBackground(new java.awt.Color(255, 255, 255));
 
+        jTableListBonos.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null, null, null},
+                {null, null, null, null, null, null},
+                {null, null, null, null, null, null},
+                {null, null, null, null, null, null}
+            },
+            new String [] {
+                "N. SOLICITUD", "CONCEPTO", "TRABAJADOR", "CUOTAS", "MONTO", "ESTATUS"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, true, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane1.setViewportView(jTableListBonos);
+
+        jTextFieldEliminarBono.setBackground(new java.awt.Color(255, 255, 255));
+        jTextFieldEliminarBono.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "ESCRIBA EL NUMERO DE SOLITUD PARA ELIMINAR EL BONO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
+
+        jButtonEliminarBono.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/delete.png"))); // NOI18N
+
+        jTextFieldRenunciarBono.setBackground(new java.awt.Color(255, 255, 255));
+        jTextFieldRenunciarBono.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "ESCRIBA EL NÚMERO DE SOLICITUD PARA RENUNCIAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
+
+        jButtonRenunciarBono.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/renuncia.png"))); // NOI18N
+
         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
         jPanel6Layout.setHorizontalGroup(
             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 828, Short.MAX_VALUE)
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 816, Short.MAX_VALUE)
+                    .addGroup(jPanel6Layout.createSequentialGroup()
+                        .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addGroup(jPanel6Layout.createSequentialGroup()
+                                .addComponent(jTextFieldEliminarBono, javax.swing.GroupLayout.PREFERRED_SIZE, 348, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jButtonEliminarBono, javax.swing.GroupLayout.PREFERRED_SIZE, 65, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel6Layout.createSequentialGroup()
+                                .addComponent(jTextFieldRenunciarBono, javax.swing.GroupLayout.PREFERRED_SIZE, 348, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jButtonRenunciarBono, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
         );
         jPanel6Layout.setVerticalGroup(
             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 549, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel6Layout.createSequentialGroup()
+                .addGap(23, 23, 23)
+                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jTextFieldEliminarBono, javax.swing.GroupLayout.DEFAULT_SIZE, 46, Short.MAX_VALUE)
+                    .addComponent(jButtonEliminarBono, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jTextFieldRenunciarBono, javax.swing.GroupLayout.DEFAULT_SIZE, 46, Short.MAX_VALUE)
+                    .addComponent(jButtonRenunciarBono, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 416, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
-        jTabbedPane1.addTab("EDITAR BONO", jPanel6);
+        jTabbedPane1.addTab("BONO", jPanel6);
 
         jButtonReportBond.setBackground(new java.awt.Color(0, 153, 0));
         jButtonReportBond.setForeground(new java.awt.Color(255, 255, 255));
         jButtonReportBond.setText("REPORTE DE ABONO");
 
-        searchConcept.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "INSERTE EL NOMBRE DEL CONCEPTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
+        searchConcept.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "INSERTE EL  CODIGO DEL CONCEPTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -501,8 +586,11 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup buttonGroup1;
+    public javax.swing.JButton jButtonEliminarBono;
+    public javax.swing.JButton jButtonEliminarConcept;
     public javax.swing.JButton jButtonRegisterBond;
     public javax.swing.JButton jButtonRegistroConcepto;
+    public javax.swing.JButton jButtonRenunciarBono;
     public javax.swing.JButton jButtonReportBond;
     public javax.swing.JComboBox<String> jComboBoxSearchConceptBond;
     public javax.swing.JComboBox<String> jComboDescont;
@@ -525,17 +613,23 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
     private javax.swing.JPanel jPanel9;
     public javax.swing.JRadioButton jRadioButtonPaga;
     public javax.swing.JRadioButton jRadioButtonSeOmitePago;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JSeparator jSeparator3;
+    private javax.swing.JSeparator jSeparator4;
     public javax.swing.JTabbedPane jTabbedPane1;
+    public javax.swing.JTable jTableListBonos;
     public javax.swing.JTable jTableListConcept;
     public javax.swing.JTextField jTextFieldDescription;
     public javax.swing.JTextField jTextFieldDues;
+    public javax.swing.JTextField jTextFieldElimanarCecepto;
+    public javax.swing.JTextField jTextFieldEliminarBono;
     public javax.swing.JTextField jTextFieldMonthly;
     public javax.swing.JTextField jTextFieldPrecioCosto;
     public javax.swing.JTextField jTextFieldPrioridad;
+    public javax.swing.JTextField jTextFieldRenunciarBono;
     public javax.swing.JTextField jTextFieldUnidades;
     public javax.swing.JTextField jTextFieldVenta;
     public javax.swing.JTextField searchConcept;

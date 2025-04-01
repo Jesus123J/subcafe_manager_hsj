@@ -83,7 +83,7 @@ public class ReporteAbono {
 
     public void searchService(String nameConcepto) {
         try {
-            ServiceConceptTb service = serviceConceptDAO.findServiceConceptByDescription(nameConcepto.toUpperCase());
+            ServiceConceptTb service = serviceConceptDAO.findServiceConceptByCodigo(nameConcepto.toUpperCase());
 
             if (service == null) {
                 return;

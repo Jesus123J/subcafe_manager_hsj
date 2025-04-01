@@ -33,11 +33,50 @@ public class LoanDao extends LoanDetailsDao {
     public LoanDao() {
         this.connection = Conexion.getConnection();
     }
+    // Método para buscar préstamos por EmployeeID excluyendo aquellos con PaymentResponsibility = 'GUARANTOR'
+
+    public List<LoanTb> findLoansByEmployeeId(String employeeId) throws SQLException {
+        String sql = "SELECT * FROM loan WHERE EmployeeID = ? AND PaymentResponsibility = 'EMPLOYEE'";
+
+        List<LoanTb> loans = new ArrayList<>();
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, employeeId); // Asigna el ID del empleado
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    // Mapear el resultado al objeto LoanTb
+                    LoanTb loan = new LoanTb();
+                    loan.setId(rs.getInt("ID"));
+                    loan.setSoliNum(rs.getString("SoliNum"));
+                    loan.setEmployeeId(rs.getString("EmployeeID"));
+                    loan.setGuarantorIds(rs.getString("GuarantorId"));
+                    loan.setRequestedAmount(rs.getDouble("RequestedAmount"));
+                    loan.setAmountWithdrawn(rs.getDouble("AmountWithdrawn"));
+                    loan.setDues(rs.getInt("Dues"));
+                    loan.setPaymentDate(rs.getDate("PaymentDate").toLocalDate());
+                    loan.setState(rs.getString("State"));
+                    loan.setStateLoan(rs.getString("StateLoan"));
+                    loan.setRefinanceParentId(rs.getInt("RefinanceParentID"));
+                    loan.setCreatedBy(rs.getInt("CreatedBy"));
+                    loan.setCreatedAt(rs.getTimestamp("CreatedAt") != null ? rs.getTimestamp("CreatedAt").toLocalDateTime() : null);
+                    loan.setModifiedAt(rs.getTimestamp("ModifiedAt") != null ? rs.getTimestamp("ModifiedAt").toLocalDateTime() : null);
+                    loan.setModifiedBy(rs.getInt("ModifiedBy"));
+                    loan.setType(rs.getString("Type"));
+                    loan.setPaymentResponsibility(rs.getString("PaymentResponsibility"));
+
+                    // Añadir el préstamo a la lista
+                    loans.add(loan);
+                }
+            }
+        }
+
+        return loans;
+    }
 
     public List<LoanTb> getAllLoans() throws SQLException {
-        String sql = "SELECT ID, SoliNum, EmployeeID, GuarantorId, RequestedAmount, AmountWithdrawn, Dues, PaymentDate, "
-                + "State, StateLoan, RefinanceParentID, CreatedBy, CreatedAt, ModifiedAt, ModifiedBy, Type "
-                + "FROM loan";
+        
+        String sql = "SELECT * FROM loan";
         List<LoanTb> loans = new ArrayList<>();
 
         try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
@@ -64,7 +103,8 @@ public class LoanDao extends LoanDetailsDao {
 
                 loan.setModifiedBy(rs.getInt("ModifiedBy"));
                 loan.setType(rs.getString("Type"));
-
+                loan.setPaymentResponsibility(rs.getString("PaymentResponsibility"));
+                
                 loans.add(loan);
             }
         }
@@ -82,7 +122,8 @@ public class LoanDao extends LoanDetailsDao {
                  CONCAT(e2.first_name, ' ', e2.last_name) AS GuarantorName,
                  l.RequestedAmount, 
                  l.AmountWithdrawn, 
-                 l.State
+                 l.State,
+                 l.PaymentResponsibility
              FROM loan l
              LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id
              LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id
@@ -100,10 +141,11 @@ public class LoanDao extends LoanDetailsDao {
                     //rs.getInt("ID"),
                     rs.getString("SoliNum"),
                     rs.getString("SolicitorName"),
-                    rs.getString("GuarantorName"),
+                    rs.getString("GuarantorName") == null ? "" : rs.getString("GuarantorName"),
                     rs.getBigDecimal("RequestedAmount"),
                     rs.getBigDecimal("AmountWithdrawn"),
-                    rs.getString("State")
+                    rs.getString("State"),
+                    rs.getString("PaymentResponsibility")
                 });
             }
 
@@ -337,7 +379,8 @@ public class LoanDao extends LoanDetailsDao {
                 rs.getTimestamp("CreatedAt").toLocalDateTime(),
                 rs.getTimestamp("ModifiedAt") != null ? rs.getTimestamp("ModifiedAt").toLocalDateTime() : null,
                 rs.getInt("ModifiedBy"),
-                rs.getString("Type")
+                rs.getString("Type"),
+                rs.getString("PaymentResponsibility")
         );
         loan.setId(rs.getInt("ID"));
         loan.setSoliNum(rs.getString("SoliNum"));

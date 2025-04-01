@@ -172,7 +172,7 @@ public class HistoryPayment {
                     .setFontSize(16));
 
             document.add(new Paragraph("DNI: " + firstEmployee.getNationalId()));
-            document.add(new Paragraph("Apellidos y Nombres: " + firstEmployee.getLastName() + firstEmployee.getFirstName()));
+            document.add(new Paragraph("Apellidos y Nombres: " + firstEmployee.getLastName() +" "+ firstEmployee.getFirstName()));
         } catch (FileNotFoundException ex) {
 
         }

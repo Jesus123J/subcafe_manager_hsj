@@ -12,9 +12,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
 import java.time.ZoneId;
 import java.util.Date;
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.event.InternalFrameAdapter;
+import javax.swing.event.InternalFrameEvent;
 
 /**
  *
@@ -29,12 +33,21 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
 
         this.usser = userr;
 
+//        viewMain.jInternalFrame1.addInternalFrameListener(new InternalFrameAdapter() {
+//            @Override
+//            public void internalFrameClosed(InternalFrameEvent e) {
+//                PaymentVoucher.cleanUnusedVouchers();
+//            }
+//        });
         //Report
+        viewMain.jButtonSearchDocument.addActionListener(this);
         viewMain.jLabelConstanciaEntrega.addMouseListener(this);
         viewMain.jLabelHistoryPayment.addMouseListener(this);
         viewMain.jLabelReportDesc.addMouseListener(this);
         viewMain.jLabelReportDeuda.addMouseListener(this);
-
+        viewMain.jMenuPago.addMouseListener(this);
+        
+        viewMain.jButtonProcesoDescuent.addActionListener(this);
         viewMain.jMenuMangeBond.addMouseListener(this);
         viewMain.jMenuMangeLoan.addMouseListener(this);
         viewMain.jMenuManageWorker.addMouseListener(this);
@@ -48,6 +61,30 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
 
     @Override
     public void actionPerformed(ActionEvent e) {
+        
+        if (e.getSource().equals(viewMain.jButtonProcesoDescuent)) {
+            procedRegistroDesc();
+        }
+        if (e.getSource().equals(viewMain.jButtonSearchDocument)) {
+
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Selecciona un archivo TXT");
+
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Archivos de texto", "txt"));
+
+            int seleccion = fileChooser.showOpenDialog(null);
+
+            if (seleccion == JFileChooser.APPROVE_OPTION) {
+                if (esTxt(fileChooser.getSelectedFile().getAbsolutePath())) {
+                    File archivo = fileChooser.getSelectedFile();
+                    procesarArchivo(archivo);
+                } else {
+                    JOptionPane.showMessageDialog(null, "Archivo no compatible");
+                }
+            } else {
+                // System.out.println("No se seleccionó ningún archivo.");
+            }
+        }
         if (e.getSource().equals(viewMain.jButton2)) {
             if (!viewMain.jTextFieldNumeroVoucher.getText().isBlank()) {
                 PaymentVoucher.cleanUnusedVouchers();
@@ -117,6 +154,15 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
 
     @Override
     public void mouseClicked(MouseEvent e) {
+
+        if (e.getSource().equals(viewMain.jMenuPago)) {
+            viewMain.jLabelCode.setText("");
+            viewMain.jLabelCantidad.setText("");
+            model.setRowCount(0);
+            modelFindNot.setRowCount(0);
+            mapCom.clear();
+            centerInternalComponent(viewMain.jInternalPagoPrestamosOtros);
+        }
         if (e.getSource().equals(viewMain.jMenuMangeBond)) {
             centerInternalComponent(componentManageBond);
         }

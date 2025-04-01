@@ -13,10 +13,13 @@ import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import com.subcafae.finantialtracker.data.entity.ServiceConceptTb;
 import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.util.TextFieldValidator;
+import com.subcafae.finantialtracker.view.ViewMain;
 import com.subcafae.finantialtracker.view.component.ComponentManageBond;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
@@ -67,11 +70,9 @@ public class ModelManageBond {
     private void insertListServiceCombo(List<ServiceConceptTb> employeeTbs, JComboBox comboBox, String textSearch) {
         comboBox.removeAllItems();
         for (ServiceConceptTb serviceConceptTb : employeeTbs) {
-
-            String cadena = "".concat(serviceConceptTb.getId() + " - ").concat(serviceConceptTb.getDescription()).trim();
-
-            if (cadena.contains(textSearch.trim())) {
-                comboBox.addItem(serviceConceptTb.getId() + " - " + serviceConceptTb.getDescription());
+            String cadena = serviceConceptTb.getCodigo().concat(" - " + serviceConceptTb.getDescription()).trim();
+            if (cadena.trim().toUpperCase().contains(textSearch.trim().toUpperCase())) {
+                comboBox.addItem(serviceConceptTb.getCodigo() + " - " + serviceConceptTb.getDescription());
             }
         }
     }
@@ -159,12 +160,38 @@ public class ModelManageBond {
         model.setRowCount(0);
         for (ServiceConceptTb serviceConceptTb : listConcept) {
             model.addRow(new Object[]{
+                serviceConceptTb.getCodigo(),
                 serviceConceptTb.getDescription(),
                 serviceConceptTb.getUnid(),
                 serviceConceptTb.getPriority(),
                 serviceConceptTb.getSalePrice(),
                 serviceConceptTb.getCostPrice()
             });
+        }
+    }
+
+    public void insertListTableBono() {
+        try {
+            ViewMain.loading.setVisible(true);
+            List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
+            List<AbonoTb> listAbono = abonoDao.findAllAbonos();
+            DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListBonos.getModel();
+            model.setRowCount(0);
+            for (AbonoTb abonoTb : listAbono) {
+                model.addRow(new Object[]{
+                    abonoTb.getSoliNum(),
+                    listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get().getDescription(),
+                    new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFirstName().concat(" " + mapper.getLastName())).get(),
+                    abonoTb.getDues(),
+                    abonoTb.getMonthly(),
+                    abonoTb.getStatus()
+                });
+            }
+            ViewMain.loading.dispose();
+        } catch (SQLException ex) {
+            ViewMain.loading.dispose();
+            System.out.println("Error -> " + ex.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrio un problema", "GÉSTION ABONOS", JOptionPane.OK_OPTION);
         }
     }
 }

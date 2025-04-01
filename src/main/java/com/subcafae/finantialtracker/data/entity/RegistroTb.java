@@ -28,4 +28,11 @@ public class RegistroTb {
     public void setEmpleadoId(int empleadoId) {
         this.empleadoId = empleadoId;
     }
+
+    @Override
+    public String toString() {
+        return "RegistroTb{" + "empleadoId=" + empleadoId + ", amount=" + amount + '}';
+    }
+    
+    
 }

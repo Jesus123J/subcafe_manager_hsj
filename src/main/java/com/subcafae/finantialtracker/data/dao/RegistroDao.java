@@ -1,6 +1,5 @@
 package com.subcafae.finantialtracker.data.dao;
 
-
 import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.AbonoDetailsTb;
 import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
@@ -19,11 +18,83 @@ public class RegistroDao {
         this.conn = Conexion.getConnection();
     }
 
+    public boolean insertarRegistroCompleto(RegistroTb registro, LoanDetailsTb prestamo, AbonoDetailsTb bonos) {
+        String sqlRegistro = "CALL InsertarRegistro(?,?);";
+        String sqlObtenerID = "SELECT LAST_INSERT_ID()"; // Obtener el último ID insertado
+        String sqlPrestamo = "INSERT INTO soli_prestamo (registro_id,soli_prestamo,id_prestamoDetails) VALUES (?, ?,?)";
+        String sqlBono = "INSERT INTO soli_bonus (registro_id,soli_abono,id_abonoDetails) VALUES (?, ?,?)";
+
+        try (PreparedStatement stmtRegistro = conn.prepareStatement(sqlRegistro, Statement.RETURN_GENERATED_KEYS)) {
+            conn.setAutoCommit(false); // Desactivar auto-commit para manejar transacción
+
+            // 1. Insertar en la tabla registro
+            System.out.println("Cantidad / " + registro.getAmount());
+            stmtRegistro.setInt(1, registro.getEmpleadoId());
+            stmtRegistro.setDouble(2, registro.getAmount());
+            stmtRegistro.executeUpdate();
+
+            int idRegistro = 0;
+            try (PreparedStatement stmtID = conn.prepareStatement(sqlObtenerID); ResultSet rs = stmtID.executeQuery()) {
+                if (rs.next()) {
+                    idRegistro = rs.getInt(1);
+                }
+            }
+
+            System.out.println("ID de registro generado: " + idRegistro);
+            // 3. Insertar en la tabla prestamo si existen préstamos
+            if (prestamo != null) {
+                System.out.println("Id de registro / " + idRegistro);
+                try (PreparedStatement stmtPrestamo = conn.prepareStatement(sqlPrestamo)) {
+
+                    stmtPrestamo.setInt(1, idRegistro);
+                    stmtPrestamo.setString(2, "");
+                    stmtPrestamo.setInt(3, prestamo.getId());
+                    stmtPrestamo.executeUpdate();
+
+                }
+            }
+
+            // 4. Insertar en la tabla bono si existen bonos
+            if (bonos != null) {
+                System.out.println("Id de registro / " + idRegistro);
+                try (PreparedStatement stmtBono = conn.prepareStatement(sqlBono)) {
+                    stmtBono.setInt(1, idRegistro);
+                    stmtBono.setString(2, "");
+                    stmtBono.setInt(3, bonos.getId());
+                    stmtBono.executeUpdate();
+
+                }
+            }
+
+            // 5. Confirmar la transacción
+            conn.commit();
+            //JOptionPane.showMessageDialog(null, "Se registro correctamente");
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback(); // Deshacer cambios si hay error
+            } catch (SQLException rollbackEx) {
+                rollbackEx.printStackTrace();
+            }
+            System.out.println("error  -> " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al registrar pago: ");
+            return false;
+        } finally {
+            try {
+                conn.setAutoCommit(true); // Reactivar auto-commit
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
     // Método para insertar un nuevo registro y sus detalles de préstamo y bono
     public boolean insertarRegistroCompleto(RegistroTb registro, List<LoanDetailsTb> prestamos, List<AbonoDetailsTb> bonos) {
-        
+
         String sqlRegistro = "CALL InsertarRegistro(?,?);";
-         String sqlObtenerID = "SELECT LAST_INSERT_ID()"; // Obtener el último ID insertado
+        String sqlObtenerID = "SELECT LAST_INSERT_ID()"; // Obtener el último ID insertado
         String sqlPrestamo = "INSERT INTO soli_prestamo (registro_id,soli_prestamo,id_prestamoDetails) VALUES (?, ?,?)";
         String sqlBono = "INSERT INTO soli_bonus (registro_id,soli_abono,id_abonoDetails) VALUES (?, ?,?)";
 
@@ -50,7 +121,7 @@ public class RegistroDao {
                 try (PreparedStatement stmtPrestamo = conn.prepareStatement(sqlPrestamo)) {
                     for (LoanDetailsTb p : prestamos) {
                         stmtPrestamo.setInt(1, idRegistro);
-                        stmtPrestamo.setString(2,"");
+                        stmtPrestamo.setString(2, "");
                         stmtPrestamo.setInt(3, p.getId());
                         stmtPrestamo.executeUpdate();
                     }
@@ -72,7 +143,7 @@ public class RegistroDao {
 
             // 5. Confirmar la transacción
             conn.commit();
-            JOptionPane.showMessageDialog(null, "Se registro correctamente");
+            //JOptionPane.showMessageDialog(null, "Se registro correctamente");
             return true;
 
         } catch (SQLException e) {
