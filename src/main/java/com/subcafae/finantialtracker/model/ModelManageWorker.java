@@ -10,6 +10,7 @@ import com.subcafae.finantialtracker.data.dao.EmployeeDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import static com.subcafae.finantialtracker.data.entity.EmployeeTb.EmploymentStatus.NOMBRADO;
 import static com.subcafae.finantialtracker.data.entity.EmployeeTb.Gender.MUJER;
+import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.util.NumericFilter;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -31,7 +32,7 @@ public class ModelManageWorker extends EmployeeDao {
 
     public ComponentManageWorker componentManageWorker;
 
-    public ModelManageWorker(ComponentManageWorker componentManageWorker) {
+    public ModelManageWorker(ComponentManageWorker componentManageWorker , UserTb user) {
         this.componentManageWorker = componentManageWorker;
         ((AbstractDocument) componentManageWorker.textFieldDNI.getDocument()).setDocumentFilter(new NumericFilter(8));
         ((AbstractDocument) componentManageWorker.textFieldNameDeleteUser.getDocument()).setDocumentFilter(new NumericFilter(8));
@@ -60,8 +61,8 @@ public class ModelManageWorker extends EmployeeDao {
             JOptionPane.showMessageDialog(null, "El DNI debe de contener 8 digitos ", "GESTIÓN TRABAJADOR", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        if (!componentManageWorker.textFieldDNI.getText().isBlank()) {
-            if (componentManageWorker.textFieldDNI.getText().length() != 9) {
+        if (!componentManageWorker.textFieldPhone.getText().isBlank()) {
+            if (componentManageWorker.textFieldPhone.getText().length() != 9) {
                 JOptionPane.showMessageDialog(null, "El celular debe de contener 9 digitos ", "GESTIÓN TRABAJADOR", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
@@ -73,9 +74,9 @@ public class ModelManageWorker extends EmployeeDao {
                     componentManageWorker.textFieldLastName.getText(),
                     componentManageWorker.textFieldDNI.getText(),
                     componentManageWorker.textFieldPhone.getText() == null ? "" : componentManageWorker.textFieldPhone.getText(),
-                    componentManageWorker.comboBoxSex.getSelectedIndex() != 0 ? "MUJER" : "HOMBRE",
-                    componentManageWorker.comboStatus.getSelectedIndex() != 0 ? "NOMBRADO" : "CAS",
-                    componentManageWorker.comboStatus.getSelectedIndex() != 0 ? "2154" : "2028", componentManageWorker.dcBirthDate.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+                    componentManageWorker.comboBoxSex.getSelectedIndex() == 0 ? "MUJER" : "HOMBRE",
+                    componentManageWorker.comboStatus.getSelectedIndex() == 0 ? "NOMBRADO" : "CAS",
+                    componentManageWorker.comboStatus.getSelectedIndex() == 0 ? "2154" : "2028", componentManageWorker.dcBirthDate.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             create(employee);
             cleanComponent();
             tableList();

@@ -42,12 +42,14 @@ import com.subcafae.finantialtracker.data.dao.EmployeeDao;
 import com.subcafae.finantialtracker.data.dao.LoanDetailsDao;
 import com.subcafae.finantialtracker.data.dao.RegistroDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
+import com.subcafae.finantialtracker.data.entity.RegistroDetailsModel;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -67,73 +69,43 @@ public class HistoryPayment {
         } catch (SQLException ex) {
             //  Logger.getLogger(HistoryPayment.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-        
+
         if (firstEmployee == null) {
             return null;
         }
-        List<ModelPaymentAndLoan> listPaymentAndLoan = registroDAO.obtenerRegistrosPorEmpleado(firstEmployee.getEmployeeId());
 
-        for (ModelPaymentAndLoan paymentAndLoan : listPaymentAndLoan) {
-            ModelPayment modePayment = new ModelPayment();
+        List<RegistroDetailsModel> listRegister = registroDAO.findRegisterDetailsByEmployeeId(firstEmployee.getEmployeeId().toString());
+        Map<String, List<RegistroDetailsModel>> listFilte = listRegister.stream().collect(Collectors.groupingBy(RegistroDetailsModel::getCodigo));
 
-            modePayment.setFecha(paymentAndLoan.getFechaRegistro().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy/MM/dd")));
-            modePayment.setCodeDocument(paymentAndLoan.getCodigo());
+        for (Map.Entry<String, List<RegistroDetailsModel>> entry : listFilte.entrySet()) {
 
             List<String> date = new ArrayList<>();
             Map<String, String> mapAndPaymeny = new HashMap<>();
-            String[] idsBono = null;
-            try {
-                idsBono = paymentAndLoan.getBonos().split(",");
-            } catch (Exception e) {
-                idsBono = new String[]{paymentAndLoan.getBonos()};
-            }
-            String[] idsLoan = null;
-            try {
-                idsLoan = paymentAndLoan.getPrestamos().split(",");
-            } catch (Exception e) {
-                idsLoan = new String[]{paymentAndLoan.getPrestamos()};
-            }
 
-            for (String string : idsBono) {
-                if (string == null) {
-                    break;
-                }
-                AbonoDetailsDao abonoDetailsDao = new AbonoDetailsDao();
-                
-                try {
-                    List<AbonoDetailResult> resul = abonoDetailsDao.getAbonoDetailById(Integer.valueOf(string));
-
-                    mapAndPaymeny.put(resul.getFirst().getDescription() + " " + resul.getFirst().getAbonoDues() + "/" + resul.getFirst().getAbonodetailDues(),
-                            String.format("%.2f", resul.getFirst().getMonthly()));
+            for (RegistroDetailsModel registroDetailsModel : entry.getValue()) {
+                if (registroDetailsModel.getConceptLoan() != null) {
+                    mapAndPaymeny.put(registroDetailsModel.getConceptLoan(),
+                            registroDetailsModel.getAmountPar().toString() + " - "
+                            + registroDetailsModel.getMontoLoan().toString());
 
                     // SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd");
-                    date.add(resul.getFirst().getPaymentDate());
+                    date.add(registroDetailsModel.getFechaVLoan());
+                } else {
+                    mapAndPaymeny.put(registroDetailsModel.getConceptBond(),
+                            registroDetailsModel.getAmountPar().toString() + " - "
+                            + registroDetailsModel.getMontoBond().toString());
 
-                } catch (SQLException ex) {
-//                    Logger.getLogger(HistoryPayment.class.getName()).log(Level.SEVERE, null, ex);
+                    date.add(registroDetailsModel.getFechaVBond());
                 }
-
             }
 
-            for (String string : idsLoan) {
-                if (string == null) {
-                    break;
-                }
-                LoanDetailsDao loanDetailsDao = new LoanDetailsDao();
-                try {
-                    LoanDetailResult resul = loanDetailsDao.getLoanDetailById(Integer.parseInt(string));
-                    mapAndPaymeny.put("Prestamo " + resul.getLoanDues()+ "/" + resul.getLoandetailDues(), String.format("%.2f", resul.getMonthlyFeeValue()));
-                    date.add(resul.getPaymentDate());
-                } catch (SQLException ex) {
-                    // Logger.getLogger(HistoryPayment.class.getName()).log(Level.SEVERE, null, ex);
-                }
-
-            }
-
+            ModelPayment modePayment = new ModelPayment();
+            //getMapAndPaymeny
+            modePayment.setCodeDocument(entry.getKey());
+            modePayment.setFecha(entry.getValue().getFirst().getFechaRegistro());
             modePayment.setAmountPaymentAndLoan(date);
             modePayment.setMapAndPaymeny(mapAndPaymeny);
-            modePayment.setAmountDocument(String.format("%.2f", paymentAndLoan.getAmount()));
+            modePayment.setAmountDocument(String.format("%.2f", entry.getValue().getFirst().getAmount()));
 
             moPayments.add(modePayment);
         }
@@ -172,7 +144,7 @@ public class HistoryPayment {
                     .setFontSize(16));
 
             document.add(new Paragraph("DNI: " + firstEmployee.getNationalId()));
-            document.add(new Paragraph("Apellidos y Nombres: " + firstEmployee.getLastName() +" "+ firstEmployee.getFirstName()));
+            document.add(new Paragraph("Apellidos y Nombres: " + firstEmployee.getLastName() + " " + firstEmployee.getFirstName()));
         } catch (FileNotFoundException ex) {
 
         }
@@ -183,16 +155,17 @@ public class HistoryPayment {
 
         }
         try {
-            Table mainTable = new Table(UnitValue.createPercentArray(new float[]{2, 2, 2, 2, 2, 2}));
+            Table mainTable = new Table(UnitValue.createPercentArray(new float[]{2, 2, 2, 2, 2, 2, 2}));
             mainTable.setWidth(UnitValue.createPercentValue(50));
 
             // Encabezados .setVerticalAlignment(VerticalAlignment.MIDDLE)
             mainTable.addHeaderCell(new Cell().add(new Paragraph("Fecha").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setBold());
             mainTable.addHeaderCell(new Cell().add(new Paragraph("Documento").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(70f).setBold());
             mainTable.addHeaderCell(new Cell().add(new Paragraph("Monto Planilla").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(70f).setBold());
-            mainTable.addHeaderCell(new Cell().add(new Paragraph("Concepto de Pago").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(100f).setBold());
-            mainTable.addHeaderCell(new Cell().add(new Paragraph("Vencimiento").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(100f).setBold());
-            mainTable.addHeaderCell(new Cell().add(new Paragraph("Monto").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(100f).setBold());
+            mainTable.addHeaderCell(new Cell().add(new Paragraph("Concepto de Pago").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(80f).setBold());
+            mainTable.addHeaderCell(new Cell().add(new Paragraph("Vencimiento").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(70f).setBold());
+            mainTable.addHeaderCell(new Cell().add(new Paragraph("Monto Pagado").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setBold());
+            mainTable.addHeaderCell(new Cell().add(new Paragraph("Monto Original").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setBold());
 
             for (ModelPayment payment : data) {
                 // Agregar las celdas a la tabla principal
@@ -214,29 +187,32 @@ public class HistoryPayment {
 
                 int maxRows = Math.max(dateList.size(), amountList.size());
 // Obtener el ancho de la columna principal
-                float columnWidth = 300f; // Ajusta este valor según el ancho real de la columna principal
 
 // Crear la subtabla con 3 columnas
-                Table subTable = new Table(UnitValue.createPercentArray(new float[]{2, 1, 1}));
+                Table subTable = new Table(UnitValue.createPercentArray(new float[]{2, 1, 1, 1}));
                 subTable.setWidth(UnitValue.createPercentValue(100));
 
 // Agregar celdas con un ancho fijo
                 for (int i = 0; i < maxRows; i++) {
                     Cell conceptCell = new Cell().add(new Paragraph(i < amountList.size() ? amountList.get(i).getKey() : " ")).setFontSize(7f)
-                            .setTextAlignment(TextAlignment.LEFT).setMinWidth(100f).setMaxWidth(100f);
+                            .setTextAlignment(TextAlignment.LEFT).setMinWidth(80f).setMaxWidth(80f);
                     subTable.addCell(conceptCell).setBorder(Border.NO_BORDER);
 
                     Cell dateCell = new Cell().add(new Paragraph(i < dateList.size() ? dateList.get(i) : " ")).setFontSize(7f)
-                            .setTextAlignment(TextAlignment.CENTER).setMinWidth(100f).setMaxWidth(100f);
+                            .setTextAlignment(TextAlignment.CENTER).setMinWidth(70f).setMaxWidth(70f);
                     subTable.addCell(dateCell).setBorder(Border.NO_BORDER);
 
-                    Cell amountCell = new Cell().add(new Paragraph(i < amountList.size() ? amountList.get(i).getValue() : " "))
-                            .setTextAlignment(TextAlignment.CENTER).setMinWidth(100f).setMaxWidth(100f).setFontSize(7f);
-                    subTable.addCell(amountCell).setBorder(Border.NO_BORDER);
+                    Cell amountParcialCell = new Cell().add(new Paragraph(i < amountList.size() ? amountList.get(i).getValue().toString().split("-")[0].trim().toString() : " "))
+                            .setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setMaxWidth(60f).setFontSize(7f);
+                    subTable.addCell(amountParcialCell).setBorder(Border.NO_BORDER);
+
+                    Cell amountTotalCell = new Cell().add(new Paragraph(i < amountList.size() ? amountList.get(i).getValue().toString().split("-")[1].trim().toString() : " "))
+                            .setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setMaxWidth(60f).setFontSize(7f);
+                    subTable.addCell(amountTotalCell).setBorder(Border.NO_BORDER);
                 }
 
 // Crear la celda que contendrá la subtabla
-                Cell subTableCell = new Cell(1, 3).add(subTable);
+                Cell subTableCell = new Cell(1, 4).add(subTable);
                 subTableCell.setBorder(Border.NO_BORDER);
                 subTableCell.setPadding(0);
                 subTableCell.setWidth(50); // Fijar el ancho para que no se desajuste

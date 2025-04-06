@@ -32,7 +32,7 @@ import javax.swing.table.DefaultTableModel;
 public class ModelManageBond {
 
     private final ServiceConceptDao serviceConceptDao = new ServiceConceptDao();
-    private final AbonoDao abonoDao = new AbonoDao();
+    protected final AbonoDao abonoDao = new AbonoDao();
     private final AbonoDetailsDao abonoDetailsDao = new AbonoDetailsDao();
     protected ComponentManageBond componentManageBond;
 
@@ -49,7 +49,10 @@ public class ModelManageBond {
         TextFieldValidator.applyDecimalFilter(componentManageBond.jTextFieldPrecioCosto);
         TextFieldValidator.applyDecimalFilter(componentManageBond.jTextFieldVenta);
         TextFieldValidator.applyDecimalFilter(componentManageBond.jTextFieldMonthly);
-
+        TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldElimanarCecepto);
+        TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldEliminarBono);
+        TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldRenunciarBono);
+        TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldSearchSoliBond);
         TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldUnidades);
         TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldDues);
         TextFieldValidator.applyDecimalFilter(componentManageBond.jTextFieldPrioridad);
@@ -136,7 +139,11 @@ public class ModelManageBond {
 
     public void insertDao(AbonoTb abono) {
         try {
+            
             Integer id = abonoDao.insertAbono(abono);
+            if (id == null) {
+                return;
+            }
             abono.setId(id);
 
             System.out.println("Abono -> " + abono.toString());

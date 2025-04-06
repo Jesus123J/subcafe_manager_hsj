@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -31,6 +32,20 @@ public class LoanDetailsDao extends EmployeeDao {
     // Constructor para inicializar la conexión
     public LoanDetailsDao() {
         this.connection = Conexion.getConnection();
+    }
+
+    public void updatePaymentResponsibilityToGuarantor(String soli) {
+        String sql = "UPDATE loan SET PaymentResponsibility = 'GUARANTOR', ModifiedAt = NOW() WHERE SoliNum = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, soli);
+            stmt.executeUpdate();
+            JOptionPane.showMessageDialog(null, "Se cambio de estado, se paso todos las deudas para el aval");
+        } catch (SQLException e) {
+            System.out.println("Error -> " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrio un error");
+
+        }
     }
 
     // Método para actualizar pagos parciales y validar si el LoanDetail debe cambiar a "Pagado"
@@ -47,6 +62,7 @@ public class LoanDetailsDao extends EmployeeDao {
             ResultSet rsLoanId = stmtFindLoanId.executeQuery();
 
             if (rsLoanId.next()) {
+
                 int loanId = rsLoanId.getInt("LoanID");
                 double currentPayment = rsLoanId.getDouble("payment");
 
@@ -126,6 +142,7 @@ public class LoanDetailsDao extends EmployeeDao {
 
     //
     public List<LoanDetailsTb> getAllLoanDetails() throws SQLException {
+
         String sql = "SELECT ID, LoanID, Dues, TotalInterest, TotalIntangibleFund, MonthlyCapitalInstallment, "
                 + "MonthlyInterestFee, MonthlyIntangibleFundFee, MonthlyFeeValue, payment, PaymentDate, State, "
                 + "CreatedBy, CreatedAt, ModifiedBy, ModifiedAt FROM loandetail";
@@ -244,7 +261,7 @@ public class LoanDetailsDao extends EmployeeDao {
     }
 
     public LoanDetailResult getLoanDetailById(Integer id) throws SQLException {
-        String sql = "SELECT loa.dues AS loanDues, loaDet.dues AS loandetailDues, loaDet.payment AS MonthlyFeeValue , loaDet.PaymentDate "
+        String sql = "SELECT loa.SoliNum ,loaDet.payment ,  loa.dues AS loanDues, loaDet.dues AS loandetailDues, loaDet.MonthlyFeeValue AS MonthlyFeeValue , loaDet.PaymentDate "
                 + "FROM financialtracker1.loandetail loaDet "
                 + "LEFT JOIN financialtracker1.loan loa ON loaDet.LoanID = loa.ID "
                 + "WHERE loaDet.ID = ?";
@@ -257,6 +274,8 @@ public class LoanDetailsDao extends EmployeeDao {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     result = new LoanDetailResult();
+                    result.setPayment(rs.getDouble("payment"));
+                    result.setSoli(rs.getString("SoliNum"));
                     result.setLoanDues(rs.getInt("loanDues"));
                     result.setLoandetailDues(rs.getInt("loandetailDues"));
                     result.setMonthlyFeeValue(rs.getDouble("MonthlyFeeValue"));

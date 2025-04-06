@@ -10,9 +10,28 @@ package com.subcafae.finantialtracker.report.HistoryPayment;
  */
 public class LoanDetailResult {
     private int loanDues;
+    private Double payment;
     private int loandetailDues;
     private double monthlyFeeValue;
     private String paymentDate;
+    private String soli;
+
+    public String getSoli() {
+        return soli;
+    }
+
+    public Double getPayment() {
+        return payment;
+    }
+
+    public void setPayment(Double payment) {
+        this.payment = payment;
+    }
+
+    public void setSoli(String soli) {
+        this.soli = soli;
+    }
+    
 
     public int getLoanDues() {
         return loanDues;

@@ -34,13 +34,17 @@ public class ModelManageLoan extends LoanDao {
     public ModelManageLoan(ComponentManageLoan componentManageLoan) {
 
         this.componentManageLoan = componentManageLoan;
-        
+
         TextFieldValidator.applyIntegerFilter(componentManageLoan.textSearchLoanSoli);
+        TextFieldValidator.applyIntegerFilter(componentManageLoan.jTextFieldSearchLoanNum);
         TextFieldValidator.applyDecimalFilter(componentManageLoan.textAmountLoan);
         TextFieldValidator.applyDecimalFilter(componentManageLoan.textRefinanciamientoDemostration);
         TextFieldValidator.applyDecimalFilter(componentManageLoan.jTextFieldMontoDemostration);
+
         componentManageLoan.buttonCleanApplicant.setEnabled(false);
         componentManageLoan.buttonCleanAval.setEnabled(false);
+
+        desingJDialog();
 
     }
 
@@ -97,7 +101,7 @@ public class ModelManageLoan extends LoanDao {
                     LocalDateTime.now(),
                     null,
                     null,
-                    "Ordinario","EMPLOYEE");
+                    "Ordinario", "EMPLOYEE");
 
             Double refinan = createLoanWithStateValidation(loan);
 
@@ -242,5 +246,12 @@ public class ModelManageLoan extends LoanDao {
             System.out.println("Error -> " + ex.getMessage());
             JOptionPane.showMessageDialog(null, "Ocurrio un problema");
         }
+    }
+
+    public void desingJDialog() {
+        componentManageLoan.jDialog1.setSize(980, 530);
+        componentManageLoan.jDialog1.setResizable(false);
+        componentManageLoan.jDialog1.setLocationRelativeTo(null);
+
     }
 }

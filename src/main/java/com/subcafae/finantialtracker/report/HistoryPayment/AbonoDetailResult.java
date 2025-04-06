@@ -15,7 +15,16 @@ public class AbonoDetailResult {
     private int abonoDues;
     private int abonodetailDues;
     private double monthly;
+    private double payment;
 
+    public double getPayment() {
+        return payment;
+    }
+
+    public void setPayment(double payment) {
+        this.payment = payment;
+    }
+    
     public String getPaymentDate() {
         return paymentDate;
     }

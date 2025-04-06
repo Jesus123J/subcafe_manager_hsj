@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class LoanTb {
+
     private Integer id;
     private String soliNum;
     private String employeeId;
@@ -30,7 +31,7 @@ public class LoanTb {
     private Integer modifiedBy;
     private String type;
     private String paymentResponsibility;
-    
+
     public LoanTb() {
     }
 
@@ -42,8 +43,6 @@ public class LoanTb {
         this.paymentResponsibility = paymentResponsibility;
     }
 
-    
-    
     public String getStateLoan() {
         return stateLoan;
     }
@@ -56,11 +55,33 @@ public class LoanTb {
         Pendiente, Aceptado, Denegado, Refinanciado
     }
 
+    public LoanTb(Integer id,String num , String employeeId, String guarantorIds, double AmountWithdrawn, double RequestedAmount,
+            int dues, LocalDate paymentDate, String state, Integer refinanceParentId,
+            int createdBy, LocalDateTime createdAt, LocalDateTime modifiedAt,
+            Integer modifiedBy, String type, String PaymentResponsibility) {
+        this.id = id;
+        this.soliNum = num;
+        this.employeeId = employeeId;
+        this.guarantorIds = guarantorIds;
+        this.AmountWithdrawn = AmountWithdrawn;
+        this.RequestedAmount = RequestedAmount;
+        this.dues = dues;
+        this.paymentDate = paymentDate;
+        this.state = state;
+        this.refinanceParentId = refinanceParentId;
+        this.createdBy = createdBy;
+        this.createdAt = createdAt;
+        this.modifiedAt = modifiedAt;
+        this.modifiedBy = modifiedBy;
+        this.type = type;
+        this.paymentResponsibility = PaymentResponsibility;
+    }
+
     // Constructor sin ID y sin SoliNum
-    public LoanTb(String employeeId, String guarantorIds, double AmountWithdrawn, double RequestedAmount, 
-                int dues, LocalDate paymentDate, String state, Integer refinanceParentId,
-                int createdBy, LocalDateTime createdAt, LocalDateTime modifiedAt, 
-                Integer modifiedBy, String type , String PaymentResponsibility) {
+    public LoanTb(String employeeId, String guarantorIds, double AmountWithdrawn, double RequestedAmount,
+            int dues, LocalDate paymentDate, String state, Integer refinanceParentId,
+            int createdBy, LocalDateTime createdAt, LocalDateTime modifiedAt,
+            Integer modifiedBy, String type, String PaymentResponsibility) {
         this.employeeId = employeeId;
         this.guarantorIds = guarantorIds;
         this.AmountWithdrawn = AmountWithdrawn;
@@ -78,10 +99,21 @@ public class LoanTb {
     }
 
     // Getters y Setters (implementar todos)
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
-    public String getSoliNum() { return soliNum; }
-    public void setSoliNum(String soliNum) { this.soliNum = soliNum; }
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getSoliNum() {
+        return soliNum;
+    }
+
+    public void setSoliNum(String soliNum) {
+        this.soliNum = soliNum;
+    }
 
     public String getEmployeeId() {
         return employeeId;
@@ -90,8 +122,6 @@ public class LoanTb {
     public void setEmployeeId(String employeeId) {
         this.employeeId = employeeId;
     }
-
-
 
     public int getDues() {
         return dues;
@@ -194,6 +224,4 @@ public class LoanTb {
         return "LoanTb{" + "id=" + id + ", soliNum=" + soliNum + ", employeeId=" + employeeId + ", guarantorIds=" + guarantorIds + ", RequestedAmount=" + RequestedAmount + ", stateLoan=" + stateLoan + ", AmountWithdrawn=" + AmountWithdrawn + ", dues=" + dues + ", paymentDate=" + paymentDate + ", state=" + state + ", refinanceParentId=" + refinanceParentId + ", createdBy=" + createdBy + ", createdAt=" + createdAt + ", modifiedAt=" + modifiedAt + ", modifiedBy=" + modifiedBy + ", type=" + type + '}';
     }
 
-  
-   
 }

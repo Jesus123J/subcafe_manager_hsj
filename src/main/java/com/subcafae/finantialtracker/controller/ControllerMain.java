@@ -26,12 +26,8 @@ import javax.swing.event.InternalFrameEvent;
  */
 public class ControllerMain extends ModelMain implements ActionListener, MouseListener {
 
-    UserTb usser;
-
-    public ControllerMain(UserTb userr) {
-        super(new ViewMain(), userr);
-
-        this.usser = userr;
+    public ControllerMain() {
+        super(new ViewMain());
 
 //        viewMain.jInternalFrame1.addInternalFrameListener(new InternalFrameAdapter() {
 //            @Override
@@ -46,11 +42,13 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
         viewMain.jLabelReportDesc.addMouseListener(this);
         viewMain.jLabelReportDeuda.addMouseListener(this);
         viewMain.jMenuPago.addMouseListener(this);
-        
+
         viewMain.jButtonProcesoDescuent.addActionListener(this);
         viewMain.jMenuMangeBond.addMouseListener(this);
         viewMain.jMenuMangeLoan.addMouseListener(this);
         viewMain.jMenuManageWorker.addMouseListener(this);
+        viewMain.jMenuManageUser.addMouseListener(this);
+        viewMain.jMenu2.addMouseListener(this);
 
         viewMain.jButton3.addActionListener(this);
         viewMain.jButton4.addActionListener(this);
@@ -61,7 +59,7 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        
+
         if (e.getSource().equals(viewMain.jButtonProcesoDescuent)) {
             procedRegistroDesc();
         }
@@ -148,13 +146,25 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
             cleanVoucher();
             viewMain.jButton3.setEnabled(false);
             viewMain.jButton2.setEnabled(true);
+            viewMain.cbConRegDateStartVoucher.setDate(new Date());
             viewMain.jTextFieldNumeroVoucher.setText(PaymentVoucher.generateAndReserveVoucher());
         }
     }
 
     @Override
     public void mouseClicked(MouseEvent e) {
+        if (e.getSource().equals(viewMain.jMenu2)) {
+            componentLogin.jPasswordPassword.setText("");
+            componentLogin.jTextFieldUser.setText("");
+            eliminarCOmponent();
+            showLogin();
+        }
 
+        if (e.getSource().equals(viewMain.jMenuManageUser)) {
+            if (usser.getRol().equalsIgnoreCase("ADMINISTRADOR")) {
+                centerInternalComponent(componentManageUser);
+            }
+        }
         if (e.getSource().equals(viewMain.jMenuPago)) {
             viewMain.jLabelCode.setText("");
             viewMain.jLabelCantidad.setText("");

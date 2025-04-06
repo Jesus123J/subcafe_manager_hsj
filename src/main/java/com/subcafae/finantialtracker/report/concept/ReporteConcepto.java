@@ -22,6 +22,8 @@ import com.itextpdf.layout.element.*;
 import com.itextpdf.layout.properties.*;
 import com.itextpdf.layout.borders.Border;
 import java.awt.Desktop;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -32,6 +34,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 
 public class ReporteConcepto {
 
@@ -50,6 +54,8 @@ public class ReporteConcepto {
 
         PdfWriter writer = null;
         try {
+            System.out.println("Imagen");
+
             String userHome = System.getProperty("user.home");
             String destino = userHome
                     + "/Documents/voucher_de_pago_" + numberVoucher + ".pdf";
@@ -81,19 +87,7 @@ public class ReporteConcepto {
 
             cell1.setBorder(Border.NO_BORDER); // Quitar bordes
             table.addCell(cell1);
-
-            // ** Columna 2: Texto adicional (Ejemplo: "FACTURA N° 001-000123") **
-//            Cell cell2 = new Cell()
-//                    .add(new Paragraph("IMAGEN")
-//                            .setFontSize(10)
-//                            .setBold()
-//                            .setFontColor(ColorConstants.RED))
-//                    .setTextAlignment(TextAlignment.RIGHT);
-
-//            cell2.setBorder(Border.NO_BORDER); // Quitar bordes
-//
-//            table.addCell(cell2);
-
+           
             // Agregar la tabla al documento
             document.add(table);
 
@@ -283,7 +277,7 @@ public class ReporteConcepto {
             try {
                 Desktop.getDesktop().open(new File(destino));
             } catch (IOException ex) {
-              //  Logger.getLogger(TabbedPane.class.getName()).log(Level.SEVERE, null, ex);
+                //  Logger.getLogger(TabbedPane.class.getName()).log(Level.SEVERE, null, ex);
             }
         } catch (FileNotFoundException ex) {
             Logger.getLogger(ReporteConcepto.class.getName()).log(Level.SEVERE, null, ex);
@@ -542,7 +536,7 @@ public class ReporteConcepto {
             try {
                 Desktop.getDesktop().open(new File(destino));
             } catch (IOException ex) {
-              //  Logger.getLogger(TabbedPane.class.getName()).log(Level.SEVERE, null, ex);
+                //  Logger.getLogger(TabbedPane.class.getName()).log(Level.SEVERE, null, ex);
             }
         } catch (FileNotFoundException ex) {
             Logger.getLogger(ReporteConcepto.class.getName()).log(Level.SEVERE, null, ex);

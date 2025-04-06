@@ -6,6 +6,7 @@ package com.subcafae.finantialtracker.view;
 
 import com.subcafae.finantialtracker.data.dao.EmployeeDao;
 import com.subcafae.finantialtracker.report.concept.PaymentVoucher;
+import java.awt.Dimension;
 import java.beans.PropertyVetoException;
 import java.sql.SQLException;
 import java.time.ZoneId;
@@ -25,6 +26,8 @@ public class ViewMain extends javax.swing.JFrame {
         jInternalPagoPrestamosOtros.setSize(970, 530);
         jInternalPagoPrestamosOtros.setClosable(true);
         jInternalPagoPrestamosOtros.setResizable(false);
+        
+        setMinimumSize(new Dimension(900, 600));
     }
 
     @SuppressWarnings("unchecked")
@@ -83,6 +86,7 @@ public class ViewMain extends javax.swing.JFrame {
         jLabelReportDeuda = new javax.swing.JLabel();
         jLabelHistoryPayment = new javax.swing.JLabel();
         jLabelConstanciaEntrega = new javax.swing.JLabel();
+        jLayeredPane1 = new javax.swing.JLayeredPane();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenuManageUser = new javax.swing.JMenu();
         jMenuManageWorker = new javax.swing.JMenu();
@@ -519,8 +523,6 @@ public class ViewMain extends javax.swing.JFrame {
                 .addContainerGap(14, Short.MAX_VALUE))
         );
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
         jDesktopPane1.setBackground(new java.awt.Color(51, 102, 255));
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
@@ -602,6 +604,19 @@ public class ViewMain extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+
+        javax.swing.GroupLayout jLayeredPane1Layout = new javax.swing.GroupLayout(jLayeredPane1);
+        jLayeredPane1.setLayout(jLayeredPane1Layout);
+        jLayeredPane1Layout.setHorizontalGroup(
+            jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 1036, Short.MAX_VALUE)
+        );
+        jLayeredPane1Layout.setVerticalGroup(
+            jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 494, Short.MAX_VALUE)
+        );
+
         jMenuBar1.setForeground(new java.awt.Color(0, 0, 0));
 
         jMenuManageUser.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconMenuBar/group.png"))); // NOI18N
@@ -617,7 +632,7 @@ public class ViewMain extends javax.swing.JFrame {
         jMenuBar1.add(jMenuMangeLoan);
 
         jMenuMangeBond.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconMenuBar/coin.png"))); // NOI18N
-        jMenuMangeBond.setText("GESTÓN DE BONOS");
+        jMenuMangeBond.setText("GESTÓN DE ABONOS");
         jMenuBar1.add(jMenuMangeBond);
 
         jMenuPago.setText("PAGOS PRESTAMOS Y OTROS");
@@ -632,11 +647,13 @@ public class ViewMain extends javax.swing.JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jDesktopPane1)
+            .addComponent(jLayeredPane1)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jDesktopPane1)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLayeredPane1))
         );
 
         pack();
@@ -700,8 +717,9 @@ public class ViewMain extends javax.swing.JFrame {
     public javax.swing.JLabel jLabelHistoryPayment;
     public javax.swing.JLabel jLabelReportDesc;
     public javax.swing.JLabel jLabelReportDeuda;
-    private javax.swing.JMenu jMenu2;
-    private javax.swing.JMenuBar jMenuBar1;
+    public javax.swing.JLayeredPane jLayeredPane1;
+    public javax.swing.JMenu jMenu2;
+    public javax.swing.JMenuBar jMenuBar1;
     public javax.swing.JMenu jMenuManageUser;
     public javax.swing.JMenu jMenuManageWorker;
     public javax.swing.JMenu jMenuMangeBond;

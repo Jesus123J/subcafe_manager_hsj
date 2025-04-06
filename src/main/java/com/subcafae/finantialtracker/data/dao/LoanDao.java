@@ -5,6 +5,7 @@
 package com.subcafae.finantialtracker.data.dao;
 
 import com.subcafae.finantialtracker.data.conexion.Conexion;
+import com.subcafae.finantialtracker.data.entity.Loan;
 import com.subcafae.finantialtracker.data.entity.LoanTb;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -35,13 +36,54 @@ public class LoanDao extends LoanDetailsDao {
     }
     // Método para buscar préstamos por EmployeeID excluyendo aquellos con PaymentResponsibility = 'GUARANTOR'
 
+    public boolean updatePaymentResponsibility(String soliNum) {
+        String sqlSelect = "SELECT GuarantorId, State, StateLoan FROM loan WHERE SoliNum = ?";
+        String sqlUpdate = "UPDATE loan SET PaymentResponsibility = 'GUARANTOR' WHERE SoliNum = ?";
+
+        try (PreparedStatement selectStmt = connection.prepareStatement(sqlSelect)) {
+            selectStmt.setString(1, soliNum);
+            ResultSet rs = selectStmt.executeQuery();
+
+            if (rs.next()) {
+                String guarantorId = rs.getString("GuarantorId");
+                String state = rs.getString("State");
+                String stateLoan = rs.getString("StateLoan");
+
+                // Validaciones antes de cambiar el estado
+                if (guarantorId == null || guarantorId.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "No tiene un aval, no se puede cambiar el estado.", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+                    return false;
+                }
+
+                if (!"Aceptado".equals(state) || !"Pendiente".equals(stateLoan)) {
+                    JOptionPane.showMessageDialog(null, "El préstamo no cumple las condiciones para cambiar la responsabilidad de pago.", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+                    return false;
+                }
+
+                // Si cumple las condiciones, se actualiza el estado
+                try (PreparedStatement updateStmt = connection.prepareStatement(sqlUpdate)) {
+                    updateStmt.setString(1, soliNum);
+                    int rowsUpdated = updateStmt.executeUpdate();
+                    return rowsUpdated > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public List<LoanTb> findLoansByEmployeeId(String employeeId) throws SQLException {
-        String sql = "SELECT * FROM loan WHERE EmployeeID = ? AND PaymentResponsibility = 'EMPLOYEE'";
+
+        String sql = "SELECT * FROM loan WHERE State = 'Aceptado' AND StateLoan = 'Pendiente' "
+                + "AND ( (PaymentResponsibility = 'EMPLOYEE' AND EmployeeID = ?) "
+                + "OR (PaymentResponsibility = 'GUARANTOR' AND GuarantorId = ?) )";
 
         List<LoanTb> loans = new ArrayList<>();
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, employeeId); // Asigna el ID del empleado
+            stmt.setString(1, employeeId); // Busca préstamos donde el empleado es el solicitante
+            stmt.setString(2, employeeId); // Busca préstamos donde el empleado es el garante
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -75,7 +117,7 @@ public class LoanDao extends LoanDetailsDao {
     }
 
     public List<LoanTb> getAllLoans() throws SQLException {
-        
+
         String sql = "SELECT * FROM loan";
         List<LoanTb> loans = new ArrayList<>();
 
@@ -104,11 +146,41 @@ public class LoanDao extends LoanDetailsDao {
                 loan.setModifiedBy(rs.getInt("ModifiedBy"));
                 loan.setType(rs.getString("Type"));
                 loan.setPaymentResponsibility(rs.getString("PaymentResponsibility"));
-                
+
                 loans.add(loan);
             }
         }
 
+        return loans;
+    }
+
+    public List<Loan> getAllLoanss() {
+        List<Loan> loans = new ArrayList<>();
+        String sql = "SELECT l.ID, l.SoliNum, "
+                + "CONCAT(e1.first_name, ' ', e1.last_name) AS SolicitorName, "
+                + "CONCAT(e2.first_name, ' ', e2.last_name) AS GuarantorName, "
+                + "l.RequestedAmount, l.AmountWithdrawn, l.State, l.PaymentResponsibility "
+                + "FROM loan l "
+                + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id "
+                + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                loans.add(new Loan(
+                        rs.getInt("ID"),
+                        rs.getString("SoliNum"),
+                        rs.getString("SolicitorName"),
+                        rs.getString("GuarantorName"),
+                        rs.getBigDecimal("RequestedAmount"),
+                        rs.getBigDecimal("AmountWithdrawn"),
+                        rs.getString("State"),
+                        rs.getString("PaymentResponsibility").equalsIgnoreCase("EMPLOYEE") ? "SOLICITANTE" : "AVAL"
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         return loans;
     }
 
@@ -145,7 +217,7 @@ public class LoanDao extends LoanDetailsDao {
                     rs.getBigDecimal("RequestedAmount"),
                     rs.getBigDecimal("AmountWithdrawn"),
                     rs.getString("State"),
-                    rs.getString("PaymentResponsibility")
+                    rs.getString("PaymentResponsibility").equalsIgnoreCase("EMPLOYEE") ? "SOLICITANTE" : "AVAL"
                 });
             }
 
@@ -183,7 +255,7 @@ public class LoanDao extends LoanDetailsDao {
                 Double montoRefinanciado = calcularMontoPendientePorLoanId(activeLoan.get().getId());
 
                 if (montoRefinanciado > newLoan.getRequestedAmount()) {
-                    JOptionPane.showMessageDialog(null, "Error el refinanciamiento es mas grande", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(null, "Error el monto adeudado del anterior prestamo es mas grande", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
                     return null;
                 }
                 int option = JOptionPane.showConfirmDialog(null, "Desea refinanciar el prestamo anterior ? ", "GESTIÓN PRESTAMO", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);

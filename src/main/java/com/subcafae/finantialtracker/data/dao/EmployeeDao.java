@@ -20,6 +20,21 @@ public class EmployeeDao {
         this.connection = Conexion.getConnection();
     }
 
+    public boolean updateEmploymentStatusByDNI(String dni, String newStatus) {
+        String sql = "UPDATE employees SET employment_status = ?, updated_at = CURRENT_TIMESTAMP WHERE national_id = ?";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setString(1, newStatus);
+            preparedStatement.setString(2, dni);
+
+            int affectedRows = preparedStatement.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean deleteEmployeeIfNotUsed(String dni) throws SQLException {
         String findEmployeeIdQuery = "SELECT employee_id FROM employees WHERE national_id = ?";
         String checkLoanUsageQuery = "SELECT COUNT(*) FROM loan WHERE EmployeeID = ?";
@@ -41,7 +56,7 @@ public class EmployeeDao {
             int employeeId = rsEmployeeId.getInt("employee_id");
 
             // Paso 2: Verificar si tiene préstamos activos
-            stmtCheckLoanUsage.setInt(1, employeeId);
+            stmtCheckLoanUsage.setString(1, dni);
             ResultSet rsLoanUsage = stmtCheckLoanUsage.executeQuery();
 
             // Paso 3: Verificar si tiene bonos activos

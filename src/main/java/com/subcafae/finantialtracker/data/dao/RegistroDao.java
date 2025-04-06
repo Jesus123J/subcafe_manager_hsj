@@ -3,6 +3,7 @@ package com.subcafae.finantialtracker.data.dao;
 import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.AbonoDetailsTb;
 import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
+import com.subcafae.finantialtracker.data.entity.RegistroDetailsModel;
 import com.subcafae.finantialtracker.data.entity.RegistroTb;
 import com.subcafae.finantialtracker.report.HistoryPayment.ModelPaymentAndLoan;
 import java.sql.*;
@@ -18,22 +19,107 @@ public class RegistroDao {
         this.conn = Conexion.getConnection();
     }
 
-    public boolean insertarRegistroCompleto(RegistroTb registro, LoanDetailsTb prestamo, AbonoDetailsTb bonos) {
+    public boolean insertRegisterDetail(Integer idRegistro, Integer idBondDetails, Integer idLoanDetails, Double amountPar) {
+        String sql = "INSERT INTO registerdetails (idRegistro, idBondDetails, idLoanDetails, amountPar) VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, idRegistro); // Asigna idRegistro (Nunca debería ser NULL)
+
+            // Si idBondDetails es null, lo asigna como NULL en SQL
+            if (idBondDetails != null) {
+                stmt.setInt(2, idBondDetails);
+            } else {
+                stmt.setNull(2, java.sql.Types.INTEGER);
+            }
+
+            // Si idLoanDetails es null, lo asigna como NULL en SQL
+            if (idLoanDetails != null) {
+                stmt.setInt(3, idLoanDetails);
+            } else {
+                stmt.setNull(3, java.sql.Types.INTEGER);
+            }
+
+            stmt.setDouble(4, amountPar); // Asigna amountPar (Debería tener siempre valor)
+
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0; // Retorna true si la inserción fue exitosa
+
+        } catch (SQLException e) {
+
+            System.out.println("Error -< " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrio un problema", "ERROR", JOptionPane.WARNING_MESSAGE);
+            return false; // Retorna false si hay error
+        }
+    }
+
+    public List<RegistroDetailsModel> findRegisterDetailsByEmployeeId(String employeeId) {
+        String sql = "SELECT rs.fecha_registro, rs.codigo, rs.amount, "
+                + "CONCAT('Préstamo', '-', loan.SoliNum, ' ', loan.Dues, '/', ld.Dues) AS conceptLoan, "
+                + "CONCAT(ser.description, '-', bon.SoliNum, ' ', bon.dues, '/', abDe.dues) AS conceptBond, "
+                + "ld.PaymentDate AS fechaVLoan, abDe.paymentDate AS fechaVBond, "
+                + "rsDe.amountPar, ld.MonthlyFeeValue AS montoLoan, abDe.monthly AS montoBond "
+                + "FROM financialtracker1.registro rs "
+                + "LEFT JOIN financialtracker1.registerdetails rsDe ON rsDe.idRegistro = rs.id "
+                + "LEFT JOIN financialtracker1.loandetail ld ON ld.ID = rsDe.idLoanDetails "
+                + "LEFT JOIN financialtracker1.loan loan ON loan.ID = ld.LoanID "
+                + "LEFT JOIN financialtracker1.abonodetail abDe ON abDe.id = rsDe.idBondDetails "
+                + "LEFT JOIN financialtracker1.abono bon ON bon.id = abDe.AbonoID "
+                + "LEFT JOIN financialtracker1.service_concept ser ON ser.id = bon.service_concept_id "
+                + "WHERE rs.empleado_id = ?";
+
+        List<RegistroDetailsModel> registros = new ArrayList<>();
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, employeeId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    RegistroDetailsModel registro = new RegistroDetailsModel();
+                    registro.setFechaRegistro(rs.getString("fecha_registro"));
+                    registro.setCodigo(rs.getString("codigo"));
+                    registro.setAmount(rs.getBigDecimal("amount"));
+                    registro.setConceptLoan(rs.getString("conceptLoan"));
+                    registro.setConceptBond(rs.getString("conceptBond"));
+                    registro.setFechaVLoan(rs.getString("fechaVLoan"));
+                    registro.setFechaVBond(rs.getString("fechaVBond"));
+                    registro.setAmountPar(rs.getBigDecimal("amountPar"));
+                    registro.setMontoLoan(rs.getBigDecimal("montoLoan"));
+                    registro.setMontoBond(rs.getBigDecimal("montoBond"));
+
+                    registros.add(registro);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error -< " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrio un problema", "ERROR", JOptionPane.WARNING_MESSAGE);
+        }
+
+        return registros;
+    }
+
+    public boolean insertarRegistroCompleto(RegistroTb registro, LoanDetailsTb prestamo, AbonoDetailsTb bonos, Double monto) {
+
+        String findLoanIdQuery = "SELECT LoanID, payment FROM loandetail WHERE ID = ?";
+
         String sqlRegistro = "CALL InsertarRegistro(?,?);";
         String sqlObtenerID = "SELECT LAST_INSERT_ID()"; // Obtener el último ID insertado
+
         String sqlPrestamo = "INSERT INTO soli_prestamo (registro_id,soli_prestamo,id_prestamoDetails) VALUES (?, ?,?)";
         String sqlBono = "INSERT INTO soli_bonus (registro_id,soli_abono,id_abonoDetails) VALUES (?, ?,?)";
 
         try (PreparedStatement stmtRegistro = conn.prepareStatement(sqlRegistro, Statement.RETURN_GENERATED_KEYS)) {
+
             conn.setAutoCommit(false); // Desactivar auto-commit para manejar transacción
 
             // 1. Insertar en la tabla registro
             System.out.println("Cantidad / " + registro.getAmount());
+
             stmtRegistro.setInt(1, registro.getEmpleadoId());
             stmtRegistro.setDouble(2, registro.getAmount());
             stmtRegistro.executeUpdate();
 
             int idRegistro = 0;
+
             try (PreparedStatement stmtID = conn.prepareStatement(sqlObtenerID); ResultSet rs = stmtID.executeQuery()) {
                 if (rs.next()) {
                     idRegistro = rs.getInt(1);
@@ -42,28 +128,14 @@ public class RegistroDao {
 
             System.out.println("ID de registro generado: " + idRegistro);
             // 3. Insertar en la tabla prestamo si existen préstamos
+
             if (prestamo != null) {
-                System.out.println("Id de registro / " + idRegistro);
-                try (PreparedStatement stmtPrestamo = conn.prepareStatement(sqlPrestamo)) {
-
-                    stmtPrestamo.setInt(1, idRegistro);
-                    stmtPrestamo.setString(2, "");
-                    stmtPrestamo.setInt(3, prestamo.getId());
-                    stmtPrestamo.executeUpdate();
-
-                }
+                insertRegisterDetail(idRegistro, null, prestamo.getId(), monto);
             }
 
             // 4. Insertar en la tabla bono si existen bonos
             if (bonos != null) {
-                System.out.println("Id de registro / " + idRegistro);
-                try (PreparedStatement stmtBono = conn.prepareStatement(sqlBono)) {
-                    stmtBono.setInt(1, idRegistro);
-                    stmtBono.setString(2, "");
-                    stmtBono.setInt(3, bonos.getId());
-                    stmtBono.executeUpdate();
-
-                }
+                insertRegisterDetail(idRegistro, bonos.getId(), null, monto);
             }
 
             // 5. Confirmar la transacción
@@ -84,7 +156,9 @@ public class RegistroDao {
             try {
                 conn.setAutoCommit(true); // Reactivar auto-commit
             } catch (SQLException e) {
-                e.printStackTrace();
+
+                System.out.println("Error -< " + e.getMessage());
+                JOptionPane.showMessageDialog(null, "Ocurrio un problema", "ERROR", JOptionPane.WARNING_MESSAGE);
             }
         }
 
@@ -159,7 +233,9 @@ public class RegistroDao {
             try {
                 conn.setAutoCommit(true); // Reactivar auto-commit
             } catch (SQLException e) {
-                e.printStackTrace();
+
+                System.out.println("Error -< " + e.getMessage());
+                JOptionPane.showMessageDialog(null, "Ocurrio un problema", "ERROR", JOptionPane.WARNING_MESSAGE);
             }
         }
     }

@@ -8,30 +8,73 @@ package com.subcafae.finantialtracker.data.entity;
  *
  * @author Jesus Gutierrez
  */
-public class UserTb {
-    private Integer id;
-    private String email;
-    private String username;
-    private String password;
-    private Integer createdBy;
-    private String createdAt;
-    private Integer modifidBy;
-    private String modifidAt;
+import java.sql.Date;
+import java.sql.Timestamp;
 
-    public Integer getId() {
+public class UserTb {
+    private int id;
+    private String username;
+    private int idEmployee;
+    private String firstName;
+    private String lastName;
+    private String rol;
+    private String nationalId;
+    private String phoneNumber;
+    private String gender;
+    private String employmentStatus;
+    private String employmentStatusCode;
+    private Date startDate;
+    private Timestamp createdAt;
+    private Timestamp updatedAt;
+    private String state;
+    
+    
+    public String getRol() {
+        return rol;
+    }
+
+    public void setRol(String rol) {
+        this.rol = rol;
+    }
+   
+    public UserTb(int iduser, String username, int idEmployee, String firstName, String lastName,String rol,String state,
+                String nationalId, String phoneNumber, String gender, String employmentStatus,
+                String employmentStatusCode, Date startDate, Timestamp createdAt, Timestamp updatedAt) {
+        
+        this.state = state;
+        this.rol = rol;
+        this.id = iduser;
+        this.username = username;
+        this.idEmployee = idEmployee;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.nationalId = nationalId;
+        this.phoneNumber = phoneNumber;
+        this.gender = gender;
+        this.employmentStatus = employmentStatus;
+        this.employmentStatusCode = employmentStatusCode;
+        this.startDate = startDate;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+    
+
+    // Getters & Setters
+
+    public int getId() {
         return id;
     }
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
+    public void setId(int iduser) {
+        this.id = iduser;
     }
 
     public String getUsername() {
@@ -42,45 +85,97 @@ public class UserTb {
         this.username = username;
     }
 
-    public String getPassword() {
-        return password;
+    public int getIdEmployee() {
+        return idEmployee;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setIdEmployee(int idEmployee) {
+        this.idEmployee = idEmployee;
     }
 
-    public Integer getCreatedBy() {
-        return createdBy;
+    public String getFirstName() {
+        return firstName;
     }
 
-    public void setCreatedBy(Integer createdBy) {
-        this.createdBy = createdBy;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
     }
 
-    public String getCreatedAt() {
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getNationalId() {
+        return nationalId;
+    }
+
+    public void setNationalId(String nationalId) {
+        this.nationalId = nationalId;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getEmploymentStatus() {
+        return employmentStatus;
+    }
+
+    public void setEmploymentStatus(String employmentStatus) {
+        this.employmentStatus = employmentStatus;
+    }
+
+    public String getEmploymentStatusCode() {
+        return employmentStatusCode;
+    }
+
+    public void setEmploymentStatusCode(String employmentStatusCode) {
+        this.employmentStatusCode = employmentStatusCode;
+    }
+
+    public Date getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(Date startDate) {
+        this.startDate = startDate;
+    }
+
+    public Timestamp getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(String createdAt) {
+    public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
     }
 
-    public Integer getModifidBy() {
-        return modifidBy;
+    public Timestamp getUpdatedAt() {
+        return updatedAt;
     }
 
-    public void setModifidBy(Integer modifidBy) {
-        this.modifidBy = modifidBy;
+    public void setUpdatedAt(Timestamp updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
-    public String getModifidAt() {
-        return modifidAt;
+    @Override
+    public String toString() {
+        return "UserTb{" + "iduser=" + id + ", username=" + username + ", idEmployee=" + idEmployee + ", firstName=" + firstName + ", lastName=" + lastName + ", nationalId=" + nationalId + ", phoneNumber=" + phoneNumber + ", gender=" + gender + ", employmentStatus=" + employmentStatus + ", employmentStatusCode=" + employmentStatusCode + ", startDate=" + startDate + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + '}';
     }
-
-    public void setModifidAt(String modifidAt) {
-        this.modifidAt = modifidAt;
-    }
-    
     
 }

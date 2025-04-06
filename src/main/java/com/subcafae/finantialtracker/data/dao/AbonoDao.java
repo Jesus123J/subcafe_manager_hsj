@@ -25,11 +25,14 @@ public class AbonoDao {
         this.connection = Conexion.getConnection();
     }
 
-    public boolean renounceAbono(String soliNum) throws SQLException {
-        String updateQuery = "UPDATE abono SET status = 'REN' WHERE SoliNum = ?";
+    public boolean renounceAbono(String soliNum, Integer id, String fecha) throws SQLException {
+        String updateQuery = "UPDATE abono SET status = 'REN' , modifiedBy  = ? ,modifiedAt = ?  WHERE SoliNum = ? AND state = 'Pendiente'";
 
         try (PreparedStatement stmtUpdate = connection.prepareStatement(updateQuery)) {
             stmtUpdate.setString(1, soliNum);
+            stmtUpdate.setInt(2, id);
+            stmtUpdate.setString(3, fecha);
+
             return stmtUpdate.executeUpdate() > 0;
         }
     }
@@ -77,17 +80,39 @@ public class AbonoDao {
         }
     }
 
+    public boolean hasPendingAbono(String id, String idConcep) {
+        String sql = "SELECT COUNT(*) FROM abono WHERE Employee_id = ? AND status = 'Pendiente' AND service_concept_id = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, id);
+            stmt.setString(2, idConcep);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0; // Si hay registros con estado "Pendiente", retorna true
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false; // Si no hay registros "Pendiente" o hay un error, retorna false
+    }
+
     // Método para insertar un nuevo abono
     // Método para insertar un nuevo abono
     public Integer insertAbono(AbonoTb abono) throws SQLException {
+
+        if (hasPendingAbono(abono.getEmployeeId() , abono.getServiceConceptId())) {
+            JOptionPane.showMessageDialog(null, "Ya existe un abono pendiente. No se puede registrar otro.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return null; // No se permite la inserción
+        }
+
         String sql = "INSERT INTO abono (SoliNum, service_concept_id, Employee_id, dues, monthly, paymentDate, "
                 + "status, discount_from, createdBy, createdAt, modifiedBy, modifiedAt) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        // Inicia PreparedStatement con Statement.RETURN_GENERATED_KEYS
         try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            // Asignación de valores a la consulta
             stmt.setString(1, abono.getSoliNum());
             stmt.setString(2, abono.getServiceConceptId());
             stmt.setString(3, abono.getEmployeeId());
@@ -101,20 +126,20 @@ public class AbonoDao {
             stmt.setInt(11, abono.getModifiedBy());
             stmt.setString(12, abono.getModifiedAt());
 
-            // Ejecuta la consulta de inserción
             int affectedRows = stmt.executeUpdate();
 
-            // Verifica si se insertaron filas y obtiene la clave generada
             if (affectedRows > 0) {
                 Integer newId = null;
                 try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
-                        newId = generatedKeys.getInt(1); // Obtiene la clave generada
-                        updateSoliNum(newId); // Genera número de solicitud
+                        newId = generatedKeys.getInt(1);
+                        updateSoliNum(newId);
                     } else {
                         throw new SQLException("No se pudo obtener la clave primaria generada.");
                     }
                 }
+                JOptionPane.showMessageDialog(null, "Se registró el abono correctamente.",
+                        "Registro", JOptionPane.INFORMATION_MESSAGE);
                 return newId;
             } else {
                 return null;
@@ -210,7 +235,6 @@ public class AbonoDao {
 
             try (ResultSet rs = stmt.executeQuery()) { // Llamada correcta sin pasar el SQL nuevamente
                 while (rs.next()) {
-                    System.out.println("Pinrt");
 
                     // Mapeo de los datos obtenidos
                     AbonoDetailsTb abonoDetail = new AbonoDetailsTb();
