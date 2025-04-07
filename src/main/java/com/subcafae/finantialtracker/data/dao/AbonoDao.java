@@ -207,7 +207,7 @@ public class AbonoDao {
     public List<AbonoTb> getListAbonoTByConcepAndCodeEm(Integer idConcept, String codeEm) throws SQLException {
         String sql = "SELECT  ab.* FROM financialtracker1.abono ab "
                 + "LEFT JOIN financialtracker1.employees em ON  em.employee_id = ab.Employee_id "
-                + "  WHERE ab.service_concept_id = ?  AND  em.employment_status_code = ? ";
+                + "  WHERE ab.service_concept_id = ?  AND  em.employment_status_code = ?";
 
         List<AbonoTb> abonos = new ArrayList<>();
 

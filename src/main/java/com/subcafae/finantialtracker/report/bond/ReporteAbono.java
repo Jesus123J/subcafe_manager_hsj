@@ -32,12 +32,15 @@ import com.subcafae.finantialtracker.data.entity.AbonoDetailsTb;
 import com.subcafae.finantialtracker.data.entity.AbonoTb;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import com.subcafae.finantialtracker.data.entity.ServiceConceptTb;
+import com.subcafae.finantialtracker.view.component.PaneComparedTime;
 import java.io.FileNotFoundException;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
@@ -50,6 +53,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.JTextField;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.FileChooserUI;
 
@@ -138,10 +142,23 @@ public class ReporteAbono {
 
     public void saveDocument(String contraty, List<AbonoTb> listAbono, boolean statusMonth, String concept) throws IOException {
 
+        PaneComparedTime paneComparedTime = new PaneComparedTime();
+        ((JTextField) paneComparedTime.dcDateStart.getDateEditor().getUiComponent()).setEditable(false);
+
+        if (JOptionPane.showConfirmDialog(null, paneComparedTime, "Time", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE) != JOptionPane.OK_OPTION) {
+            return;
+        }
+        if (paneComparedTime.dcDateStart.getDate() == null) {
+            JOptionPane.showMessageDialog(null, "inserte una fecha en los dos intervalos");
+            return;
+        }
+        
+        LocalDate localDateStart = paneComparedTime.dcDateStart.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Guardar Reporte de Abonos");
 
-        String defaultName = "reporte_abonos_" + LocalDate.now().format(DateTimeFormatter.ISO_DATE);
+        String defaultName = "reporte_abonos_" + localDateStart.format(DateTimeFormatter.ISO_DATE);
         fileChooser.setSelectedFile(new File(defaultName + ".pdf"));
 
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos PDF", "pdf");
@@ -226,7 +243,7 @@ public class ReporteAbono {
                         columnToMonth.put(col, Month.of(col - 4));
                     }
 
-                    LocalDate currentMonth = LocalDate.now().plusMonths(1);
+                    LocalDate currentMonth = localDateStart;
 
                     Double totalAmount = 0.0;
 
@@ -255,7 +272,7 @@ public class ReporteAbono {
 
                             if (detalle.getAbonoID() == abono.getId()) {
 
-                                listMonto.add(detalle.getMonthly() - detalle.getPayment());
+                                listMonto.add(detalle.getMonthly());
 
                                 System.out.println("Ingreso");
 
@@ -266,7 +283,7 @@ public class ReporteAbono {
                                     Month mesPago = fechaPago.getMonth();
 
                                     if (abono.getStatus().equalsIgnoreCase("REN")) {
-                                        System.out.println("Renuncia");
+
                                         if (detalle.getState().equalsIgnoreCase("Pagado")) {
                                             listAport.add(abono.getMonthly());
                                         } else if (detalle.getState().equalsIgnoreCase("Parcial")) {

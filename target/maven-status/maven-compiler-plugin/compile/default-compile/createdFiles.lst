@@ -44,6 +44,7 @@ com\subcafae\finantialtracker\data\dao\LoanDao.class
 com\subcafae\finantialtracker\data\entity\User.class
 com\subcafae\finantialtracker\report\descuento\DatosPersona.class
 com\subcafae\finantialtracker\util\TextFieldValidator$2.class
+com\subcafae\finantialtracker\view\component\PaneComparedTime.class
 com\subcafae\finantialtracker\report\loanReport\SolicitudPrestamo.class
 com\subcafae\finantialtracker\view\ViewMain$7.class
 com\subcafae\finantialtracker\model\ModelManageBond.class

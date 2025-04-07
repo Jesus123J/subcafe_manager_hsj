@@ -359,6 +359,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
 
                 int indexDetalle = componentManageBond.jTableListDetalle.getSelectedRow();
                 int indexIn = componentManageBond.jTableListBonos.getSelectedRow();
+                
                 if (indexDetalle != -1) {
 
                     componentManageBond.jTableListDetalle.repaint();
@@ -467,6 +468,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
 
                 }
             }
+            
             if (e.getSource().equals(componentManageBond.jTableListBonos.getSelectionModel())) {
 
                 int index = componentManageBond.jTableListBonos.getSelectedRow();
