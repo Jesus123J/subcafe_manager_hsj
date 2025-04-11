@@ -19,7 +19,7 @@ public class RegistroDao {
         this.conn = Conexion.getConnection();
     }
 
-    public boolean insertRegisterDetail(Integer idRegistro, Integer idBondDetails, Integer idLoanDetails, Double amountPar) {
+    public boolean insertRegisterDetail(Integer idRegistro, Long idBondDetails, Long idLoanDetails, Double amountPar) {
         String sql = "INSERT INTO registerdetails (idRegistro, idBondDetails, idLoanDetails, amountPar) VALUES (?, ?, ?, ?)";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -27,14 +27,14 @@ public class RegistroDao {
 
             // Si idBondDetails es null, lo asigna como NULL en SQL
             if (idBondDetails != null) {
-                stmt.setInt(2, idBondDetails);
+                stmt.setLong(2, idBondDetails);
             } else {
                 stmt.setNull(2, java.sql.Types.INTEGER);
             }
 
             // Si idLoanDetails es null, lo asigna como NULL en SQL
             if (idLoanDetails != null) {
-                stmt.setInt(3, idLoanDetails);
+                stmt.setLong(3, idLoanDetails);
             } else {
                 stmt.setNull(3, java.sql.Types.INTEGER);
             }
@@ -196,7 +196,7 @@ public class RegistroDao {
                     for (LoanDetailsTb p : prestamos) {
                         stmtPrestamo.setInt(1, idRegistro);
                         stmtPrestamo.setString(2, "");
-                        stmtPrestamo.setInt(3, p.getId());
+                        stmtPrestamo.setLong(3, p.getId());
                         stmtPrestamo.executeUpdate();
                     }
                 }
@@ -209,7 +209,7 @@ public class RegistroDao {
                     for (AbonoDetailsTb b : bonos) {
                         stmtBono.setInt(1, idRegistro);
                         stmtBono.setString(2, "");
-                        stmtBono.setInt(3, b.getId());
+                        stmtBono.setLong(3, b.getId());
                         stmtBono.executeUpdate();
                     }
                 }

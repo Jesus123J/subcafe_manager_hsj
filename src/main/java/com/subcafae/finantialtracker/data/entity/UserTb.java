@@ -15,11 +15,9 @@ public class UserTb {
     private int id;
     private String username;
     private int idEmployee;
-    private String firstName;
-    private String lastName;
+    private String fullName;
     private String rol;
     private String nationalId;
-    private String phoneNumber;
     private String gender;
     private String employmentStatus;
     private String employmentStatusCode;
@@ -37,8 +35,8 @@ public class UserTb {
         this.rol = rol;
     }
    
-    public UserTb(int iduser, String username, int idEmployee, String firstName, String lastName,String rol,String state,
-                String nationalId, String phoneNumber, String gender, String employmentStatus,
+    public UserTb(int iduser, String username, int idEmployee, String fullName,String rol,String state,
+                String nationalId, String gender, String employmentStatus,
                 String employmentStatusCode, Date startDate, Timestamp createdAt, Timestamp updatedAt) {
         
         this.state = state;
@@ -46,10 +44,8 @@ public class UserTb {
         this.id = iduser;
         this.username = username;
         this.idEmployee = idEmployee;
-        this.firstName = firstName;
-        this.lastName = lastName;
+        this.fullName = fullName;
         this.nationalId = nationalId;
-        this.phoneNumber = phoneNumber;
         this.gender = gender;
         this.employmentStatus = employmentStatus;
         this.employmentStatusCode = employmentStatusCode;
@@ -93,22 +89,15 @@ public class UserTb {
         this.idEmployee = idEmployee;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public String getFullName() {
+        return fullName;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
+  
     public String getNationalId() {
         return nationalId;
     }
@@ -117,14 +106,7 @@ public class UserTb {
         this.nationalId = nationalId;
     }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
+   
     public String getGender() {
         return gender;
     }
@@ -173,9 +155,5 @@ public class UserTb {
         this.updatedAt = updatedAt;
     }
 
-    @Override
-    public String toString() {
-        return "UserTb{" + "iduser=" + id + ", username=" + username + ", idEmployee=" + idEmployee + ", firstName=" + firstName + ", lastName=" + lastName + ", nationalId=" + nationalId + ", phoneNumber=" + phoneNumber + ", gender=" + gender + ", employmentStatus=" + employmentStatus + ", employmentStatusCode=" + employmentStatusCode + ", startDate=" + startDate + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + '}';
-    }
-    
+   
 }

@@ -34,7 +34,7 @@ public class AbonoDetailsDao {
     }
 
     // Método para actualizar pagos parciales y validar si el LoanDetail debe cambiar a "Pagado"
-    public void updateLoanStateByLoandetailId(int loandetailId, double monthlyFeeValue, double newPayment) throws SQLException {
+    public void updateLoanStateByLoandetailId(Long loandetailId, double monthlyFeeValue, double newPayment) throws SQLException {
 
         String findLoanIdQuery = "SELECT AbonoID , payment FROM abonodetail WHERE ID = ?";
         String updateLoandetailStateQuery = "UPDATE abonodetail SET payment = ?, State = ? WHERE ID = ?";
@@ -44,7 +44,7 @@ public class AbonoDetailsDao {
         try (PreparedStatement stmtFindLoanId = connection.prepareStatement(findLoanIdQuery); PreparedStatement stmtUpdateLoandetail = connection.prepareStatement(updateLoandetailStateQuery); PreparedStatement stmtFindLoandetailsState = connection.prepareStatement(findLoandetailsStateQuery); PreparedStatement stmtUpdateLoan = connection.prepareStatement(updateLoanStateQuery)) {
 
             // Paso 1: Obtener LoanID y monto actual de pago en loandetail
-            stmtFindLoanId.setInt(1, loandetailId);
+            stmtFindLoanId.setLong(1, loandetailId);
             ResultSet rsLoanId = stmtFindLoanId.executeQuery();
 
             if (rsLoanId.next()) {
@@ -62,7 +62,7 @@ public class AbonoDetailsDao {
                 // Actualizar loandetail con el nuevo monto acumulado y estado
                 stmtUpdateLoandetail.setDouble(1, totalPayment);
                 stmtUpdateLoandetail.setString(2, loandetailState);
-                stmtUpdateLoandetail.setInt(3, loandetailId);
+                stmtUpdateLoandetail.setLong(3, loandetailId);
                 stmtUpdateLoandetail.executeUpdate();
 
                 // Paso 3: Verificar si **todas** las cuotas (`loandetail`) están pagadas
@@ -96,7 +96,7 @@ public class AbonoDetailsDao {
 
             while (rs.next()) {
                 AbonoDetailsTb abonoDetail = new AbonoDetailsTb();
-                abonoDetail.setId(rs.getInt("id"));
+                abonoDetail.setId(rs.getLong("id"));
                 abonoDetail.setAbonoID(rs.getInt("AbonoID"));
                 abonoDetail.setDues(rs.getInt("dues"));
                 abonoDetail.setMonthly(rs.getDouble("monthly"));
@@ -203,7 +203,7 @@ public class AbonoDetailsDao {
                 while (rs.next()) {
                     // Mapear el resultado al objeto AbonoDetailTb
                     AbonoDetailsTb detail = new AbonoDetailsTb();
-                    detail.setId(rs.getInt("id"));
+                    detail.setId(rs.getLong("id"));
                     detail.setAbonoID(rs.getInt("AbonoID"));
                     detail.setDues(rs.getInt("dues"));
                     detail.setMonthly(rs.getDouble("monthly"));

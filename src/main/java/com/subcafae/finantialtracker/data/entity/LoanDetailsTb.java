@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * @author Jesus Gutierrez
  */
 public class LoanDetailsTb {
-    private int id;
+    private Long id;
     private int loanId;
     private int dues;
     private double totalInterest;
@@ -33,7 +33,7 @@ public class LoanDetailsTb {
     public LoanDetailsTb() {}
 
     // Constructor completo
-    public LoanDetailsTb(int id, int loanId, int dues, double totalInterest, double totalIntangibleFund,
+    public LoanDetailsTb(Long id, int loanId, int dues, double totalInterest, double totalIntangibleFund,
                       double monthlyCapitalInstallment, double monthlyInterestFee, double monthlyIntangibleFundFee,
                       double monthlyFeeValue, double payment, Date paymentDate, String state, int createdBy,
                       LocalDateTime createdAt, int modifiedBy, LocalDateTime modifiedAt) {
@@ -56,11 +56,11 @@ public class LoanDetailsTb {
     }
 
     // Getters y Setters
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

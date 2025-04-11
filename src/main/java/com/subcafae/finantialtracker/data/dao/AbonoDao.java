@@ -101,10 +101,8 @@ public class AbonoDao {
     // Método para insertar un nuevo abono
     public Integer insertAbono(AbonoTb abono) throws SQLException {
 
-        if (hasPendingAbono(abono.getEmployeeId() , abono.getServiceConceptId())) {
-            JOptionPane.showMessageDialog(null, "Ya existe un abono pendiente. No se puede registrar otro.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
-            return null; // No se permite la inserción
+        if (hasPendingAbono(abono.getEmployeeId() , abono.getServiceConceptId())) {  
+            return -1; // No se permite la inserción
         }
 
         String sql = "INSERT INTO abono (SoliNum, service_concept_id, Employee_id, dues, monthly, paymentDate, "
@@ -138,8 +136,7 @@ public class AbonoDao {
                         throw new SQLException("No se pudo obtener la clave primaria generada.");
                     }
                 }
-                JOptionPane.showMessageDialog(null, "Se registró el abono correctamente.",
-                        "Registro", JOptionPane.INFORMATION_MESSAGE);
+             
                 return newId;
             } else {
                 return null;
@@ -238,7 +235,7 @@ public class AbonoDao {
 
                     // Mapeo de los datos obtenidos
                     AbonoDetailsTb abonoDetail = new AbonoDetailsTb();
-                    abonoDetail.setId(rs.getInt("id"));
+                    abonoDetail.setId(rs.getLong("id"));
                     abonoDetail.setAbonoID(rs.getInt("AbonoID"));
                     abonoDetail.setDues(rs.getInt("dues"));
                     abonoDetail.setMonthly(rs.getDouble("monthly"));

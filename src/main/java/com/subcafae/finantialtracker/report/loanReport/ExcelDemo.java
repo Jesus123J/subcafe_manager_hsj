@@ -101,7 +101,7 @@ public class ExcelDemo {
 
 // 5. Información personal
         String[][] personalInfo = {
-            {"APELLIDOS Y NOMBRES :", trabajador.get().getFirstName().concat(" " + trabajador.get().getLastName())},
+            {"APELLIDOS Y NOMBRES :", trabajador.get().getFullName()},
             {"DNI :", trabajador.get().getNationalId()},
             {"MODALIDAD :", trabajador.get().getEmploymentStatus()},
             {"PRÉSTAMO :", "ORDINARIO"}

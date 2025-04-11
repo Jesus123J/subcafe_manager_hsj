@@ -34,22 +34,25 @@ public class LoanDetailsDao extends EmployeeDao {
         this.connection = Conexion.getConnection();
     }
 
-    public void updatePaymentResponsibilityToGuarantor(String soli) {
+    public Boolean updatePaymentResponsibilityToGuarantor(String soli) {
         String sql = "UPDATE loan SET PaymentResponsibility = 'GUARANTOR', ModifiedAt = NOW() WHERE SoliNum = ?";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, soli);
             stmt.executeUpdate();
+            
             JOptionPane.showMessageDialog(null, "Se cambio de estado, se paso todos las deudas para el aval");
+            return true;
         } catch (SQLException e) {
             System.out.println("Error -> " + e.getMessage());
             JOptionPane.showMessageDialog(null, "Ocurrio un error");
+            return false;
 
         }
     }
 
     // Método para actualizar pagos parciales y validar si el LoanDetail debe cambiar a "Pagado"
-    public void updateLoanStateByLoandetailId(int loandetailId, double monthlyFeeValue, double newPayment) throws SQLException {
+    public void updateLoanStateByLoandetailId(Long loandetailId, double monthlyFeeValue, double newPayment) throws SQLException {
         String findLoanIdQuery = "SELECT LoanID, payment FROM loandetail WHERE ID = ?";
         String updateLoandetailStateQuery = "UPDATE loandetail SET payment = ?, State = ? WHERE ID = ?";
         String findLoandetailsStateQuery = "SELECT State FROM loandetail WHERE LoanID = ?";
@@ -58,7 +61,7 @@ public class LoanDetailsDao extends EmployeeDao {
         try (PreparedStatement stmtFindLoanId = connection.prepareStatement(findLoanIdQuery); PreparedStatement stmtUpdateLoandetail = connection.prepareStatement(updateLoandetailStateQuery); PreparedStatement stmtFindLoandetailsState = connection.prepareStatement(findLoandetailsStateQuery); PreparedStatement stmtUpdateLoan = connection.prepareStatement(updateLoanStateQuery)) {
 
             // Paso 1: Obtener LoanID y monto actual de pago en loandetail
-            stmtFindLoanId.setInt(1, loandetailId);
+            stmtFindLoanId.setLong(1, loandetailId);
             ResultSet rsLoanId = stmtFindLoanId.executeQuery();
 
             if (rsLoanId.next()) {
@@ -75,7 +78,7 @@ public class LoanDetailsDao extends EmployeeDao {
                 // Actualizar loandetail con el nuevo monto acumulado y estado
                 stmtUpdateLoandetail.setDouble(1, totalPayment);
                 stmtUpdateLoandetail.setString(2, loandetailState);
-                stmtUpdateLoandetail.setInt(3, loandetailId);
+                stmtUpdateLoandetail.setLong(3, loandetailId);
                 stmtUpdateLoandetail.executeUpdate();
 
                 // Paso 3: Verificar si **todas** las cuotas (`loandetail`) están pagadas
@@ -115,7 +118,7 @@ public class LoanDetailsDao extends EmployeeDao {
                 while (rs.next()) {
                     // Mapear el resultado al objeto LoanDetailsTb
                     LoanDetailsTb detail = new LoanDetailsTb();
-                    detail.setId(rs.getInt("ID"));
+                    detail.setId(rs.getLong("ID"));
                     detail.setLoanId(rs.getInt("LoanID"));
                     detail.setDues(rs.getInt("Dues"));
                     detail.setTotalInterest(rs.getDouble("TotalInterest"));
@@ -153,7 +156,7 @@ public class LoanDetailsDao extends EmployeeDao {
 
             while (rs.next()) {
                 LoanDetailsTb loanDetail = new LoanDetailsTb();
-                loanDetail.setId(rs.getInt("ID"));
+                loanDetail.setId(rs.getLong("ID"));
                 loanDetail.setLoanId(rs.getInt("LoanID"));
                 loanDetail.setDues(rs.getInt("Dues"));
                 loanDetail.setTotalInterest(rs.getDouble("TotalInterest"));

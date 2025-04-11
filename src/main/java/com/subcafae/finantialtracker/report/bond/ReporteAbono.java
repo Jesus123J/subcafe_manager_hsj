@@ -253,7 +253,7 @@ public class ReporteAbono {
 
                         table.addCell(createStyledCell(abono.getSoliNum()));
                         table.addCell(createStyledCell(employee.get().getNationalId()));
-                        table.addCell(createStyledCell(employee.get().getFirstName().concat(" ".concat(employee.get().getLastName()))));
+                        table.addCell(createStyledCell(employee.get().getFullName()));
                         table.addCell(createStyledCell(abono.getDues()));
                         table.addCell(createStyledCell(String.format("%,.2f", abono.getMonthly())));
 

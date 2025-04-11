@@ -15,7 +15,9 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.sql.Date;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -101,7 +103,7 @@ public class LoanDao extends LoanDetailsDao {
                     loan.setStateLoan(rs.getString("StateLoan"));
                     loan.setRefinanceParentId(rs.getInt("RefinanceParentID"));
                     loan.setCreatedBy(rs.getInt("CreatedBy"));
-                    loan.setCreatedAt(rs.getTimestamp("CreatedAt") != null ? rs.getTimestamp("CreatedAt").toLocalDateTime() : null);
+                    loan.setCreatedAt(rs.getDate("CreatedAt") != null ? rs.getDate("CreatedAt") : null);
                     loan.setModifiedAt(rs.getTimestamp("ModifiedAt") != null ? rs.getTimestamp("ModifiedAt").toLocalDateTime() : null);
                     loan.setModifiedBy(rs.getInt("ModifiedBy"));
                     loan.setType(rs.getString("Type"));
@@ -140,8 +142,8 @@ public class LoanDao extends LoanDetailsDao {
                 loan.setRefinanceParentId(rs.getInt("RefinanceParentID") == 0 ? null : rs.getInt("RefinanceParentID"));
                 loan.setCreatedBy(rs.getInt("CreatedBy"));
                 // Convertir CreatedAt y ModifiedAt a LocalDate
-                loan.setCreatedAt(rs.getTimestamp("CreatedAt").toLocalDateTime());
-                loan.setModifiedAt(rs.getTimestamp("ModifiedAt").toLocalDateTime());
+                loan.setCreatedAt(rs.getDate("CreatedAt"));
+                loan.setModifiedAt(rs.getTimestamp("ModifiedAt") != null ? rs.getTimestamp("ModifiedAt").toLocalDateTime() : null);
 
                 loan.setModifiedBy(rs.getInt("ModifiedBy"));
                 loan.setType(rs.getString("Type"));
@@ -154,17 +156,100 @@ public class LoanDao extends LoanDetailsDao {
         return loans;
     }
 
+    public List<LoanTb> getLoansByDateRange(Date fechaInicio, Date fechaFin) {
+        List<LoanTb> loans = new ArrayList<>();
+        System.out.println("Fecha inicial -> " + fechaInicio);
+        System.out.println("Fecha fin -> " + fechaFin);
+        String sql = "SELECT * FROM loan WHERE CreatedAt BETWEEN ? AND ? ORDER BY CreatedAt ASC";
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setDate(1, fechaInicio);
+            statement.setDate(2, fechaFin);
+
+            ResultSet rs = statement.executeQuery();
+
+            while (rs.next()) {
+                LoanTb loan = new LoanTb();
+
+                loan.setId(rs.getInt("ID"));
+                loan.setSoliNum(rs.getString("SoliNum"));
+                loan.setEmployeeId(rs.getString("EmployeeID"));
+                loan.setGuarantorIds(rs.getString("GuarantorId"));
+                loan.setRequestedAmount(rs.getDouble("RequestedAmount"));
+                loan.setAmountWithdrawn(rs.getDouble("AmountWithdrawn"));
+                loan.setDues(rs.getInt("Dues"));
+                loan.setPaymentDate(rs.getDate("PaymentDate").toLocalDate());
+                loan.setState(rs.getString("State"));
+
+                loan.setStateLoan(rs.getString("StateLoan"));
+                loan.setRefinanceParentId(rs.getInt("RefinanceParentID") == 0 ? null : rs.getInt("RefinanceParentID"));
+                loan.setCreatedBy(rs.getInt("CreatedBy"));
+                // Convertir CreatedAt y ModifiedAt a LocalDate
+                loan.setCreatedAt(rs.getDate("CreatedAt"));
+
+                loan.setModifiedAt(rs.getTimestamp("ModifiedAt") != null ? rs.getTimestamp("ModifiedAt").toLocalDateTime() : null);
+
+                loan.setModifiedBy(rs.getInt("ModifiedBy"));
+                loan.setType(rs.getString("Type"));
+                loan.setPaymentResponsibility(rs.getString("PaymentResponsibility"));
+
+                loans.add(loan);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error -> " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "❌ ERROR: No se pudo recuperar la lista de préstamos.");
+        }
+        return loans;
+    }
+
     public List<Loan> getAllLoanss() {
         List<Loan> loans = new ArrayList<>();
         String sql = "SELECT l.ID, l.SoliNum, "
-                + "CONCAT(e1.first_name, ' ', e1.last_name) AS SolicitorName, "
-                + "CONCAT(e2.first_name, ' ', e2.last_name) AS GuarantorName, "
+                + "e1.fullName AS SolicitorName, "
+                + "e2.fullName AS GuarantorName, "
                 + "l.RequestedAmount, l.AmountWithdrawn, l.State, l.PaymentResponsibility "
                 + "FROM loan l "
                 + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id "
                 + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id";
 
-        try (PreparedStatement stmt = connection.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
+        try (Statement statement = connection.createStatement()) {
+
+            ResultSet rs = statement.executeQuery(sql);
+
+            while (rs.next()) {
+                loans.add(new Loan(
+                        rs.getInt("ID"),
+                        rs.getString("SoliNum"),
+                        rs.getString("SolicitorName"),
+                        rs.getString("GuarantorName"),
+                        rs.getBigDecimal("RequestedAmount"),
+                        rs.getBigDecimal("AmountWithdrawn"),
+                        rs.getString("State"),
+                        rs.getString("PaymentResponsibility").equalsIgnoreCase("EMPLOYEE") ? "SOLICITANTE" : "AVAL"
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return loans;
+    }
+
+    public List<Loan> getAllLoanss(Date fechaInicio, Date fechaFin) {
+        List<Loan> loans = new ArrayList<>();
+        String sql = "SELECT l.ID, l.SoliNum, "
+                + "e1.fullName AS SolicitorName, "
+                + "e2.fullName AS GuarantorName, "
+                + "l.RequestedAmount, l.AmountWithdrawn, l.State, l.PaymentResponsibility "
+                + "FROM loan l "
+                + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id "
+                + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id "
+                + "WHERE DATE(l.CreatedAt) BETWEEN ? AND ? ORDER BY l.CreatedAt ASC";
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setDate(1, new java.sql.Date(fechaInicio.getTime()));
+            statement.setDate(2, new java.sql.Date(fechaFin.getTime()));
+
+            ResultSet rs = statement.executeQuery();
 
             while (rs.next()) {
                 loans.add(new Loan(
@@ -190,8 +275,8 @@ public class LoanDao extends LoanDetailsDao {
              SELECT 
                  l.ID, 
                  l.SoliNum, 
-                 CONCAT(e1.first_name, ' ', e1.last_name) AS SolicitorName,
-                 CONCAT(e2.first_name, ' ', e2.last_name) AS GuarantorName,
+                 e1.fullName AS SolicitorName,
+                 e2.fullName AS GuarantorName,
                  l.RequestedAmount, 
                  l.AmountWithdrawn, 
                  l.State,
@@ -237,17 +322,20 @@ public class LoanDao extends LoanDetailsDao {
                 throw new SQLException(" El empleado tiene un préstamo en proceso (Pendiente).");
             }
 
-            if (hasLoanInState(newLoan.getEmployeeId(), LoanTb.LoanState.Refinanciado)) {
-                throw new SQLException(" El empleado tiene un préstamo en estado (Refinanciado).");
-            }
-            if (verifRefinan(newLoan.getEmployeeId())) {
-                throw new SQLException(" El empleado ya contiene un refinanciamiento puesto");
-            }
-
+//            if (hasLoanInState(newLoan.getEmployeeId(), LoanTb.LoanState.Refinanciado)) {
+//                throw new SQLException(" El empleado tiene un préstamo en estado (Refinanciado).");
+//            }
+//            if (verifRefinan(newLoan.getEmployeeId())) {
+//                throw new SQLException(" El empleado ya contiene un refinanciamiento puesto");
+//            }
             // 2. Buscar préstamo Aceptado más reciente
             Optional<LoanTb> activeLoan = findLatestLoanByState(
                     newLoan.getEmployeeId(),
                     LoanTb.LoanState.Aceptado
+            );
+            Optional<LoanTb> activeLoanRefi = findLatestLoanByState(
+                    newLoan.getEmployeeId(),
+                    LoanTb.LoanState.Refinanciado
             );
             // 3. Manejar refinanciación si existe préstamo Aceptado
             if (activeLoan.isPresent()) {
@@ -266,6 +354,27 @@ public class LoanDao extends LoanDetailsDao {
                 handleRefinancing(activeLoan.get(), newLoan);
                 newLoan.setAmountWithdrawn(newLoan.getRequestedAmount() - montoRefinanciado);
                 monto = montoRefinanciado;
+                JOptionPane.showMessageDialog(null, "Se está refinanciando, vaya al listado y acepte el nuevo solicitó para procesar las cuotas", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+
+            }
+
+            if (activeLoanRefi.isPresent()) {
+
+                Double montoRefinanciado = calcularMontoPendientePorLoanId(activeLoanRefi.get().getId());
+                if (montoRefinanciado > newLoan.getRequestedAmount()) {
+                    JOptionPane.showMessageDialog(null, "Error el monto adeudado del anterior prestamo es mas grande", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+                    return null;
+                }
+                int option = JOptionPane.showConfirmDialog(null, "Desea refinanciar el prestamo anterior ? ", "GESTIÓN PRESTAMO", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+                if (option == JOptionPane.NO_OPTION) {
+                    return null;
+                }
+                handleRefinancing(activeLoanRefi.get(), newLoan);
+                newLoan.setAmountWithdrawn(newLoan.getRequestedAmount() - montoRefinanciado);
+                monto = montoRefinanciado;
+
+                JOptionPane.showMessageDialog(null, "Se está refinanciando otra vez, vaya al listado y acepte el nuevo solicitó para procesar las cuotas", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+
             }
 
             // 4. Insertar nuevo préstamo
@@ -288,7 +397,7 @@ public class LoanDao extends LoanDetailsDao {
     }
 
     private boolean hasLoanInState(String employeeId, LoanTb.LoanState state) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM loan WHERE StateLoan = 'Pendiente' AND EmployeeID = ? AND State = ?";
+        String sql = "SELECT COUNT(*) FROM loan WHERE StateLoan = 'Pendiente' AND PaymentResponsibility = 'EMPLOYEE' AND EmployeeID = ? AND State = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, employeeId);
             stmt.setString(2, state.name());
@@ -299,7 +408,7 @@ public class LoanDao extends LoanDetailsDao {
     }
 
     private boolean verifRefinan(String employeeId) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM loan WHERE StateLoan = 'Pendiente' AND EmployeeID = ? AND  RefinanceParentID is  NOT NULL";
+        String sql = "SELECT COUNT(*) FROM loan WHERE StateLoan = 'Pendiente' AND EmployeeID = ? AND PaymentResponsibility = 'EMPLOYEE' AND  RefinanceParentID is  NOT NULL";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, employeeId);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -356,17 +465,17 @@ public class LoanDao extends LoanDetailsDao {
         // Actualizar estado del préstamo original
         String updateSql = "UPDATE loan SET State = 'Refinanciado' , StateLoan = 'Pagado' WHERE ID = ?";
 
-        String updateSqlLoanDetail = "UPDATE loandetail SET State = 'Pagado' WHERE LoanID = ? ";
+      //  String updateSqlLoanDetail = "UPDATE loandetail SET State = 'Pagado' WHERE LoanID = ? ";
 
         try (PreparedStatement stmt = connection.prepareStatement(updateSql)) {
             stmt.setInt(1, originalLoan.getId());
             stmt.executeUpdate();
         }
 
-        try (PreparedStatement stmt = connection.prepareStatement(updateSqlLoanDetail)) {
-            stmt.setInt(1, originalLoan.getId());
-            stmt.executeUpdate();
-        }
+//        try (PreparedStatement stmt = connection.prepareStatement(updateSqlLoanDetail)) {
+//            stmt.setInt(1, originalLoan.getId());
+//            stmt.executeUpdate();
+//        }
 
         // Configurar nuevo préstamo como refinanciación
         newLoan.setRefinanceParentId(originalLoan.getId());
@@ -431,7 +540,7 @@ public class LoanDao extends LoanDetailsDao {
         stmt.setString(8, "Pendiente");
         stmt.setObject(9, loan.getRefinanceParentId(), Types.INTEGER);
         stmt.setInt(10, loan.getCreatedBy());
-        stmt.setTimestamp(11, Timestamp.valueOf(loan.getCreatedAt()));
+        stmt.setDate(11, Date.valueOf(loan.getCreatedAt().toLocalDate()));
         stmt.setTimestamp(12, loan.getModifiedAt() != null ? Timestamp.valueOf(loan.getModifiedAt()) : null);
         stmt.setObject(13, loan.getModifiedBy(), Types.INTEGER);
         stmt.setString(14, loan.getType());
@@ -448,7 +557,7 @@ public class LoanDao extends LoanDetailsDao {
                 rs.getString("State"),
                 rs.getInt("RefinanceParentID"),
                 rs.getInt("CreatedBy"),
-                rs.getTimestamp("CreatedAt").toLocalDateTime(),
+                rs.getDate("CreatedAt"),
                 rs.getTimestamp("ModifiedAt") != null ? rs.getTimestamp("ModifiedAt").toLocalDateTime() : null,
                 rs.getInt("ModifiedBy"),
                 rs.getString("Type"),

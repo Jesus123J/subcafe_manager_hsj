@@ -33,6 +33,8 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -79,34 +81,35 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
         componentManageLoan.jButtonExcelCompleto.addActionListener(this);
         componentManageLoan.jButtonBuscar.addActionListener(this);
         componentManageLoan.jButton1.addActionListener(this);
-        componentManageLoan.jDialog1.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                if (componentManageLoan.jTableLoanList.getRowCount() == 1) {
-
-                    List<Loan> listTable = new LoanDao().getAllLoanss().stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(componentManageLoan.jTableLoanList.getValueAt(0, 0).toString())).collect(Collectors.toList());
-
-                    DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
-                    model.setRowCount(0);
-
-                    for (Loan loan : listTable) {
-
-                        model.addRow(new Object[]{
-                            loan.getSoliNum(),
-                            loan.getSolicitorName(),
-                            loan.getGuarantorName(),
-                            loan.getRequestedAmount(),
-                            loan.getAmountWithdrawn(),
-                            loan.getState(),
-                            loan.getPaymentResponsibility()
-                        });
-                    }
-
-                } else {
-                    fillLoanTable(componentManageLoan.jTableLoanList);
-                }
-            }
-        });
+        componentManageLoan.jButtonShowList.addActionListener(this);
+//        componentManageLoan.jDialog1.addWindowListener(new WindowAdapter() {
+//            @Override
+//            public void windowClosing(WindowEvent e) {
+//                if (componentManageLoan.jTableLoanList.getRowCount() == 1) {
+//
+//                    List<Loan> listTable = new LoanDao().getAllLoanss().stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(componentManageLoan.jTableLoanList.getValueAt(0, 0).toString())).collect(Collectors.toList());
+//
+//                    DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
+//                    model.setRowCount(0);
+//
+//                    for (Loan loan : listTable) {
+//
+//                        model.addRow(new Object[]{
+//                            loan.getSoliNum(),
+//                            loan.getSolicitorName(),
+//                            loan.getGuarantorName(),
+//                            loan.getRequestedAmount(),
+//                            loan.getAmountWithdrawn(),
+//                            loan.getState(),
+//                            loan.getPaymentResponsibility()
+//                        });
+//                    }
+//
+//                } else {
+//                    fillLoanTable(componentManageLoan.jTableLoanList);
+//                }
+//            }
+//        });
 
     }
 
@@ -148,85 +151,43 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
     @Override
     public void actionPerformed(ActionEvent e
     ) {
-        if (e.getSource().equals(componentManageLoan.jButton1)) {
-
-            int index = componentManageLoan.jTableLoanList.getSelectedRow();
-
-            if (index != -1) {
-
-                if (componentManageLoan.jTableLoanList.getValueAt(index, 2).toString().isBlank()) {
-
-                    JOptionPane.showMessageDialog(null, "No contiene Aval");
+        if (e.getSource().equals(componentManageLoan.jButtonShowList)) {
+            try {
+                if (componentManageLoan.dateStart.getDate() != null || componentManageLoan.dateFinaly.getDate() != null) {
+                    insertTablet(componentManageLoan.dateStart.getDate(), componentManageLoan.dateFinaly.getDate());
+                } else {
+                    JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
                     return;
                 }
-                if (JOptionPane.showConfirmDialog(null, "Desea pasar la responsabilidad al aval ?", "MENSAJE", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-
-                    String soliNum = componentManageLoan.jTableLoanList.getValueAt(index, 0).toString();
-
-                    new LoanDetailsDao().updatePaymentResponsibilityToGuarantor(soliNum);
-                    List<Loan> list = new LoanDao().getAllLoanss();
-                    List<Loan> listTableFind = list.stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(soliNum)).collect(Collectors.toList());
-
-                    if (componentManageLoan.jTableLoanList.getRowCount() > 0) {
-
-                        if (!list.isEmpty()) {
-
-                            DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
-                            model.setRowCount(0);
-
-                            for (Loan loan : list) {
-
-                                model.addRow(new Object[]{
-                                    loan.getSoliNum(),
-                                    loan.getSolicitorName(),
-                                    loan.getGuarantorName(),
-                                    loan.getRequestedAmount(),
-                                    loan.getAmountWithdrawn(),
-                                    loan.getState(),
-                                    loan.getPaymentResponsibility()
-                                });
-                            }
-                        }
-
-                    } else {
-                        if (!listTableFind.isEmpty()) {
-
-                            DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
-                            model.setRowCount(0);
-
-                            for (Loan loan : listTableFind) {
-
-                                model.addRow(new Object[]{
-                                    loan.getSoliNum(),
-                                    loan.getSolicitorName(),
-                                    loan.getGuarantorName(),
-                                    loan.getRequestedAmount(),
-                                    loan.getAmountWithdrawn(),
-                                    loan.getState(),
-                                    loan.getPaymentResponsibility()
-                                });
-                            }
-                        }
-                    }
-
-                    DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList1.getModel();
-                    model.setRowCount(0);
-
-                    model.addRow(new Object[]{
-                        componentManageLoan.jTableLoanList.getValueAt(index, 0).toString(),
-                        componentManageLoan.jTableLoanList.getValueAt(index, 1).toString(),
-                        componentManageLoan.jTableLoanList.getValueAt(index, 2) != null ? componentManageLoan.jTableLoanList.getValueAt(index, 2).toString() : "",
-                        componentManageLoan.jTableLoanList.getValueAt(index, 3).toString(),
-                        componentManageLoan.jTableLoanList.getValueAt(index, 4).toString(),
-                        componentManageLoan.jTableLoanList.getValueAt(index, 5).toString(),
-                        componentManageLoan.jTableLoanList.getValueAt(index, 6).toString()
-                    });
-
-                }
-
+            } catch (Exception ee) {
+                System.out.println("Error -> " + ee.getMessage());
+                JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
+                return;
             }
 
         }
+        if (e.getSource().equals(componentManageLoan.jButton1)) {
+
+            if (componentManageLoan.jTableLoanList1.getValueAt(0, 2).toString().isBlank()) {
+
+                JOptionPane.showMessageDialog(null, "No contiene Aval");
+                return;
+            }
+
+            if (JOptionPane.showConfirmDialog(null, "Desea pasar la responsabilidad al aval ?", "MENSAJE", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+
+                String soliNum = componentManageLoan.jTableLoanList1.getValueAt(0, 0).toString();
+
+                Boolean ver = new LoanDetailsDao().updatePaymentResponsibilityToGuarantor(soliNum);
+                if (ver) {
+                    componentManageLoan.jButton1.setEnabled(false);
+                    componentManageLoan.jLabelShowAval.setText("LOS PAGOS EN PARTES, LO HARÁ EL AVAL");
+                    componentManageLoan.jTableLoanList1.setValueAt("AVAL", 0, 6);
+                }
+            }
+
+        }
+
         if (e.getSource().equals(componentManageLoan.jButtonBuscar)) {
             if (componentManageLoan.jTextFieldSearchLoanNum.getText().isBlank()) {
                 JOptionPane.showMessageDialog(null, "Escriba un numero de solicitud");
@@ -272,6 +233,11 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
         }
         if (e.getSource().equals(componentManageLoan.jButtonExcelList)) {
             try {
+                System.out.println("List -> " + componentManageLoan.jTableLoanList.getRowCount());
+                if (componentManageLoan.jTableLoanList.getRowCount() == 0) {
+                    JOptionPane.showMessageDialog(null, "No se encuentra nada en la tabla", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
                 ExcelTable.exportToExcel(componentManageLoan.jTableLoanList, "PRESTAMOS", 6);
             } catch (IOException ex) {
                 //Logger.getLogger(ControllerManageLoan.class.getName()).log(Level.SEVERE, null, ex);
@@ -333,14 +299,14 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                     String avalService = "...............";
                     SolicitudPrestamo solipres = new SolicitudPrestamo();
 
-                    String principalName = employeeR.get().getFirstName().concat(" " + employeeR.get().getLastName());
+                    String principalName = employeeR.get().getFullName();
                     String principalDni = employeeR.get().getNationalId();
                     String principalService = "Ordinario";
 
                     // Si el aval no es "00000000", buscamos los datos reales
                     if (employeeA.isPresent()) {
 
-                        avalName = employeeA.get().getFirstName().concat(" " + employeeA.get().getLastName());
+                        avalName = employeeA.get().getFullName();
                         avalDni = employeeA.get().getNationalId();
                         avalService = "Ordinario";
                     }
@@ -412,7 +378,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                     }
 
                     compromisoPago.compromisoPago(loanSearch.get().getSoliNum(),
-                            employeeR.get().getFirstName().concat(" ".concat(employeeR.get().getLastName())),
+                            employeeR.get().getFullName(),
                             employeeR.get().getNationalId());
 
                 } finally {
@@ -462,11 +428,11 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
                     }
                     if (guarantorR == null) {
-                        compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), "              ", "             ", employeeR.get().getFirstName().concat(" ".concat(employeeR.get().getLastName())), employeeR.get().getNationalId());
+                        compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), "              ", "             ", employeeR.get().getFullName(), employeeR.get().getNationalId());
                         return;
                     }
 
-                    compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), guarantorR.get().getFirstName().concat(" ".concat(employeeR.get().getLastName())), guarantorR.get().getNationalId(), employeeR.get().getFirstName().concat(" ".concat(employeeR.get().getLastName())), employeeR.get().getNationalId());
+                    compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), guarantorR.get().getFullName(), guarantorR.get().getNationalId(), employeeR.get().getFullName(), employeeR.get().getNationalId());
                 } finally {
                     ViewMain.loading.dispose();
 
@@ -615,8 +581,11 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
             }
             case 1 -> {
             }
-            case 2 ->
-                fillLoanTable(componentManageLoan.jTableLoanList);
+            case 2 -> {
+
+                // fillLoanTable(componentManageLoan.jTableLoanList);
+            }
+
         }
 
     }
@@ -633,38 +602,36 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                     // Actualiza la tabla para reflejar cualquier cambio visual
                     componentManageLoan.jTableLoanList.repaint();
 
-                    String status = componentManageLoan.jTableLoanList.getValueAt(index, 5).toString();
                     String soliNum = componentManageLoan.jTableLoanList.getValueAt(index, 0).toString();
+                    try {
 
-                    if (status.equalsIgnoreCase("Pendiente")) {
-                        System.out.println("Entrando");
-                        // Crear un ComboBox con las opciones
-                        JComboBox<String> comboBox = new JComboBox<>(new String[]{"Aceptado", "Denegado"});
+                        Optional<LoanTb> loan = findLoan(soliNum);
 
-                        // Mostrar un JOptionPane con el ComboBox
-                        int option = JOptionPane.showConfirmDialog(
-                                null,
-                                comboBox,
-                                "GESTIÓN PRÉSTAMO - Cambiar Estado",
-                                JOptionPane.OK_CANCEL_OPTION,
-                                JOptionPane.INFORMATION_MESSAGE
-                        );
+                        if (loan.get().getState().equalsIgnoreCase("Pendiente")) {
+                            System.out.println("Entrando");
+                            // Crear un ComboBox con las opciones
+                            JComboBox<String> comboBox = new JComboBox<>(new String[]{"Aceptado", "Denegado"});
 
-                        // Verificar si el usuario hizo clic en "OK"
-                        if (option == JOptionPane.OK_OPTION) {
-                            // Obtener la opción seleccionada del ComboBox
-                            String newStatus = (String) comboBox.getSelectedItem();
+                            // Mostrar un JOptionPane con el ComboBox
+                            int option = JOptionPane.showConfirmDialog(
+                                    null,
+                                    comboBox,
+                                    "GESTIÓN PRÉSTAMO - Cambiar Estado",
+                                    JOptionPane.OK_CANCEL_OPTION,
+                                    JOptionPane.INFORMATION_MESSAGE
+                            );
 
-                            // Lógica según la opción seleccionada
-                            if (newStatus != null) {
+                            // Verificar si el usuario hizo clic en "OK"
+                            if (option == JOptionPane.OK_OPTION) {
+                                // Obtener la opción seleccionada del ComboBox
+                                String newStatus = (String) comboBox.getSelectedItem();
 
-                                switch (newStatus) {
-                                    case "Aceptado" -> {
-                                        {
-                                            try {
-//                                         
+                                // Lógica según la opción seleccionada
+                                if (newStatus != null) {
 
-                                                Optional<LoanTb> loan = findLoan(soliNum);
+                                    switch (newStatus) {
+                                        case "Aceptado" -> {
+                                            {
 
 //                                            if (loan.get().getAmount() == 0.0) {
 //                                                double montofinal = Math.abs(loan.get().getOriginalAmount() - loan.get().getAmount());
@@ -691,62 +658,90 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
                                                 registerAcept(loanDetailsTb, loan.get(), 1);
 
+                                            }
+
+                                        }
+
+                                        case "Denegado" -> {
+                                            // Lógica para estado denegado
+                                            try {
+                                                System.out.println("Denegado");
+                                                // Lógica para estado aceptado
+                                                updateSoliNumStatus(soliNum, newStatus, 1);
+
                                             } catch (SQLException ex) {
                                                 System.out.println("Error -> " + ex.getMessage());
                                             }
-                                        }
 
+                                            JOptionPane.showMessageDialog(null, "Estado cambiado a: Denegado");
+                                        }
                                     }
+                                    // Actualizar la tabla después de un cambio
+                                    // fillLoanTable(componentManageLoan.jTableLoanList);
+                                }
+                            }
+                        } else if (loan.get().getState().equalsIgnoreCase("Aceptado") || loan.get().getState().equalsIgnoreCase("Refinanciado")) {
 
-                                    case "Denegado" -> {
-                                        // Lógica para estado denegado
-                                        try {
-                                            System.out.println("Denegado");
-                                            // Lógica para estado aceptado
-                                            updateSoliNumStatus(soliNum, newStatus, 1);
+                            try {
+                                Loan loann = new LoanDao().getAllLoanss().stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(loan.get().getSoliNum())).findFirst().get();
 
-                                        } catch (SQLException ex) {
-                                            System.out.println("Error -> " + ex.getMessage());
+                                Optional<LoanTb> showRe = new LoanDao().findLoan(soliNum);
+                                if (showRe.isPresent()) {
+                                    if (loann.getState().equalsIgnoreCase("Aceptado")) {
+                                        if (showRe.get().getRefinanceParentId() != null) {
+                                            double monto = new LoanDao().calcularMontoPendientePorLoanId(showRe.get().getRefinanceParentId());
+                                            componentManageLoan.montoRef.setText("Prestamo refinanciado deuda anterior solicitud con numero de solicitud " + showRe.get().getSoliNum() + " -> " + monto);
                                         }
-
-                                        JOptionPane.showMessageDialog(null, "Estado cambiado a: Denegado");
                                     }
                                 }
-                                // Actualizar la tabla después de un cambio
-                                fillLoanTable(componentManageLoan.jTableLoanList);
+
+                                if (loann.getPaymentResponsibility().equalsIgnoreCase("AVAL")) {
+                                    componentManageLoan.jLabelShowAval.setText("LOS PAGOS EN PARTES, LO HARÁ EL AVAL");
+                                    componentManageLoan.jButton1.setEnabled(false);
+                                } else if (!loann.getPaymentResponsibility().equalsIgnoreCase("AVAL")) {
+                                    componentManageLoan.jLabelShowAval.setText("LOS PAGOS EN PARTES, LO HARÁ EL SOLICITANTE");
+                                    componentManageLoan.jButton1.setEnabled(true);
+                                }
+                                if (loann.getState().equalsIgnoreCase("Refinanciado")) {
+                                    System.out.println("Bloquiando");
+                                    componentManageLoan.jButton1.setEnabled(false);
+                                }
+                                DefaultTableModel modelList = (DefaultTableModel) componentManageLoan.jTableListLoanDetails.getModel();
+                                modelList.setRowCount(0);
+                                DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList1.getModel();
+                                model.setRowCount(0);
+
+                                model.addRow(new Object[]{
+                                    componentManageLoan.jTableLoanList.getValueAt(index, 0).toString(),
+                                    componentManageLoan.jTableLoanList.getValueAt(index, 1).toString(),
+                                    componentManageLoan.jTableLoanList.getValueAt(index, 2) != null ? componentManageLoan.jTableLoanList.getValueAt(index, 2).toString() : "",
+                                    componentManageLoan.jTableLoanList.getValueAt(index, 3).toString(),
+                                    componentManageLoan.jTableLoanList.getValueAt(index, 4).toString(),
+                                    componentManageLoan.jTableLoanList.getValueAt(index, 5).toString(),
+                                    componentManageLoan.jTableLoanList.getValueAt(index, 6).toString()
+                                });
+
+                                methodListDeta(soliNum);
+
+                                componentManageLoan.jDialog1.setModal(true);
+                                componentManageLoan.jDialog1.setResizable(false);
+                                componentManageLoan.jDialog1.setSize(980, 570);
+                                componentManageLoan.jDialog1.setLocationRelativeTo(null);
+                                componentManageLoan.jDialog1.setVisible(true);
+                            } catch (SQLException ex) {
+                                Logger.getLogger(ControllerManageLoan.class.getName()).log(Level.SEVERE, null, ex);
                             }
                         }
-                    } else {
 
-                        DefaultTableModel modelList = (DefaultTableModel) componentManageLoan.jTableListLoanDetails.getModel();
-                        modelList.setRowCount(0);
-                        DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList1.getModel();
-                        model.setRowCount(0);
-
-                        model.addRow(new Object[]{
-                            componentManageLoan.jTableLoanList.getValueAt(index, 0).toString(),
-                            componentManageLoan.jTableLoanList.getValueAt(index, 1).toString(),
-                            componentManageLoan.jTableLoanList.getValueAt(index, 2) != null ? componentManageLoan.jTableLoanList.getValueAt(index, 2).toString() : "",
-                            componentManageLoan.jTableLoanList.getValueAt(index, 3).toString(),
-                            componentManageLoan.jTableLoanList.getValueAt(index, 4).toString(),
-                            componentManageLoan.jTableLoanList.getValueAt(index, 5).toString(),
-                            componentManageLoan.jTableLoanList.getValueAt(index, 6).toString()
-                        });
-
-                        methodListDeta(soliNum);
-
-                        componentManageLoan.jDialog1.setModal(true);
-                        componentManageLoan.jDialog1.setResizable(false);
-                        componentManageLoan.jDialog1.setSize(980, 490);
-                        componentManageLoan.jDialog1.setLocationRelativeTo(null);
-                        componentManageLoan.jDialog1.setVisible(true);
+                    } catch (Exception ee) {
+                        System.out.println("Error -> " + ee.getMessage());
                     }
                 }
 
             }
 
             if (e.getSource().equals(componentManageLoan.jTableListLoanDetails.getSelectionModel())) {
-                System.out.println("Action");
+
                 int index = componentManageLoan.jTableListLoanDetails.getSelectedRow();
 
                 if (index != -1) {
@@ -761,7 +756,10 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                             String soliNum = componentManageLoan.jTableLoanList1.getValueAt(0, 0).toString();
 
                             loan = findLoan(soliNum);
-
+                            if (loan.get().getState().equalsIgnoreCase("Refinanciado")) {
+                                JOptionPane.showMessageDialog(null, "Préstamo refinanciado", "GÉSTION PRESTAMOS", JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            }
                             List<LoanDetailsTb> listDetails = new LoanDetailsDao().findLoanDetailsByLoanId(loan.get().getId());
 
                             if (!componentManageLoan.jTableListLoanDetails.getValueAt(index, 4).toString().equalsIgnoreCase("Pagado")) {
@@ -790,23 +788,23 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                                     Double montoEx = Double.valueOf(text.getText());
 
                                     EmployeeTb empl = new EmployeeTb();
-                                    if (componentManageLoan.jTableLoanList1.getValueAt(0, 6).toString().equalsIgnoreCase("AVAL")) {
+                                    if (loan.get().getPaymentResponsibility().equalsIgnoreCase("GUARANTOR")) {
                                         String name = componentManageLoan.jTableLoanList1.getValueAt(0, 2).toString();
-                                        empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFirstName().concat(" " + predicate.getLastName()).equalsIgnoreCase(name)).findFirst().get();
+                                        empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
 
                                     } else {
                                         String name = componentManageLoan.jTableLoanList1.getValueAt(0, 1).toString();
-                                        empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFirstName().concat(" " + predicate.getLastName()).equalsIgnoreCase(name)).findFirst().get();
+                                        empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
                                     }
 
                                     if (finalMonto > montoEx) {
                                         RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
-                                        new RegistroDao().insertarRegistroCompleto(registroTb, tableDetails, null , montoEx);
+                                        new RegistroDao().insertarRegistroCompleto(registroTb, tableDetails, null, montoEx);
                                         new LoanDetailsDao().updateLoanStateByLoandetailId(tableDetails.getId(), monto, montoEx);
                                     }
                                     if (Objects.equals(finalMonto, montoEx)) {
                                         RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
-                                        new RegistroDao().insertarRegistroCompleto(registroTb, tableDetails, null , montoEx);
+                                        new RegistroDao().insertarRegistroCompleto(registroTb, tableDetails, null, montoEx);
                                         new LoanDetailsDao().updateLoanStateByLoandetailId(tableDetails.getId(), monto, montoEx);
 
                                     }

@@ -163,7 +163,7 @@ public class ModelMain {
             JOptionPane.showMessageDialog(null, "Llene los datos", "MENSAJE", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
+//
         usser = new UserDao().getUserByUsername(componentLogin.jTextFieldUser.getText(), new String(componentLogin.jPasswordPassword.getPassword()));
 
         if (usser != null) {
@@ -178,7 +178,7 @@ public class ModelMain {
                 viewMain.jMenuManageUser.setEnabled(true);
             }
             new ControllerManageLoan(componentManageLoan, usser);
-            new ControllerManageBond(componentManageBond, usser);
+            new ControllerManageBond(componentManageBond, usser , viewMain);
             new ControllerManageWorker(componentManageWorker, usser);
             new ControllerUser(componentManageUser, usser);
 
@@ -269,7 +269,7 @@ public class ModelMain {
                 String[] employee = empleadoDao.findAll()
                         .stream().filter(predicate -> predicate.getEmploymentStatus().equalsIgnoreCase(nombresBuscar)
                         ).map(
-                                map -> map.getNationalId().concat(" - ".concat(map.getFirstName().concat(" ".concat(map.getLastName()))))
+                                map -> map.getNationalId().concat(" - ".concat(map.getFullName()))
                         ).toArray(String[]::new);
 
                 String nombre = (String) JOptionPane.showInputDialog(
@@ -387,7 +387,7 @@ public class ModelMain {
                                         System.out.println("Se guarda");
                                         mapaDniDatos.merge(
                                                 employee1.getNationalId(),
-                                                new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly(), 0.0),
+                                                new DatosPersona(employee1.getFullName(), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly(), 0.0),
                                                 (existente, nuevo) -> {
                                                     existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
                                                     return existente;
@@ -399,7 +399,7 @@ public class ModelMain {
 
                                         mapaDniDatos.merge(
                                                 employee1.getNationalId(),
-                                                new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly(), 0.0),
+                                                new DatosPersona(employee1.getFullName(), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly(), 0.0),
                                                 (existente, nuevo) -> {
 
                                                     existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
@@ -434,7 +434,7 @@ public class ModelMain {
 
                                             mapaDniDatos.merge(
                                                     employee1.getNationalId(),
-                                                    new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()),
+                                                    new DatosPersona(employee1.getFullName(),
                                                             employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
                                                             loanDetail1.getMonthlyFeeValue(), 0.0),
                                                     (existente, nuevo) -> {
@@ -448,7 +448,7 @@ public class ModelMain {
 
                                             mapaDniDatos.merge(
                                                     employee1.getNationalId(),
-                                                    new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()),
+                                                    new DatosPersona(employee1.getFullName(),
                                                             employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
                                                             loanDetail1.getMonthlyFeeValue(), 0.0),
                                                     (existente, nuevo) -> {
@@ -479,7 +479,7 @@ public class ModelMain {
 
                                             mapaDniDatos.merge(
                                                     employee1.getNationalId(),
-                                                    new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()),
+                                                    new DatosPersona(employee1.getFullName(),
                                                             employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
                                                             loanDetail1.getMonthlyFeeValue(), 0.0),
                                                     (existente, nuevo) -> {
@@ -493,7 +493,7 @@ public class ModelMain {
 
                                             mapaDniDatos.merge(
                                                     employee1.getNationalId(),
-                                                    new DatosPersona(employee1.getFirstName().concat(" " + employee1.getLastName()),
+                                                    new DatosPersona(employee1.getFullName(),
                                                             employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
                                                             loanDetail1.getMonthlyFeeValue(), 0.0),
                                                     (existente, nuevo) -> {
@@ -559,7 +559,7 @@ public class ModelMain {
                     return;
                 }
 
-                String[] namee = listEmployee.stream().map(name -> name.getNationalId().concat(" - " + name.getFirstName().concat(" " + name.getLastName()))).toArray(String[]::new);
+                String[] namee = listEmployee.stream().map(name -> name.getNationalId().concat(" - " + name.getFullName())).toArray(String[]::new);
 
                 String nombresBuscar = (String) JOptionPane.showInputDialog(
                         null,
@@ -703,7 +703,7 @@ public class ModelMain {
                 }
 
                 new ReporteDeuda().reporteDeuda(
-                        employeeFind.getFirstName().concat(" " + employeeFind.getLastName()), employeeFind.getNationalId(),
+                        employeeFind.getFullName(), employeeFind.getNationalId(),
                         lisComAbono, listComLoan);
 
                 viewMain.loading.dispose();
@@ -750,7 +750,7 @@ public class ModelMain {
             return false;
         }
         try {
-            return new EmployeeDao().findAll().stream().anyMatch(predicate -> viewMain.jComboBoxSearchClient.getSelectedItem().toString().equalsIgnoreCase(predicate.getFirstName().concat(" " + predicate.getLastName()) + " - " + predicate.getNationalId()));
+            return new EmployeeDao().findAll().stream().anyMatch(predicate -> viewMain.jComboBoxSearchClient.getSelectedItem().toString().equalsIgnoreCase(predicate.getFullName() + " - " + predicate.getNationalId()));
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(null, "No se registro", "REGISTRO DE VOUCHER", JOptionPane.INFORMATION_MESSAGE);
             return false;
@@ -905,9 +905,9 @@ public class ModelMain {
         comboBox.removeAllItems();  // Limpia la lista, pero NO modifica el textField
 
         for (EmployeeTb item : employees) {
-            if (item.getFirstName().concat(" " + item.getLastName()).toLowerCase().contains(text.toLowerCase())
+            if (item.getFullName().toLowerCase().contains(text.toLowerCase())
                     || item.getNationalId().toLowerCase().contains(text.toLowerCase())) {
-                comboBox.addItem(item.getFirstName().concat(" " + item.getLastName()) + " - " + item.getNationalId());
+                comboBox.addItem(item.getFullName() + " - " + item.getNationalId());
             }
         }
 
@@ -1029,7 +1029,7 @@ public class ModelMain {
                     count,
                     empleadoFind.getFirst().getEmploymentStatusCode(),
                     mes + "/" + anio,
-                    empleadoFind.getFirst().getFirstName().concat(" ".concat(empleadoFind.getFirst().getLastName())),
+                    empleadoFind.getFirst().getFullName(),
                     monto
                 });
             }

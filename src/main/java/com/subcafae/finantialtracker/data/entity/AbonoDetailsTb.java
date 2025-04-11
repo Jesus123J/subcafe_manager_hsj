@@ -10,7 +10,7 @@ package com.subcafae.finantialtracker.data.entity;
  */
 public class AbonoDetailsTb {
 
-    private int id;
+    private Long id;
     private int abonoID;
     private int dues;
     private double monthly;
@@ -30,11 +30,11 @@ public class AbonoDetailsTb {
         this.paymentDate = paymentDate;
     }
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

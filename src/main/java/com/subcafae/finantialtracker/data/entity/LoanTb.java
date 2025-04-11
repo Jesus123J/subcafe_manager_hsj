@@ -9,6 +9,7 @@ package com.subcafae.finantialtracker.data.entity;
  * @author Jesus Gutierrez
  */
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -26,7 +27,7 @@ public class LoanTb {
     private String state;
     private Integer refinanceParentId;
     private int createdBy;
-    private LocalDateTime createdAt;
+    private Date createdAt;
     private LocalDateTime modifiedAt;
     private Integer modifiedBy;
     private String type;
@@ -57,7 +58,7 @@ public class LoanTb {
 
     public LoanTb(Integer id,String num , String employeeId, String guarantorIds, double AmountWithdrawn, double RequestedAmount,
             int dues, LocalDate paymentDate, String state, Integer refinanceParentId,
-            int createdBy, LocalDateTime createdAt, LocalDateTime modifiedAt,
+            int createdBy, Date createdAt, LocalDateTime modifiedAt,
             Integer modifiedBy, String type, String PaymentResponsibility) {
         this.id = id;
         this.soliNum = num;
@@ -80,7 +81,7 @@ public class LoanTb {
     // Constructor sin ID y sin SoliNum
     public LoanTb(String employeeId, String guarantorIds, double AmountWithdrawn, double RequestedAmount,
             int dues, LocalDate paymentDate, String state, Integer refinanceParentId,
-            int createdBy, LocalDateTime createdAt, LocalDateTime modifiedAt,
+            int createdBy, Date createdAt, LocalDateTime modifiedAt,
             Integer modifiedBy, String type, String PaymentResponsibility) {
         this.employeeId = employeeId;
         this.guarantorIds = guarantorIds;
@@ -163,11 +164,11 @@ public class LoanTb {
         this.createdBy = createdBy;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Date getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
     }
 

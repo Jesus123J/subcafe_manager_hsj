@@ -8,10 +8,10 @@ import java.time.LocalDateTime;
 
 public class EmployeeTb {
     private Integer employeeId;
-    private String firstName;
-    private String lastName;
+//    private String firstName;
+//    private String lastName;
+    private String fullName;
     private String nationalId;
-    private String phoneNumber;
     private String gender;
     private String employmentStatus;
     private String employmentStatusCode;
@@ -43,12 +43,10 @@ public class EmployeeTb {
     // Constructores
     public EmployeeTb() {}
 
-    public EmployeeTb(String firstName, String lastName, String nationalId,String phoneNumber ,
+    public EmployeeTb(String fullName, String nationalId ,
                    String gender, String employmentStatus, 
                    String employmentStatusCode, LocalDate startDate) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.phoneNumber = phoneNumber;
+        this.fullName = fullName;
         this.nationalId = nationalId;
         this.gender = gender;
         this.employmentStatus = employmentStatus;
@@ -60,17 +58,17 @@ public class EmployeeTb {
     public Integer getEmployeeId() { return employeeId; }
     public void setEmployeeId(Integer employeeId) { this.employeeId = employeeId; }
 
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public String getFullName() {
+        return fullName;
+    }
 
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
 
     public String getNationalId() { return nationalId; }
     public void setNationalId(String nationalId) { this.nationalId = nationalId; }
-
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
@@ -92,9 +90,8 @@ public class EmployeeTb {
 
     @Override
     public String toString() {
-        return "EmployeeTb{" + "employeeId=" + employeeId + ", firstName=" + firstName + ", lastName=" + lastName + ", nationalId=" + nationalId + ", phoneNumber=" + phoneNumber + ", gender=" + gender + ", employmentStatus=" + employmentStatus + ", employmentStatusCode=" + employmentStatusCode + ", startDate=" + startDate + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + '}';
+        return "EmployeeTb{" + "employeeId=" + employeeId + ", fullName=" + fullName + ", nationalId=" + nationalId + ", gender=" + gender + ", employmentStatus=" + employmentStatus + ", employmentStatusCode=" + employmentStatusCode + ", startDate=" + startDate + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + '}';
     }
-    
-    
-    
+
+  
 }

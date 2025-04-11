@@ -15,7 +15,7 @@ import com.subcafae.finantialtracker.util.NumericFilter;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Date;
+import java.sql.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,12 +32,13 @@ public class ModelManageWorker extends EmployeeDao {
 
     public ComponentManageWorker componentManageWorker;
 
-    public ModelManageWorker(ComponentManageWorker componentManageWorker , UserTb user) {
+    public ModelManageWorker(ComponentManageWorker componentManageWorker, UserTb user) {
         this.componentManageWorker = componentManageWorker;
         ((AbstractDocument) componentManageWorker.textFieldDNI.getDocument()).setDocumentFilter(new NumericFilter(8));
+        ((AbstractDocument) componentManageWorker.jTextFieldBuscarForDni.getDocument()).setDocumentFilter(new NumericFilter(8));
         ((AbstractDocument) componentManageWorker.textFieldNameDeleteUser.getDocument()).setDocumentFilter(new NumericFilter(8));
-        ((AbstractDocument) componentManageWorker.textFieldPhone.getDocument()).setDocumentFilter(new NumericFilter(9));
-        componentManageWorker.dcBirthDate.setDate(new Date());
+        
+        componentManageWorker.dcBirthDate.setDate(new  java.util.Date());
 
     }
 
@@ -45,7 +46,6 @@ public class ModelManageWorker extends EmployeeDao {
         componentManageWorker.textFieldDNI.setText("");
         componentManageWorker.textFieldLastName.setText("");
         componentManageWorker.textFieldName.setText("");
-        componentManageWorker.textFieldPhone.setText("");
     }
 
     public void insertEmployee() {
@@ -61,48 +61,38 @@ public class ModelManageWorker extends EmployeeDao {
             JOptionPane.showMessageDialog(null, "El DNI debe de contener 8 digitos ", "GESTIÓN TRABAJADOR", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        if (!componentManageWorker.textFieldPhone.getText().isBlank()) {
-            if (componentManageWorker.textFieldPhone.getText().length() != 9) {
-                JOptionPane.showMessageDialog(null, "El celular debe de contener 9 digitos ", "GESTIÓN TRABAJADOR", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-        }
 
         try {
 
-            EmployeeTb employee = new EmployeeTb(componentManageWorker.textFieldName.getText(),
-                    componentManageWorker.textFieldLastName.getText(),
+            EmployeeTb employee = new EmployeeTb(
+                    componentManageWorker.textFieldLastName.getText().concat(" " + componentManageWorker.textFieldName.getText()),
                     componentManageWorker.textFieldDNI.getText(),
-                    componentManageWorker.textFieldPhone.getText() == null ? "" : componentManageWorker.textFieldPhone.getText(),
                     componentManageWorker.comboBoxSex.getSelectedIndex() == 0 ? "MUJER" : "HOMBRE",
                     componentManageWorker.comboStatus.getSelectedIndex() == 0 ? "NOMBRADO" : "CAS",
                     componentManageWorker.comboStatus.getSelectedIndex() == 0 ? "2154" : "2028", componentManageWorker.dcBirthDate.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
             create(employee);
             cleanComponent();
-            tableList();
+            //tableList();
         } catch (Exception e) {
+            System.out.println("Error -> " + e.getMessage());
             JOptionPane.showMessageDialog(null, "DNI ya existe", "GESTIÓN TRABAJDOR", JOptionPane.INFORMATION_MESSAGE);
         }
 
     }
 
-    public void tableList() {
-        try {
-            DefaultTableModel model = (DefaultTableModel) componentManageWorker.jTableListEmployee.getModel();
-            model.setRowCount(0);
-            List<EmployeeTb> listEmployee = new EmployeeDao().findAll();
-            for (EmployeeTb employeeTb : listEmployee) {
-                model.addRow(new Object[]{
-                    employeeTb.getFirstName(),
-                    employeeTb.getLastName(),
-                    employeeTb.getNationalId(),
-                    employeeTb.getPhoneNumber(),
-                    employeeTb.getEmploymentStatus()
-                });
-            }
-        } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(null, "Error en el listado de personas", "GESTIÓN TRABAJDOR", JOptionPane.INFORMATION_MESSAGE);
+    public void tableList(Date date, Date date2) {
+
+        DefaultTableModel model = (DefaultTableModel) componentManageWorker.jTableListEmployee.getModel();
+        model.setRowCount(0);
+        List<EmployeeTb> listEmployee = new EmployeeDao().getEmployeesByDateRange(date, date2);
+        for (EmployeeTb employeeTb : listEmployee) {
+            model.addRow(new Object[]{
+                employeeTb.getFullName(),
+                employeeTb.getNationalId(),
+                employeeTb.getEmploymentStatus()
+            });
         }
+
     }
 
 }

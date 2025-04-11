@@ -35,7 +35,7 @@ public class ModelManageBond {
     protected final AbonoDao abonoDao = new AbonoDao();
     private final AbonoDetailsDao abonoDetailsDao = new AbonoDetailsDao();
     protected ComponentManageBond componentManageBond;
-
+    protected ViewMain viewMain;
     protected UserTb user;
     protected EmployeeTb employee;
     protected ServiceConceptTb Concept;
@@ -54,7 +54,6 @@ public class ModelManageBond {
         TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldRenunciarBono);
         TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldSearchSoliBond);
         TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldUnidades);
-        TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldDues);
         TextFieldValidator.applyDecimalFilter(componentManageBond.jTextFieldPrioridad);
 
     }
@@ -62,10 +61,10 @@ public class ModelManageBond {
     private void insertListEmployeeCombo(List<EmployeeTb> employeeTbs, JComboBox comboBox, String textSearch) {
         comboBox.removeAllItems();
         for (EmployeeTb employeeTb : employeeTbs) {
-            String cadena = employeeTb.getNationalId().concat(" - " + employeeTb.getFirstName().concat(employeeTb.getLastName())).toLowerCase().trim();
+            String cadena = employeeTb.getNationalId().concat(" - " + employeeTb.getFullName()).toLowerCase().trim();
 
             if (cadena.contains(textSearch.toLowerCase().trim())) {
-                comboBox.addItem(employeeTb.getNationalId() + " - " + employeeTb.getFirstName().concat(" " + employeeTb.getLastName()));
+                comboBox.addItem(employeeTb.getNationalId() + " - " + employeeTb.getFullName());
             }
         }
     }
@@ -139,13 +138,19 @@ public class ModelManageBond {
 
     public void insertDao(AbonoTb abono) {
         try {
-            
+
             Integer id = abonoDao.insertAbono(abono);
             if (id == null) {
                 return;
             }
+            if (id == -1) {
+                JOptionPane.showMessageDialog(null, "Ya existe un abono pendiente. No se puede registrar otro.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             abono.setId(id);
-
+            JOptionPane.showMessageDialog(null, "Se registró el abono correctamente.",
+                    "GESTIÓN DE ABONOS", JOptionPane.INFORMATION_MESSAGE);
             System.out.println("Abono -> " + abono.toString());
 
             abonoDetailsDao.insertAbonoDetail(abono, user.getId());
@@ -188,7 +193,7 @@ public class ModelManageBond {
                 model.addRow(new Object[]{
                     abonoTb.getSoliNum(),
                     listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get().getDescription(),
-                    new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFirstName().concat(" " + mapper.getLastName())).get(),
+                    new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
                     abonoTb.getDues(),
                     abonoTb.getMonthly(),
                     abonoTb.getStatus()

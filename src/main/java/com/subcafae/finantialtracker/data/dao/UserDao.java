@@ -72,7 +72,7 @@ public class UserDao {
 
     public UserTb getUserByUsername(String username, String password) {
         String sql = "SELECT u.iduser, u.username, u.password, u.idEmployee,u.rol ,u.state,"
-                + "e.first_name, e.last_name, e.national_id, e.phone_number, "
+                + "e.fullName, e.national_id, "
                 + "e.gender, e.employment_status, e.employment_status_code, "
                 + "e.start_date, e.created_at, e.updated_at "
                 + "FROM user u "
@@ -91,15 +91,14 @@ public class UserDao {
                 if (BCrypt.checkpw(password, storedPassword)) {
 
                     return new UserTb(
+           
                             rs.getInt("iduser"),
                             rs.getString("username"),
                             rs.getInt("idEmployee"),
-                            rs.getString("first_name"),
-                            rs.getString("last_name"),
+                            rs.getString("fullName"),
                             rs.getString("rol"),
                             rs.getString("state"),
                             rs.getString("national_id"),
-                            rs.getString("phone_number"),
                             rs.getString("gender"),
                             rs.getString("employment_status"),
                             rs.getString("employment_status_code"),
@@ -149,7 +148,7 @@ public class UserDao {
 
         List<User> users = new ArrayList<>();
         String sql = "SELECT u.iduser, u.username, u.password, "
-                + "CONCAT(e.first_name, ' ', e.last_name) AS employee_name, "
+                + "e.fullName AS employee_name, "
                 + "u.rol, u.state "
                 + "FROM user u "
                 + "JOIN employees e ON u.idEmployee = e.employee_id";

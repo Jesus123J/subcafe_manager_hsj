@@ -49,7 +49,7 @@ public class ControllerUser implements ActionListener {
                             emplo = listEmployee.stream().filter(predicate -> predicate.getNationalId().trim().equals(((JTextField) componentUser.jComboBoxBuscarEmpleado.getEditor().getEditorComponent()).getText().split("-")[0].trim())).findFirst().get();
                             if (emplo != null) {
                                 componentManageUser.jLabelDni.setText(emplo.getNationalId());
-                                componentManageUser.jLabelName.setText(emplo.getFirstName().concat(" ".concat(emplo.getLastName())));
+                                componentManageUser.jLabelName.setText(emplo.getFullName());
                             } else {
                                 componentManageUser.jLabelDni.setText("");
                                 componentManageUser.jLabelName.setText("");
@@ -123,10 +123,10 @@ public class ControllerUser implements ActionListener {
     private void insertListEmployeeCombo(List<EmployeeTb> employeeTbs, JComboBox comboBox, String textSearch) {
         comboBox.removeAllItems();
         for (EmployeeTb employeeTb : employeeTbs) {
-            String cadena = employeeTb.getNationalId().concat(" - " + employeeTb.getFirstName().concat(employeeTb.getLastName())).toLowerCase().trim();
+            String cadena = employeeTb.getNationalId().concat(" - " + employeeTb.getFullName().toLowerCase().trim());
 
             if (cadena.contains(textSearch.toLowerCase().trim())) {
-                comboBox.addItem(employeeTb.getNationalId() + " - " + employeeTb.getFirstName().concat(" " + employeeTb.getLastName()));
+                comboBox.addItem(employeeTb.getNationalId() + " - " + employeeTb.getFullName());
             }
         }
     }

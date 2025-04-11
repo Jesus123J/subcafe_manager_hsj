@@ -18,6 +18,7 @@ import com.subcafae.finantialtracker.data.entity.RegistroTb;
 import com.subcafae.finantialtracker.data.entity.ServiceConceptTb;
 import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.model.ModelManageBond;
+import com.subcafae.finantialtracker.report.bond.LeerExcelConFileChooser;
 import com.subcafae.finantialtracker.report.bond.ReporteAbono;
 import com.subcafae.finantialtracker.util.TextFieldValidator;
 import com.subcafae.finantialtracker.view.ViewMain;
@@ -52,9 +53,10 @@ import javax.swing.table.DefaultTableModel;
  */
 public class ControllerManageBond extends ModelManageBond implements ActionListener, KeyListener, ChangeListener, ListSelectionListener {
 
-    public ControllerManageBond(ComponentManageBond componentManageBond, UserTb user) {
+    public ControllerManageBond(ComponentManageBond componentManageBond, UserTb user , ViewMain viewMain) {
 
         super(componentManageBond, user);
+        this.viewMain = viewMain;
         componentManageBond.jComboSearchWorker.getEditor().getEditorComponent().addKeyListener(this);
         componentManageBond.jComboBoxSearchConceptBond.getEditor().getEditorComponent().addKeyListener(this);
 //        componentManageBond.jButtonCheck.addActionListener(this);
@@ -69,40 +71,43 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
         componentManageBond.jButton1.addActionListener(this);
         componentManageBond.jTableListBonos.getSelectionModel().addListSelectionListener(this);
         componentManageBond.jTableListDetalle.getSelectionModel().addListSelectionListener(this);
-
-        componentManageBond.jDialog1.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                if (componentManageBond.jTableListBonos.getRowCount() == 1) {
-                    try {
-                        List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
-                        List<AbonoTb> listAbono = abonoDao.findAllAbonos().stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(componentManageBond.jTableListBonos.getValueAt(0, 0).toString())).collect(Collectors.toList());
-               
-                        DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListBonos.getModel();
-                        model.setRowCount(0);
-                        for (AbonoTb abonoTb : listAbono) {
-                            model.addRow(new Object[]{
-                                abonoTb.getSoliNum(),
-                                listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get().getDescription(),
-                                new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFirstName().concat(" " + mapper.getLastName())).get(),
-                                abonoTb.getDues(),
-                                abonoTb.getMonthly(),
-                                abonoTb.getStatus()
-                            });
-                        }
-                    } catch (SQLException ex) {
-                        //Logger.getLogger(ControllerManageBond.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                } else {
-                    insertListTableBono();
-                }
-            }
-        });
+        componentManageBond.jButtonRegistorAbondForExcel.addActionListener(this);
+//        componentManageBond.jDialog1.addWindowListener(new WindowAdapter() {
+//            @Override
+//            public void windowClosing(WindowEvent e) {
+//                if (componentManageBond.jTableListBonos.getRowCount() == 1) {
+//                    try {
+//                        List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
+//                        List<AbonoTb> listAbono = abonoDao.findAllAbonos().stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(componentManageBond.jTableListBonos.getValueAt(0, 0).toString())).collect(Collectors.toList());
+//               
+//                        DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListBonos.getModel();
+//                        model.setRowCount(0);
+//                        for (AbonoTb abonoTb : listAbono) {
+//                            model.addRow(new Object[]{
+//                                abonoTb.getSoliNum(),
+//                                listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get().getDescription(),
+//                                new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
+//                                abonoTb.getDues(),
+//                                abonoTb.getMonthly(),
+//                                abonoTb.getStatus()
+//                            });
+//                        }
+//                    } catch (SQLException ex) {
+//                        //Logger.getLogger(ControllerManageBond.class.getName()).log(Level.SEVERE, null, ex);
+//                    }
+//                } else {
+//                    insertListTableBono();
+//                }
+//            }
+//        });
 
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
+        if (e.getSource().equals(componentManageBond.jButtonRegistorAbondForExcel)) {
+            new LeerExcelConFileChooser().method(user ,super.viewMain);
+        }
         if (e.getSource().equals(componentManageBond.jButton1)) {
             if (componentManageBond.jTextFieldSearchSoliBond.getText().isBlank()) {
                 JOptionPane.showMessageDialog(null, "Escriba el número de solicitud ", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
@@ -125,7 +130,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                     model.addRow(new Object[]{
                         abonoTb.getSoliNum(),
                         listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get().getDescription(),
-                        new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFirstName().concat(" " + mapper.getLastName())).get(),
+                        new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
                         abonoTb.getDues(),
                         abonoTb.getMonthly(),
                         abonoTb.getStatus()
@@ -220,7 +225,6 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
         if (e.getSource().equals(componentManageBond.jButtonRegisterBond)) {
 
             if ((employee == null && Concept == null)
-                    || componentManageBond.jTextFieldDues.getText().isBlank()
                     || componentManageBond.jTextFieldMonthly.getText().isBlank()) {
 
                 JOptionPane.showMessageDialog(null, "Complete todos los datos para registrar", "GESTIÓN DE BONO", JOptionPane.OK_OPTION);
@@ -229,7 +233,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
 
             AbonoTb abono = new AbonoTb();
             System.out.println("Concept -> "  + Concept.getId());
-            abono.setDues(Integer.parseInt(componentManageBond.jTextFieldDues.getText()));
+            abono.setDues(Integer.parseInt(componentManageBond.jTextFieldDues.getSelectedItem().toString()));
             abono.setEmployeeId(String.valueOf(employee.getEmployeeId()));
             abono.setCreatedAt(LocalDate.now().toString());
             abono.setCreatedBy(user.getId());
@@ -249,7 +253,6 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
             componentManageBond.jLabelCodeWorker.setText("");
             componentManageBond.jLabelShowDNIWorker.setText("");
             componentManageBond.jLabelShowDNIWorker1.setText("");
-            componentManageBond.jTextFieldDues.setText("");
             componentManageBond.jTextFieldMonthly.setText("");
 
             insertDao(abono);
@@ -397,7 +400,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
 
                                         String name = componentManageBond.jTableListBonos.getValueAt(indexIn, 2).toString();
 
-                                        EmployeeTb empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFirstName().concat(" " + predicate.getLastName()).equalsIgnoreCase(name)).findFirst().get();
+                                        EmployeeTb empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
 
                                         RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
 
@@ -410,7 +413,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
 
                                         String name = componentManageBond.jTableListBonos.getValueAt(indexIn, 2).toString();
 
-                                        EmployeeTb empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFirstName().concat(" " + predicate.getLastName()).equalsIgnoreCase(name)).findFirst().get();
+                                        EmployeeTb empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
 
                                         RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
 
@@ -431,7 +434,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                                     modelFirts.addRow(new Object[]{
                                         listFind.getFirst().getSoliNum(),
                                         listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(listFind.getFirst().getServiceConceptId())).findFirst().get().getDescription(),
-                                        new EmployeeDao().findById(Integer.valueOf(listFind.getFirst().getEmployeeId())).map(mapper -> mapper.getFirstName().concat(" " + mapper.getLastName())).get(),
+                                        new EmployeeDao().findById(Integer.valueOf(listFind.getFirst().getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
                                         listFind.getFirst().getDues(),
                                         listFind.getFirst().getMonthly(),
                                         listFind.getFirst().getStatus()

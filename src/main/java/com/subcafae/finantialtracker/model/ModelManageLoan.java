@@ -6,11 +6,13 @@ package com.subcafae.finantialtracker.model;
 
 import com.subcafae.finantialtracker.data.dao.LoanDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
+import com.subcafae.finantialtracker.data.entity.Loan;
 import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
 import com.subcafae.finantialtracker.data.entity.LoanTb;
 import com.subcafae.finantialtracker.report.loanReport.ExcelDemo;
 import com.subcafae.finantialtracker.util.TextFieldValidator;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
+import java.sql.Date;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,6 +20,7 @@ import java.util.List;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import javax.swing.table.DefaultTableModel;
 
 /**
  *
@@ -64,8 +67,8 @@ public class ModelManageLoan extends LoanDao {
     private void insertListEmployeeCombo(List<EmployeeTb> employeeTbs, JComboBox comboBox, String textSearch) {
         comboBox.removeAllItems();
         for (EmployeeTb employeeTb : employeeTbs) {
-            if (employeeTb.getNationalId().concat(" - " + employeeTb.getFirstName().concat(" " + employeeTb.getLastName())).toLowerCase().trim().replace(" - ", "").contains(textSearch.toLowerCase().trim())) {
-                comboBox.addItem(employeeTb.getNationalId() + " - " + employeeTb.getFirstName().concat(" " + employeeTb.getLastName()));
+            if (employeeTb.getNationalId().concat(" - " + employeeTb.getFullName()).toLowerCase().trim().replace(" - ", "").contains(textSearch.toLowerCase().trim())) {
+                comboBox.addItem(employeeTb.getNationalId() + " - " + employeeTb.getFullName());
             }
         }
     }
@@ -98,7 +101,7 @@ public class ModelManageLoan extends LoanDao {
                     "Pendiente",
                     null,
                     1,
-                    LocalDateTime.now(),
+                    new Date(new java.util.Date().getTime()),
                     null,
                     null,
                     "Ordinario", "EMPLOYEE");
@@ -245,6 +248,23 @@ public class ModelManageLoan extends LoanDao {
         } catch (SQLException ex) {
             System.out.println("Error -> " + ex.getMessage());
             JOptionPane.showMessageDialog(null, "Ocurrio un problema");
+        }
+    }
+
+    public void insertTablet(java.util.Date dateStart , java.util.Date dateFinaly) {
+        List<Loan> list = getAllLoanss(new java.sql.Date(dateStart.getTime()), new java.sql.Date(dateFinaly.getTime()));
+        DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
+        model.setRowCount(0);
+        for (Loan loan : list) {
+            model.addRow(new Object[]{
+                loan.getSoliNum(),
+                loan.getSolicitorName(),
+                loan.getGuarantorName(),
+                loan.getRequestedAmount(),
+                loan.getAmountWithdrawn(),
+                loan.getState(),
+                loan.getPaymentResponsibility()
+            });
         }
     }
 

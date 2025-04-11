@@ -26,7 +26,7 @@ public class ViewMain extends javax.swing.JFrame {
         jInternalPagoPrestamosOtros.setSize(970, 530);
         jInternalPagoPrestamosOtros.setClosable(true);
         jInternalPagoPrestamosOtros.setResizable(false);
-        
+       
         setMinimumSize(new Dimension(900, 600));
     }
 
