@@ -25,15 +25,29 @@ public class AbonoDao {
         this.connection = Conexion.getConnection();
     }
 
-    public boolean renounceAbono(String soliNum, Integer id, String fecha) throws SQLException {
-        String updateQuery = "UPDATE abono SET status = 'REN' , modifiedBy  = ? ,modifiedAt = ?  WHERE SoliNum = ? AND state = 'Pendiente'";
+    public void renounceAbono(String soliNum, Integer id, String fecha) throws SQLException {
+        String updateQuery = "UPDATE abono SET status = 'REN', modifiedBy = ?, modifiedAt = ? WHERE SoliNum = ? AND status = 'Pendiente'";
+        String statusQuery = "SELECT * FROM abono WHERE SoliNum = ?";
 
-        try (PreparedStatement stmtUpdate = connection.prepareStatement(updateQuery)) {
-            stmtUpdate.setString(1, soliNum);
-            stmtUpdate.setInt(2, id);
-            stmtUpdate.setString(3, fecha);
+        try (PreparedStatement stmtUpdate = connection.prepareStatement(updateQuery); PreparedStatement rsQuery = connection.prepareStatement(statusQuery)) {
 
-            return stmtUpdate.executeUpdate() > 0;
+            // Verificar si existe la solicitud
+            rsQuery.setString(1, soliNum);
+            ResultSet rs = rsQuery.executeQuery();
+
+            if (rs.next()) {  // Si hay resultados
+                stmtUpdate.setInt(1, id);
+                stmtUpdate.setString(2, fecha);
+                stmtUpdate.setString(3, soliNum);
+
+                if (stmtUpdate.executeUpdate() > 0) {
+                    JOptionPane.showMessageDialog(null, "Se cambió el estado a Renunciado (REN)");
+                } else {
+                    JOptionPane.showMessageDialog(null, "El número de solicitud ya se encuentra pagado");
+                }
+            } else {
+                JOptionPane.showMessageDialog(null, "No se encontró el número de solicitud buscado");
+            }
         }
     }
 
@@ -101,7 +115,7 @@ public class AbonoDao {
     // Método para insertar un nuevo abono
     public Integer insertAbono(AbonoTb abono) throws SQLException {
 
-        if (hasPendingAbono(abono.getEmployeeId() , abono.getServiceConceptId())) {  
+        if (hasPendingAbono(abono.getEmployeeId(), abono.getServiceConceptId())) {
             return -1; // No se permite la inserción
         }
 
@@ -136,7 +150,7 @@ public class AbonoDao {
                         throw new SQLException("No se pudo obtener la clave primaria generada.");
                     }
                 }
-             
+
                 return newId;
             } else {
                 return null;
@@ -201,21 +215,47 @@ public class AbonoDao {
         return abonos;
     }
 
-    public List<AbonoTb> getListAbonoTByConcepAndCodeEm(Integer idConcept, String codeEm) throws SQLException {
-        String sql = "SELECT  ab.* FROM financialtracker1.abono ab "
-                + "LEFT JOIN financialtracker1.employees em ON  em.employee_id = ab.Employee_id "
-                + "  WHERE ab.service_concept_id = ?  AND  em.employment_status_code = ?";
+    public List<AbonoTb> getListAbonoTByConcepAndCodeEm(Integer idConcept, String codeEm, Date start) throws SQLException {
+        String sql = "SELECT ab.* FROM financialtracker1.abono ab "
+                + "LEFT JOIN financialtracker1.employees em ON em.employee_id = ab.Employee_id "
+                + "WHERE ab.service_concept_id = ? "
+                + "AND em.employment_status_code = ? "
+                + "AND YEAR(ab.CreatedAt) = YEAR(?) "
+                + "AND MONTH(ab.CreatedAt) = MONTH(?) "
+                + "ORDER BY ab.CreatedAt ASC";
 
         List<AbonoTb> abonos = new ArrayList<>();
-
         PreparedStatement stmt = connection.prepareStatement(sql);
 
         stmt.setInt(1, idConcept);
         stmt.setString(2, codeEm);
+        stmt.setDate(3, start); // Aquí pasas el mes y año de inicio
+        stmt.setDate(4, start); // Aquí el mes y año de fin
 
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
             abonos.add(mapResultSetToAbono(rs));
+        }
+        return abonos;
+    }
+
+    public List<AbonoTb> findAllAbonos(Date start, Date finaly) throws SQLException {
+        String sql = "SELECT * FROM abono WHERE DATE(CreatedAt) BETWEEN ? AND ? ORDER BY CreatedAt ASC";
+
+        List<AbonoTb> abonos = new ArrayList<>();
+        try {
+            PreparedStatement stmt = connection.prepareStatement(sql);
+
+            stmt.setDate(1, start);
+            stmt.setDate(2, finaly);
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                abonos.add(mapResultSetToAbono(rs));
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Ocurrio un problema", "GÉSTION ABONOS", JOptionPane.OK_OPTION);
+            return abonos;
         }
         return abonos;
     }

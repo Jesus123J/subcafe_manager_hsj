@@ -64,7 +64,7 @@ public class SolicitudPrestamo {
                         .setBold()
                         .setTextAlignment(TextAlignment.CENTER));
                 
-                document.add(new Paragraph("Tipo de Préstamo: " + type + "                                                                                                                                              N°: " + requestNumber)
+                document.add(new Paragraph("Tipo de Préstamo: " + type + "                                                                                                                                  N°: " + requestNumber)
                         .setFontSize(9)
                         .setTextAlignment(TextAlignment.LEFT));
                 
@@ -88,7 +88,7 @@ public class SolicitudPrestamo {
                         "Servidor Designado al Hospital \"San José\" Callao, del servicio de " + campo + " solicito un préstamo de S/" + String.format("%.2f", montoPrestamo) + " soles para ser descontado en "+ dues +" meses, "+
                         "por motivos PERSONALES para lo cual adjunto boletas de pago como sustento a la presente solicitud para que el personal CAS la presente solicitud deberá ser evaluada.\n "+
                         "Asimismo, conforme a lo establecido en el inciso “C” de la 3ra Disposición Transitoria de la ley 28411 (Ley del Sistema Nacional de Presupuesto); autorizo que se me "+
-                        "descuente por planilla de haberes, incentivos laborales o planilla CAS el referido préstamo más un interés por el monto de S/. " + String.format("%.2f", cuotaMensual*dues) + " siendo mi descuento"+
+                        "descuente por planilla de haberes, incentivos laborales o planilla CAS el referido préstamo más  intereses por el monto de S/. " + String.format("%.2f", cuotaMensual * dues) + " siendo mi descuento"+
                         " mensual de S/. " + String.format("%.2f", cuotaMensual )  + " durante el número de meses arriba indicado. Mi autorización es extendida bajo la cláusula de destaque y/o origen.\n" +
                         "Agradeciendo anticipadamente la aceptación a la presente.\n" +
                         "Atentamente,\n")

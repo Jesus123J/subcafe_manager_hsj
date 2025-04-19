@@ -86,6 +86,7 @@ public class ViewMain extends javax.swing.JFrame {
         jLabelReportDeuda = new javax.swing.JLabel();
         jLabelHistoryPayment = new javax.swing.JLabel();
         jLabelConstanciaEntrega = new javax.swing.JLabel();
+        jDialog1 = new javax.swing.JDialog();
         jLayeredPane1 = new javax.swing.JLayeredPane();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenuManageUser = new javax.swing.JMenu();
@@ -604,6 +605,17 @@ public class ViewMain extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
+        javax.swing.GroupLayout jDialog1Layout = new javax.swing.GroupLayout(jDialog1.getContentPane());
+        jDialog1.getContentPane().setLayout(jDialog1Layout);
+        jDialog1Layout.setHorizontalGroup(
+            jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 907, Short.MAX_VALUE)
+        );
+        jDialog1Layout.setVerticalGroup(
+            jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 449, Short.MAX_VALUE)
+        );
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         javax.swing.GroupLayout jLayeredPane1Layout = new javax.swing.GroupLayout(jLayeredPane1);
@@ -692,6 +704,7 @@ public class ViewMain extends javax.swing.JFrame {
     public javax.swing.JComboBox<String> jComboBox1;
     public javax.swing.JComboBox<String> jComboBoxSearchClient;
     public javax.swing.JDesktopPane jDesktopPane1;
+    public javax.swing.JDialog jDialog1;
     public javax.swing.JInternalFrame jInternalFrame1;
     public javax.swing.JInternalFrame jInternalPagoPrestamosOtros;
     private javax.swing.JLabel jLabel1;

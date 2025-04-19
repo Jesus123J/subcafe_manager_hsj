@@ -128,13 +128,24 @@ public class ModelMain {
                 logIn();
             }
         });
-
+        componentLogin.jTextFieldUser.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                componentLogin.jLabel1.setText("");
+            }
+        });
+        componentLogin.jPasswordPassword.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                componentLogin.jLabel1.setText("");
+            }
+        });
         viewMain.loading.setUndecorated(true);
         viewMain.loading.setSize(412, 115);
         viewMain.loading.setLocationRelativeTo(null);
 
         //  
-        viewMain.setTitle("HOSPITAL SAN JOSE DEL CALLOU");
+        viewMain.setTitle("Subcafae - HSJ");
         ImageIcon icon = new ImageIcon(getClass().getResource("/IconGeneral/logoIcon.png"));
 
         viewMain.setIconImage(icon.getImage());
@@ -177,15 +188,21 @@ public class ModelMain {
             } else {
                 viewMain.jMenuManageUser.setEnabled(true);
             }
+            if (!usser.getRol().equals("SUPER ADMINISTRADOR")) {
+                viewMain.jMenuManageUser.setEnabled(false);
+            } else {
+                viewMain.jMenuManageUser.setEnabled(true);
+            }
             new ControllerManageLoan(componentManageLoan, usser);
-            new ControllerManageBond(componentManageBond, usser , viewMain);
+            new ControllerManageBond(componentManageBond, usser, viewMain);
             new ControllerManageWorker(componentManageWorker, usser);
             new ControllerUser(componentManageUser, usser);
 
             viewMain.jMenuBar1.setVisible(true);
             jpanelDarkUtil.setVisible(false);
+
         } else {
-            componentLogin.jLabel1.setText("Error de Datos");
+            componentLogin.jLabel1.setText("ERROR REVISE EL USUARIO O CONTRASEÑA");
         }
     }
 
@@ -387,7 +404,7 @@ public class ModelMain {
                                         System.out.println("Se guarda");
                                         mapaDniDatos.merge(
                                                 employee1.getNationalId(),
-                                                new DatosPersona(employee1.getFullName(), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly(), 0.0),
+                                                new DatosPersona(employee1.getFullName(), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly() - detalle.getPayment(), 0.0),
                                                 (existente, nuevo) -> {
                                                     existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
                                                     return existente;
@@ -399,7 +416,7 @@ public class ModelMain {
 
                                         mapaDniDatos.merge(
                                                 employee1.getNationalId(),
-                                                new DatosPersona(employee1.getFullName(), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly(), 0.0),
+                                                new DatosPersona(employee1.getFullName(), employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(), detalle.getMonthly() - detalle.getPayment(), 0.0),
                                                 (existente, nuevo) -> {
 
                                                     existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
@@ -436,7 +453,7 @@ public class ModelMain {
                                                     employee1.getNationalId(),
                                                     new DatosPersona(employee1.getFullName(),
                                                             employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
-                                                            loanDetail1.getMonthlyFeeValue(), 0.0),
+                                                            loanDetail1.getMonthlyFeeValue() - loanDetail1.getPayment(), 0.0),
                                                     (existente, nuevo) -> {
                                                         existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
                                                         return existente;
@@ -450,7 +467,7 @@ public class ModelMain {
                                                     employee1.getNationalId(),
                                                     new DatosPersona(employee1.getFullName(),
                                                             employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
-                                                            loanDetail1.getMonthlyFeeValue(), 0.0),
+                                                            loanDetail1.getMonthlyFeeValue() - loanDetail1.getPayment(), 0.0),
                                                     (existente, nuevo) -> {
                                                         existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
                                                         return existente;
@@ -481,7 +498,7 @@ public class ModelMain {
                                                     employee1.getNationalId(),
                                                     new DatosPersona(employee1.getFullName(),
                                                             employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
-                                                            loanDetail1.getMonthlyFeeValue(), 0.0),
+                                                            loanDetail1.getMonthlyFeeValue() - loanDetail1.getPayment(), 0.0),
                                                     (existente, nuevo) -> {
                                                         existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
                                                         return existente;
@@ -495,7 +512,7 @@ public class ModelMain {
                                                     employee1.getNationalId(),
                                                     new DatosPersona(employee1.getFullName(),
                                                             employee1.getNationalId() + " - " + employee1.getEmploymentStatusCode(),
-                                                            loanDetail1.getMonthlyFeeValue(), 0.0),
+                                                            loanDetail1.getMonthlyFeeValue() - loanDetail1.getPayment(), 0.0),
                                                     (existente, nuevo) -> {
                                                         existente.sumarMonto(nuevo.getMonto(), nuevo.getPrestamo());
                                                         return existente;
@@ -964,7 +981,7 @@ public class ModelMain {
                         System.out.println("Línea completa: " + linea); // Imprimir línea para depuración
 
                         ver = extraerDatos(linea, count); // Procesar cada línea
-                        if (ver == null) {
+                        if (ver == null || ver.equalsIgnoreCase("2") || ver.equalsIgnoreCase("4")) {
                             break; // Detener si es necesario
                         }
 
@@ -1009,6 +1026,9 @@ public class ModelMain {
             int posMonto = linea.indexOf("0604");
 
             if (posMonto == -1) {
+                mapCom.clear();
+                model.setRowCount(0);
+                modelFindNot.setRowCount(0);
                 return "4";
             }
             String code = linea.substring(0, 4).trim();
@@ -1047,19 +1067,24 @@ public class ModelMain {
             return "1";
 
         } catch (Exception e) {
+
+            model.setRowCount(0);
+            modelFindNot.setRowCount(0);
+            mapCom.clear();
             System.out.println("Error /-> " + e.getMessage());
             return "2";
         }
     }
 
     public void procedRegistroDesc() {
-        System.out.println("Procesando");
-        viewMain.loading.setVisible(true);
-        viewMain.jInternalPagoPrestamosOtros.setEnabled(false);
+
         if (mapCom.isEmpty()) {
             JOptionPane.showMessageDialog(null, "ERROR NO HAY USUARIOS A CUAL DESCONTAR", "ERROR DE DOCUMENTO", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        System.out.println("Procesando");
+        viewMain.loading.setVisible(true);
+        viewMain.jInternalPagoPrestamosOtros.setEnabled(false);
 
         for (Map.Entry<EmployeeTb, Double> entry : mapCom.entrySet()) {
 
@@ -1083,7 +1108,7 @@ public class ModelMain {
                             LocalDate fechaVencimiento = loanDetailsTb.getPaymentDate().toLocalDate();
 
                             if (LocalDate.now().isAfter(fechaVencimiento) || (LocalDate.now().getMonth().equals(fechaVencimiento.getMonth()))) {
-//                                EmployeeTb empl = new EmployeeTb();
+//                               EmployeeTb empl = new EmployeeTb();
 //                                if (loanTb.getPaymentResponsibility().equalsIgnoreCase("GUARANTOR")) {
 //                                    empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getNationalId().equalsIgnoreCase(loanTb.getGuarantorIds())).findFirst().get();
 //
@@ -1095,20 +1120,48 @@ public class ModelMain {
                                 Double montoCOn = loanDetailsTb.getPayment(); // 0
 
                                 Double montoFinal = montoSin - montoCOn;
-                                if (monto >= montoFinal) {
-                                    new LoanDetailsDao().updateLoanStateByLoandetailId(loanDetailsTb.getId(), loanDetailsTb.getMonthlyFeeValue(), loanDetailsTb.getMonthlyFeeValue());
 
+                                if (monto == 0.0) {
+                                    System.out.println("Se sale");
+                                    break;
+                                }
+                                if (monto > montoFinal) {
+
+                                    new LoanDetailsDao().updateLoanStateByLoandetailId(loanDetailsTb.getId(), loanDetailsTb.getMonthlyFeeValue(), montoFinal);
+                                    loanDetailsTb.setMonto(montoFinal);
                                     prestamos.add(loanDetailsTb);
-                                    monto -= loanDetailsTb.getMonthlyFeeValue();
-                                } else {
+
+                                    monto -= montoFinal;
+
+                                }
+                                if (monto < montoFinal) {
+                                    //Metodo es para pagado o parcial
                                     new LoanDetailsDao().updateLoanStateByLoandetailId(loanDetailsTb.getId(), loanDetailsTb.getMonthlyFeeValue(), monto);
-
+                                    loanDetailsTb.setMonto(monto);
                                     prestamos.add(loanDetailsTb);
+
                                     monto -= monto;
                                 }
 
+                                if (Objects.equals(montoFinal, monto)) {
+                                    new LoanDetailsDao().updateLoanStateByLoandetailId(loanDetailsTb.getId(), loanDetailsTb.getMonthlyFeeValue(), monto);
+                                    loanDetailsTb.setMonto(monto);
+                                    prestamos.add(loanDetailsTb);
+
+                                    monto -= monto;
+                                }
+
+//                                    else if (monto > 0 && monto < montoFinal) {
+//
+//                                        new LoanDetailsDao().updateLoanStateByLoandetailId(loanDetailsTb.getId(), loanDetailsTb.getMonthlyFeeValue(), monto);
+//                                        loanDetailsTb.setMonto(monto);
+//                                        prestamos.add(loanDetailsTb);
+//                                        monto -= monto;
+//                                    }
                             }
+
                         }
+
                     }
                 }
 
@@ -1136,7 +1189,7 @@ public class ModelMain {
 
                         if (abonoDetailsTb.getState().equalsIgnoreCase("Pendiente") || abonoDetailsTb.getState().equalsIgnoreCase("Parcial")) {
 
-                            LocalDate payment = LocalDate.parse(abonoDetailsTb.getPaymentDate(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                            LocalDate payment = LocalDate.parse(abonoDetailsTb.getPaymentDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
                             if (LocalDate.now().isAfter(payment) || (LocalDate.now().getMonth().equals(payment.getMonth()))) {
 
@@ -1146,27 +1199,54 @@ public class ModelMain {
 
                                 Double montoFinal = montoSin - montoCOn;
 
-                                if (monto >= montoFinal) {
+                                // monto -> 300 
+                                // monto > 100
+                                // 200
+                                //150 -> 300
+                                // 150 <- 250
+                                if (monto == 0.0) {
+                                    System.out.println("Se sale");
+                                    break;
+                                }
+                                if (monto > montoFinal) {
 
                                     //Metodo es para pagado o parcial
-                                    new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), abonoDetailsTb.getMonthly());
+                                    new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), montoFinal);
+                                    abonoDetailsTb.setMonto(montoFinal);
                                     bonos.add(abonoDetailsTb);
 
-                                    monto -= abonoDetailsTb.getMonthly();
-                                } else {
+                                    monto -= montoFinal;
+
+                                }
+                                if (monto < montoFinal) {
                                     //Metodo es para pagado o parcial
                                     new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), monto);
-
+                                    abonoDetailsTb.setMonto(monto);
                                     bonos.add(abonoDetailsTb);
-
                                     monto -= monto;
                                 }
 
+                                if (Objects.equals(montoFinal, monto)) {
+                                    new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), montoFinal);
+                                    abonoDetailsTb.setMonto(montoFinal);
+                                    bonos.add(abonoDetailsTb);
+
+                                    monto -= montoFinal;
+                                }
+//                                else if (monto > 0 && monto < montoFinal) {
+//                                    //Metodo es para pagado o parcial
+//                                    new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), monto);
+//                                    abonoDetailsTb.setMonto(monto);
+//                                    bonos.add(abonoDetailsTb);
+//
+//                                    monto -= monto;
+//                                }
                             }
 
                         }
 
                     }
+
                     for (AbonoDetailsTb abonoDetailsTb : secondServ) {
 
                         if (abonoDetailsTb.getState().equalsIgnoreCase("Pendiente") || abonoDetailsTb.getState().equalsIgnoreCase("Parcial")) {
@@ -1181,21 +1261,43 @@ public class ModelMain {
 
                                 Double montoFinal = montoSin - montoCOn;
 
-                                if (monto >= montoFinal) {
+                                if (monto == 0.0) {
+                                    System.out.println("Se sale");
+                                    break;
+                                }
+                                if (monto > montoFinal) {
 
                                     //Metodo es para pagado o parcial
-                                    new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), abonoDetailsTb.getMonthly());
+                                    new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), montoFinal);
+                                    abonoDetailsTb.setMonto(montoFinal);
                                     bonos.add(abonoDetailsTb);
 
-                                    monto -= abonoDetailsTb.getMonthly();
-                                } else {
+                                    monto -= montoFinal;
+
+                                }
+                                if (monto < montoFinal) {
                                     //Metodo es para pagado o parcial
                                     new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), monto);
-
+                                    abonoDetailsTb.setMonto(monto);
                                     bonos.add(abonoDetailsTb);
-
                                     monto -= monto;
                                 }
+
+                                if (Objects.equals(montoFinal, monto)) {
+                                    new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), montoFinal);
+                                    abonoDetailsTb.setMonto(montoFinal);
+                                    bonos.add(abonoDetailsTb);
+
+                                    monto -= montoFinal;
+                                }
+//                                else if (monto > 0 && monto < montoFinal) {
+//                                    //Metodo es para pagado o parcial
+//                                    new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), monto);
+//                                    abonoDetailsTb.setMonto(monto);
+//                                    bonos.add(abonoDetailsTb);
+//
+//                                    monto -= monto;
+//                                }
 
                             }
 
@@ -1204,14 +1306,13 @@ public class ModelMain {
                     }
 
                 }
+
                 if (prestamos.isEmpty() && bonos.isEmpty()) {
                     System.out.println("nO HAY DEUDAS");
                     return;
                 }
 
                 new RegistroDao().insertarRegistroCompleto(registroTb, prestamos, bonos);
-                viewMain.loading.dispose();
-                JOptionPane.showMessageDialog(null, "Se registro", "MENSAJE", JOptionPane.WARNING_MESSAGE);
 
             } catch (SQLException ex) {
                 viewMain.loading.dispose();
@@ -1221,6 +1322,9 @@ public class ModelMain {
             }
 
         }
+
+        viewMain.loading.dispose();
+        JOptionPane.showMessageDialog(null, "Se registro", "MENSAJE", JOptionPane.WARNING_MESSAGE);
 
     }
 }

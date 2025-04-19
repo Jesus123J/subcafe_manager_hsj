@@ -33,6 +33,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -53,7 +54,7 @@ import javax.swing.table.DefaultTableModel;
  */
 public class ControllerManageBond extends ModelManageBond implements ActionListener, KeyListener, ChangeListener, ListSelectionListener {
 
-    public ControllerManageBond(ComponentManageBond componentManageBond, UserTb user , ViewMain viewMain) {
+    public ControllerManageBond(ComponentManageBond componentManageBond, UserTb user, ViewMain viewMain) {
 
         super(componentManageBond, user);
         this.viewMain = viewMain;
@@ -72,6 +73,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
         componentManageBond.jTableListBonos.getSelectionModel().addListSelectionListener(this);
         componentManageBond.jTableListDetalle.getSelectionModel().addListSelectionListener(this);
         componentManageBond.jButtonRegistorAbondForExcel.addActionListener(this);
+        componentManageBond.jButtonShowList.addActionListener(this);
 //        componentManageBond.jDialog1.addWindowListener(new WindowAdapter() {
 //            @Override
 //            public void windowClosing(WindowEvent e) {
@@ -106,7 +108,23 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource().equals(componentManageBond.jButtonRegistorAbondForExcel)) {
-            new LeerExcelConFileChooser().method(user ,super.viewMain);
+            new LeerExcelConFileChooser().method(user, super.viewMain);
+        }
+        if (e.getSource().equals(componentManageBond.jButtonShowList)) {
+            try {
+                
+                if (componentManageBond.dateStart.getDate() != null || componentManageBond.dateStart.getDate() != null) {
+                    insertListTableBono(componentManageBond.dateStart.getDate(), componentManageBond.dateFinaly.getDate());
+                } else {
+                    JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
+                    return;
+                }
+            } catch (Exception ee) {
+                System.out.println("Error -> " + ee.getMessage());
+                JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
+                return;
+            }
+
         }
         if (e.getSource().equals(componentManageBond.jButton1)) {
             if (componentManageBond.jTextFieldSearchSoliBond.getText().isBlank()) {
@@ -150,11 +168,15 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                 return;
             }
             try {
-                new AbonoDao().deleteAbonoIfNotUsed(componentManageBond.jTextFieldEliminarBono.getText());
-                insertListTableBono();
+                boolean verr = new AbonoDao().deleteAbonoIfNotUsed(componentManageBond.jTextFieldEliminarBono.getText());
+                if (verr) {
+                    JOptionPane.showMessageDialog(null, "Se elimino el abono", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+                }
+                return;
             } catch (SQLException ex) {
-                System.out.println("Error -> " + ex.getMessage());
-                //Logger.getLogger(ControllerManageBond.class.getName()).log(Level.SEVERE, null, ex);
+                System.out.println("Error -> " + ex);
+                JOptionPane.showMessageDialog(null, "Ocurrio un error", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+                return;
             }
         }
         if (e.getSource().equals(componentManageBond.jButtonRenunciarBono)) {
@@ -163,18 +185,15 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                 return;
             }
             try {
-                boolean boo = new AbonoDao().renounceAbono(componentManageBond.jTextFieldRenunciarBono.getText(), user.getId(), LocalDate.now().toString());
-                if (!boo) {
-                    JOptionPane.showMessageDialog(null, "No se encontro el número de solicitud", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    insertListTableBono();
-                }
+                new AbonoDao().renounceAbono(componentManageBond.jTextFieldRenunciarBono.getText(), user.getId(), LocalDate.now().toString());
             } catch (SQLException ex) {
-                System.out.println("Error -> " + ex.getMessage());
-                //   Logger.getLogger(ControllerManageBond.class.getName()).log(Level.SEVERE, null, ex);
+                System.out.println("Error -> " + ex);
+                JOptionPane.showMessageDialog(null, "Ocurrio un error", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+                return;
             }
         }
         if (e.getSource().equals(componentManageBond.jButtonEliminarConcept)) {
+
             if (componentManageBond.jTextFieldElimanarCecepto.getText().isBlank()) {
                 JOptionPane.showMessageDialog(null, "Escriba el codigo del concepto para eliminar", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
                 return;
@@ -194,6 +213,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
             }
         }
         if (e.getSource().equals(componentManageBond.jButtonReportBond)) {
+            
             if (componentManageBond.searchConcept.getText().isBlank()) {
                 JOptionPane.showMessageDialog(null, "Escriba el nombre del concepto", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
                 return;
@@ -205,10 +225,12 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
         }
         if (e.getSource().equals(componentManageBond.jButtonRegistroConcepto)) {
             if (componentManageBond.jTextFieldDescription.getText().isBlank()
-                    || componentManageBond.jTextFieldVenta.getText().isBlank()
-                    || componentManageBond.jTextFieldPrecioCosto.getText().isBlank()
-                    || componentManageBond.jTextFieldPrioridad.getText().isBlank()
-                    || componentManageBond.jTextFieldUnidades.getText().isBlank()) {
+//                    || componentManageBond.jTextFieldVenta.getText().isBlank()
+//                    || componentManageBond.jTextFieldPrecioCosto.getText().isBlank()
+//                    || componentManageBond.jTextFieldPrioridad.getText().isBlank()
+//                    || componentManageBond.jTextFieldUnidades.getText().isBlank()
+                    
+                    ) {
 
                 JOptionPane.showMessageDialog(null, "Complete todos los datos para registrar", "GESTIÓN DE BONO", JOptionPane.OK_OPTION);
                 return;
@@ -232,14 +254,14 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
             }
 
             AbonoTb abono = new AbonoTb();
-            System.out.println("Concept -> "  + Concept.getId());
+            System.out.println("Concept -> " + Concept.getId());
             abono.setDues(Integer.parseInt(componentManageBond.jTextFieldDues.getSelectedItem().toString()));
             abono.setEmployeeId(String.valueOf(employee.getEmployeeId()));
             abono.setCreatedAt(LocalDate.now().toString());
             abono.setCreatedBy(user.getId());
             abono.setDiscountFrom(componentManageBond.jComboDescont.getSelectedItem().toString());
             abono.setServiceConceptId(String.valueOf(Concept.getId()));
-            
+
             abono.setMonthly(Double.valueOf(String.format("%.2f", Double.valueOf(componentManageBond.jTextFieldMonthly.getText()))));
             abono.setPaymentDate(LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth()).toString());
             abono.setStatus("Pendiente");
@@ -347,7 +369,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                 break;
 
             case 2:
-                insertListTableBono();
+                //  insertListTableBono();
                 break;
         }
 
@@ -361,117 +383,133 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
             if (e.getSource().equals(componentManageBond.jTableListDetalle.getSelectionModel())) {
 
                 int indexDetalle = componentManageBond.jTableListDetalle.getSelectedRow();
-                int indexIn = componentManageBond.jTableListBonos.getSelectedRow();
-                
+
                 if (indexDetalle != -1) {
 
                     componentManageBond.jTableListDetalle.repaint();
 
-                    String numSol = componentManageBond.jTableListBonos.getValueAt(indexIn, 0).toString();
+                    String numSol = componentManageBond.jTableListEmple.getValueAt(0, 0).toString();
 
-                    if (!componentManageBond.jTableListBonos.getValueAt(indexIn, 5).toString().equalsIgnoreCase("REN")) {
+                    try {
+                        Optional<AbonoTb> encontrado = new AbonoDao().findAllAbonos().stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(numSol)).findFirst();
 
-                        if (!componentManageBond.jTableListDetalle.getValueAt(indexDetalle, 4).toString().equalsIgnoreCase("Pagado")) {
+                        if (encontrado.isPresent()) {
 
-                            JTextField text = new JTextField();
-                            Border bordeConTitulo = BorderFactory.createTitledBorder("Escriba el monto");
-                            text.setBorder(bordeConTitulo);
+                            if (encontrado.get().getStatus().equalsIgnoreCase("Pendiente")) {
+                                
+                                List<AbonoDetailsTb> bonodetails = new AbonoDao().getListAbonoBySoli(numSol);
 
-                            TextFieldValidator.applyDecimalFilter(text);
+                                if (!bonodetails.stream().filter(predicate -> predicate.getDues() == Integer.parseInt(componentManageBond.jTableListDetalle.getValueAt(indexDetalle, 2).toString())).findFirst().get().getState(). equalsIgnoreCase("Pagado")) {
 
-                            int opction = JOptionPane.showConfirmDialog(null, text, "INFORMACION", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
-                            if (opction != JOptionPane.OK_OPTION) {
+                                    JTextField text = new JTextField();
+                                    Border bordeConTitulo = BorderFactory.createTitledBorder("Escriba el monto");
+                                    text.setBorder(bordeConTitulo);
+
+                                    TextFieldValidator.applyDecimalFilter(text);
+
+                                    int opction = JOptionPane.showConfirmDialog(null, text, "INFORMACION", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+                                    if (opction != JOptionPane.OK_OPTION) {
+                                        return;
+                                    }
+
+                                    if (!text.getText().isBlank()) {
+                                        try {
+
+                                            AbonoDetailsTb elecD = bonodetails.stream().filter(predicate -> predicate.getDues() == Integer.parseInt(componentManageBond.jTableListDetalle.getValueAt(indexDetalle, 2).toString())).findFirst().get();
+
+                                            Double monto = elecD.getMonthly();
+                                            Double parcial = elecD.getPayment();
+
+                                            Double finalMonto = Double.valueOf(String.format("%.2f", (monto - parcial)));
+                                            Double montoEx = Double.valueOf(text.getText());
+
+                                            if (finalMonto > montoEx) {
+
+                                                String name = componentManageBond.jTableListEmple.getValueAt(0, 2).toString();
+
+                                                EmployeeTb empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
+
+                                                RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
+
+                                                new RegistroDao().insertarRegistroCompleto(registroTb, null, elecD, montoEx);
+                                                new AbonoDetailsDao().updateLoanStateByLoandetailId(elecD.getId(), monto, montoEx);
+                                                System.out.println("Se registro");
+                                            }
+
+                                            if (Objects.equals(finalMonto, montoEx)) {
+
+                                                String name = componentManageBond.jTableListEmple.getValueAt(0, 2).toString();
+
+                                                EmployeeTb empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
+
+                                                RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
+
+                                                new RegistroDao().insertarRegistroCompleto(registroTb, null, elecD, montoEx);
+                                                new AbonoDetailsDao().updateLoanStateByLoandetailId(elecD.getId(), monto, montoEx);
+
+                                            }
+                                            //
+
+                                            DefaultTableModel modelFirts = (DefaultTableModel) componentManageBond.jTableListEmple.getModel();
+                                            modelFirts.setRowCount(0);
+                                            List<AbonoTb> list = abonoDao.findAllAbonos();
+                                            List<AbonoTb> listFind = list.stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(numSol)).collect(Collectors.toList());
+
+                                            List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
+
+                                            modelFirts.addRow(new Object[]{
+                                                listFind.getFirst().getSoliNum(),
+                                                listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(listFind.getFirst().getServiceConceptId())).findFirst().get().getDescription(),
+                                                new EmployeeDao().findById(Integer.valueOf(listFind.getFirst().getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
+                                                listFind.getFirst().getDues(),
+                                                listFind.getFirst().getMonthly(),
+                                                listFind.getFirst().getStatus()
+                                            });
+
+                                            //
+                                            DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListDetalle.getModel();
+                                            model.setRowCount(0);
+
+                                            for (AbonoDetailsTb bonodetail : new AbonoDao().getListAbonoBySoli(numSol)) {
+
+                                                model.addRow(new Object[]{
+                                                    bonodetail.getMonthly(),
+                                                    bonodetail.getPayment(),
+                                                    bonodetail.getDues(),
+                                                    bonodetail.getPaymentDate(),
+                                                    bonodetail.getState()
+                                                });
+                                            }
+
+                                            componentManageBond.jTableListDetalle.repaint();
+
+                                        } catch (SQLException ex) {
+                                            System.out.println("Error -> " + ex.getMessage());
+                                            JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE BONO", JOptionPane.OK_OPTION);
+                                            // Logger.getLogger(ControllerManageBond.class.getName()).log(Level.SEVERE, null, ex);
+                                        }
+
+                                    }
+
+                                }
+
+                            } else if (encontrado.get().getStatus().equalsIgnoreCase("Pagado")) {
+                                JOptionPane.showMessageDialog(null, "ABONO CON ESTATUS PAGADO", "GESTIÓN DE BONO", JOptionPane.OK_OPTION);
+                                return;
+                            } else if (encontrado.get().getStatus().equalsIgnoreCase("REN")) {
+                                JOptionPane.showMessageDialog(null, "ABONO CON ESTATUS RENUNCIADO", "GESTIÓN DE BONO", JOptionPane.OK_OPTION);
                                 return;
                             }
 
-                            if (!text.getText().isBlank()) {
-                                try {
-                                    List<AbonoDetailsTb> bonodetails = new AbonoDao().getListAbonoBySoli(numSol);
-
-                                    AbonoDetailsTb elecD = bonodetails.stream().filter(predicate -> predicate.getDues() == Integer.parseInt(componentManageBond.jTableListDetalle.getValueAt(indexDetalle, 2).toString())).findFirst().get();
-
-                                    Double monto = elecD.getMonthly();
-                                    Double parcial = elecD.getPayment();
-
-                                    Double finalMonto = Double.valueOf(String.format("%.2f", (monto - parcial)));
-                                    Double montoEx = Double.valueOf(text.getText());
-
-                                    if (finalMonto > montoEx) {
-
-                                        String name = componentManageBond.jTableListBonos.getValueAt(indexIn, 2).toString();
-
-                                        EmployeeTb empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
-
-                                        RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
-
-                                        new RegistroDao().insertarRegistroCompleto(registroTb, null, elecD , montoEx);
-                                        new AbonoDetailsDao().updateLoanStateByLoandetailId(elecD.getId(), monto, montoEx);
-                                        System.out.println("Se registro");
-                                    }
-
-                                    if (Objects.equals(finalMonto, montoEx)) {
-
-                                        String name = componentManageBond.jTableListBonos.getValueAt(indexIn, 2).toString();
-
-                                        EmployeeTb empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
-
-                                        RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
-
-                                        new RegistroDao().insertarRegistroCompleto(registroTb, null, elecD , montoEx);
-                                        new AbonoDetailsDao().updateLoanStateByLoandetailId(elecD.getId(), monto, montoEx);
-                                        System.out.println("Se registro");
-
-                                    }
-                                    //
-
-                                    DefaultTableModel modelFirts = (DefaultTableModel) componentManageBond.jTableListEmple.getModel();
-                                    modelFirts.setRowCount(0);
-                                    List<AbonoTb> list = abonoDao.findAllAbonos();
-                                    List<AbonoTb> listFind = list.stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(numSol)).collect(Collectors.toList());
-
-                                    List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
-
-                                    modelFirts.addRow(new Object[]{
-                                        listFind.getFirst().getSoliNum(),
-                                        listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(listFind.getFirst().getServiceConceptId())).findFirst().get().getDescription(),
-                                        new EmployeeDao().findById(Integer.valueOf(listFind.getFirst().getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
-                                        listFind.getFirst().getDues(),
-                                        listFind.getFirst().getMonthly(),
-                                        listFind.getFirst().getStatus()
-                                    });
-
-                                    //
-                                    DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListDetalle.getModel();
-                                    model.setRowCount(0);
-                                    System.out.println("Se actuliso");
-                                    for (AbonoDetailsTb bonodetail : new AbonoDao().getListAbonoBySoli(numSol)) {
-
-                                        model.addRow(new Object[]{
-                                            bonodetail.getMonthly(),
-                                            bonodetail.getPayment(),
-                                            bonodetail.getDues(),
-                                            bonodetail.getPaymentDate(),
-                                            bonodetail.getState()
-                                        });
-                                    }
-
-                                    componentManageBond.jTableListDetalle.repaint();
-
-                                } catch (SQLException ex) {
-                                    System.out.println("Error -> " + ex.getMessage());
-                                    JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE BONO", JOptionPane.OK_OPTION);
-                                    // Logger.getLogger(ControllerManageBond.class.getName()).log(Level.SEVERE, null, ex);
-                                }
-
-                            }
-
                         }
+
+                    } catch (SQLException ex) {
 
                     }
 
                 }
             }
-            
+
             if (e.getSource().equals(componentManageBond.jTableListBonos.getSelectionModel())) {
 
                 int index = componentManageBond.jTableListBonos.getSelectedRow();

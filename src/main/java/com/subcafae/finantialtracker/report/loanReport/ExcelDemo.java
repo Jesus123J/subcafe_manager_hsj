@@ -42,8 +42,10 @@ public class ExcelDemo {
             int meses,
             String dniSoli
     ) {
-        String EmployeeDNI = dniSoli;
+        String EmployeeDNI = "";
+        String soli = "";
         JTextField text = new JTextField();
+        String texte = "";
         if (dniSoli == null) {
 
             TextFieldValidator.applyDecimalFilter(text);
@@ -51,7 +53,15 @@ public class ExcelDemo {
             if (option == JOptionPane.OK_OPTION) {
                 EmployeeDNI = text.getText();
             }
+            texte = "SOLICITUD N° DEMO";
+
+        } else {
+            EmployeeDNI = dniSoli.split("-")[0].trim();
+            soli = dniSoli.split("-")[1].trim();
+            texte = "SOLICITUD N°".concat(soli);
         }
+      
+
         // Crear el workbook y la hoja
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Liquidación_Préstamo_" + EmployeeDNI);
@@ -83,7 +93,7 @@ public class ExcelDemo {
         DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
         // 4. SOLICITUD y fecha
-        createMergedCell(sheet, 10, 10, 3, 5, "SOLICITUD N° " + "DEMO", titleStyle);
+        createMergedCell(sheet, 10, 10, 3, 5, texte, titleStyle);
         Row dateRow = sheet.createRow(11);
         createCell(dateRow, 5, fechaActual.format(formato), centeredStyle);
 

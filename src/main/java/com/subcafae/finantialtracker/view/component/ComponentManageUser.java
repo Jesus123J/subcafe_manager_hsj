@@ -50,10 +50,7 @@ public class ComponentManageUser extends javax.swing.JInternalFrame {
 
         jTableListUse.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
+
             },
             new String [] {
                 "USUARIOS", "EMPLEADO", "TIPO", "ESTADO"
@@ -77,7 +74,7 @@ public class ComponentManageUser extends javax.swing.JInternalFrame {
 
         jButtonRegisterUser.setText("REGISTRO DE USUARIO");
 
-        jTextFieldUserBlock.setBorder(javax.swing.BorderFactory.createTitledBorder("INSERTE NOMBRE DE USUARIO  A BLOQUIAR"));
+        jTextFieldUserBlock.setBorder(javax.swing.BorderFactory.createTitledBorder("INSERTE NOMBRE DE USUARIO PARA BLOQUEAR O ACTIVAR"));
 
         jButtonBloquiarUser.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/renuncia.png"))); // NOI18N
 
@@ -125,7 +122,7 @@ public class ComponentManageUser extends javax.swing.JInternalFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabelName, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(jTextFieldUserBlock, javax.swing.GroupLayout.PREFERRED_SIZE, 295, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jTextFieldUserBlock, javax.swing.GroupLayout.PREFERRED_SIZE, 396, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jButtonBloquiarUser, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 0, Short.MAX_VALUE)))

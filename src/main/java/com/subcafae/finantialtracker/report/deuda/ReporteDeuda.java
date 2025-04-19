@@ -186,7 +186,7 @@ public class ReporteDeuda {
             return;
         }
         // String requestNumberLoan, double debtLoan, int duesLoan, String fvencimientoLoan, String[][] prestamoData, String[][] fondoData
-        double totalPrestamo = 0.0;
+       
 
         document.add(new Paragraph("SECCIÓN DE PRÉSTAMOS").setBold().setFontSize(12));
 
@@ -211,13 +211,16 @@ public class ReporteDeuda {
             table.addHeaderCell(new Cell().add(new Paragraph("Vencimiento").setBold().setTextAlignment(TextAlignment.CENTER)));
 
             table.addHeaderCell(new Cell().add(new Paragraph("Monto").setBold().setTextAlignment(TextAlignment.CENTER)));
-
+          
+            double totalPrestamo = 0.0;
+            
             for (int i = 0; i < entry.getValue().size(); i++) {
                 table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size())).setTextAlignment(TextAlignment.CENTER));
                 table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getFechaVencimiento())).setTextAlignment(TextAlignment.CENTER));
                 table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getMonto())).setTextAlignment(TextAlignment.CENTER));
                 totalPrestamo += Double.parseDouble(entry.getValue().get(i).getMonto());
             }
+            
             document.add(table);
 
             // Mostrar el total de deuda del préstamo

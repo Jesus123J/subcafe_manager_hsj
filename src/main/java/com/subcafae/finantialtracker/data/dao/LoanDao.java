@@ -32,7 +32,7 @@ import org.apache.xmlbeans.impl.store.Locale;
 public class LoanDao extends LoanDetailsDao {
 
     private final Connection connection;
-
+    public String soliNum;
     public LoanDao() {
         this.connection = Conexion.getConnection();
     }
@@ -424,7 +424,7 @@ public class LoanDao extends LoanDetailsDao {
                      WHERE `EmployeeID` = ? 
                        AND `State` = ? 
                        AND `StateLoan` = 'Pendiente' 
-                     AND  `RefinanceParentID` IS NULL 
+                     AND  `RefinanceParentID` IS NULL AND PaymentResponsibility = 'EMPLOYEE'
                      ORDER BY `CreatedAt` DESC LIMIT 1;""";
         System.out.println("Lola");
 
@@ -500,13 +500,14 @@ public class LoanDao extends LoanDetailsDao {
 
                 int newId = generatedKeys.getInt(1);
                 updateSoliNum(newId); // Generar número de solicitud
+                
                 return newId;
             }
         }
     }
 
     private void updateSoliNum(int loanId) throws SQLException {
-        String soliNum = String.format("%08d", loanId);
+        soliNum = String.format("%08d", loanId);
         String updateSql = "UPDATE loan SET SoliNum = ? WHERE ID = ?";
         try (PreparedStatement stmt = connection.prepareStatement(updateSql)) {
             stmt.setString(1, soliNum);

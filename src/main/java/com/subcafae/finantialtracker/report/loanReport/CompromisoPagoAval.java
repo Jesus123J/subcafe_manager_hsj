@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 
 public class CompromisoPagoAval {
     
-    public void compromisoPagoAval(String requestNumber, String nameAval, String dniAval, String nameEmployee, String dniEmployee) {
+    public void compromisoPagoAval(String requestNumber, String nameEmployee, String dniEmployee, String nameAval, String dniAval) {
         try {
             // Crear un escritor de PDF
             String userHome = System.getProperty("user.home");

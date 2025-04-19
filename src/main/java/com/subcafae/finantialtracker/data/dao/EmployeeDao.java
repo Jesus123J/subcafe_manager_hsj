@@ -105,17 +105,17 @@ public class EmployeeDao {
 
     // Crear empleado
     public int create(EmployeeTb employee) throws SQLException {
-        String sql = "INSERT INTO employees (fullName, national_id, phone_number, "
+        String sql = "INSERT INTO employees (fullName, national_id,"
                 + "gender, employment_status, employment_status_code, start_date) "
-                + "VALUES (?,?, ?, ?, ?, ?, ?)";
+                + "VALUES (?,?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, employee.getFullName().toUpperCase());
             stmt.setString(2, employee.getNationalId().toUpperCase());
-            stmt.setString(4, employee.getGender() == null ? "" : employee.getGender());
-            stmt.setString(5, employee.getEmploymentStatus().toUpperCase());
-            stmt.setString(6, employee.getEmploymentStatusCode());
-            stmt.setDate(7, Date.valueOf(employee.getStartDate()));
+            stmt.setString(3, employee.getGender() == null ? "" : employee.getGender());
+            stmt.setString(4, employee.getEmploymentStatus().toUpperCase());
+            stmt.setString(5, employee.getEmploymentStatusCode());
+            stmt.setDate(6, Date.valueOf(employee.getStartDate()));
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {

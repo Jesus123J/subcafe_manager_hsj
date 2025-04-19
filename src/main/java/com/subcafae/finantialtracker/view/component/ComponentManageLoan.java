@@ -164,10 +164,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
 
         jTableListLoanDetails.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null}
+
             },
             new String [] {
                 "MONTO ", "PARCIAL", "CUOTA", "FECHA", "ESTADO"

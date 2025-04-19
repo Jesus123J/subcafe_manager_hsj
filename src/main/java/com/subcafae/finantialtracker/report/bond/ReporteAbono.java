@@ -62,6 +62,7 @@ public class ReporteAbono {
     ServiceConceptDao serviceConceptDAO = new ServiceConceptDao();
     AbonoDao abonoDAO = new AbonoDao();
     EmployeeDao employeeDao = new EmployeeDao();
+    private Object java;
 
     public void ReporteAbono(String conceptoName) {
 
@@ -117,14 +118,24 @@ public class ReporteAbono {
 
             System.out.println("Service ");
 
-            List<AbonoTb> listAbono = abonoDAO.getListAbonoTByConcepAndCodeEm(service.getId(), contractType);
+            PaneComparedTime paneComparedTime = new PaneComparedTime();
+            ((JTextField) paneComparedTime.dcDateStart.getDateEditor().getUiComponent()).setEditable(false);
+            if (JOptionPane.showConfirmDialog(null, paneComparedTime, "Time", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE) != JOptionPane.OK_OPTION) {
+                return;
+            }
 
-            System.out.println("Abono ");
+            if (paneComparedTime.dcDateStart.getDate() == null) {
+                JOptionPane.showMessageDialog(null, "inserte una fecha en los dos intervalos");
+                return;
+            }
+
+            List<AbonoTb> listAbono = abonoDAO.getListAbonoTByConcepAndCodeEm(service.getId(), contractType, new java.sql.Date(paneComparedTime.dcDateStart.getDate().getTime()));
 
             if (listAbono.isEmpty()) {
                 JOptionPane.showMessageDialog(null, "No se encontro ningun bono a este concepto a este tipo contrato " + contractType, "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
+
             int statusMo = JOptionPane.showConfirmDialog(null, "Mostrar solo el mes actual ? ", "", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
             boolean statusMonth = false;
 
@@ -132,7 +143,8 @@ public class ReporteAbono {
                 statusMonth = true;
             }
 
-            saveDocument(contractType, listAbono, statusMonth, service.getDescription());
+      
+            saveDocument(contractType, listAbono, statusMonth, service.getDescription(), LocalDate.now());
 
         } catch (Exception e) {
             System.out.println("Error -> " + e.getMessage());
@@ -140,25 +152,12 @@ public class ReporteAbono {
         }
     }
 
-    public void saveDocument(String contraty, List<AbonoTb> listAbono, boolean statusMonth, String concept) throws IOException {
-
-        PaneComparedTime paneComparedTime = new PaneComparedTime();
-        ((JTextField) paneComparedTime.dcDateStart.getDateEditor().getUiComponent()).setEditable(false);
-
-        if (JOptionPane.showConfirmDialog(null, paneComparedTime, "Time", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE) != JOptionPane.OK_OPTION) {
-            return;
-        }
-        if (paneComparedTime.dcDateStart.getDate() == null) {
-            JOptionPane.showMessageDialog(null, "inserte una fecha en los dos intervalos");
-            return;
-        }
-        
-        LocalDate localDateStart = paneComparedTime.dcDateStart.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    public void saveDocument(String contraty, List<AbonoTb> listAbono, boolean statusMonth, String concept, LocalDate start) throws IOException {
 
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Guardar Reporte de Abonos");
 
-        String defaultName = "reporte_abonos_" + localDateStart.format(DateTimeFormatter.ISO_DATE);
+        String defaultName = "reporte_abonos_" + start.format(DateTimeFormatter.ISO_DATE);
         fileChooser.setSelectedFile(new File(defaultName + ".pdf"));
 
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos PDF", "pdf");
@@ -243,7 +242,7 @@ public class ReporteAbono {
                         columnToMonth.put(col, Month.of(col - 4));
                     }
 
-                    LocalDate currentMonth = localDateStart;
+                    LocalDate currentMonth = start;
 
                     Double totalAmount = 0.0;
 
@@ -265,15 +264,15 @@ public class ReporteAbono {
                         double total = 0.0;
                         boolean status = false;
 
-                        List<Double> listMonto = new ArrayList<>();
+                        //List<Double> listMonto = new ArrayList<>();
                         List<Double> listAport = new ArrayList<>();
+                        Map<Long, Double> detalleApob = new HashMap<>();
 
                         for (AbonoDetailsTb detalle : detalles) {
 
                             if (detalle.getAbonoID() == abono.getId()) {
 
-                                listMonto.add(detalle.getMonthly());
-
+                                //listMonto.add(detalle.getMonthly());
                                 System.out.println("Ingreso");
 
                                 LocalDate fechaPago = LocalDate.parse(detalle.getPaymentDate());
@@ -289,30 +288,74 @@ public class ReporteAbono {
                                         } else if (detalle.getState().equalsIgnoreCase("Parcial")) {
                                             listAport.add(detalle.getPayment());
                                         }
+                                        if (detalle.getState().equalsIgnoreCase("Pendiente")) {
+                                            listAport.add(0.0);
+                                        }
                                         status = true;
                                     }
 
                                     //2025-03-31
-                                    if (mesPago == currentMonth.getMonth()) {
+                                    if (!status) {
 
-                                        contenidoPorMes.put(mesPago, fechaPago.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-                                    } else {
+                                        if (mesPago == currentMonth.getMonth()) {
 
-                                        if (currentMonth.getMonthValue() > fechaPago.getMonthValue()
-                                                && currentMonth.getYear() >= fechaPago.getYear()) {
+                                            if (detalle.getState().equalsIgnoreCase("Pagado")) {
+                                                System.out.println("Pagado");
+                                                listAport.add(abono.getMonthly());
+                                            } else if (detalle.getState().equalsIgnoreCase("Parcial")) {
+                                                System.out.println("Parcial");
+                                                listAport.add(detalle.getPayment());
+                                            }
+                                            if (detalle.getState().equalsIgnoreCase("Pendiente")) {
+                                                System.out.println("Pendiente");
+                                                listAport.add(0.0);
+                                            }
 
                                             contenidoPorMes.put(mesPago, fechaPago.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
                                         } else {
 
-                                            contenidoPorMes.put(mesPago,
-                                                    fechaPago.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                                            if (currentMonth.getMonthValue() > fechaPago.getMonthValue()
+                                                    && currentMonth.getYear() >= fechaPago.getYear()) {
+
+                                                if (detalle.getState().equalsIgnoreCase("Pagado")) {
+                                                    System.out.println("Pagado");
+                                                    listAport.add(abono.getMonthly());
+                                                } else if (detalle.getState().equalsIgnoreCase("Parcial")) {
+                                                    System.out.println("Parcial");
+                                                    listAport.add(detalle.getPayment());
+                                                }
+                                                if (detalle.getState().equalsIgnoreCase("Pendiente")) {
+                                                    System.out.println("Pendiente");
+                                                    listAport.add(0.0);
+                                                }
+
+                                                contenidoPorMes.put(mesPago, fechaPago.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                                            } else {
+                                                if (detalle.getState().equalsIgnoreCase("Pagado")) {
+                                                    System.out.println("Pagado");
+                                                    listAport.add(abono.getMonthly());
+                                                } else if (detalle.getState().equalsIgnoreCase("Parcial")) {
+                                                    System.out.println("Parcial");
+                                                    listAport.add(detalle.getPayment());
+                                                }
+                                                if (detalle.getState().equalsIgnoreCase("Pendiente")) {
+                                                    System.out.println("Pendiente");
+                                                    listAport.add(0.0);
+                                                }
+                                                contenidoPorMes.put(mesPago,
+                                                        fechaPago.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                        System.out.println("List monto -> " + listMonto.toString());
-                        int count = 0;
+
+                        //  System.out.println("List monto -> " + listMonto.toString());
+                        int countPay = 0;
+
+                        System.out.println("Pago " + listAport.toString());
 
                         for (int col = 5; col <= 16; col++) {
                             int cont = col;
@@ -345,7 +388,8 @@ public class ReporteAbono {
                                             if (fechaPago.getMonth() == fechaRenu.getMonth()) {
                                                 table.addCell(createStyledCell("-"));
                                             } else {
-                                                table.addCell(createStyledCell(listMonto.get(count)));
+                                                //  table.addCell(createStyledCell(listAport.get(count)));
+                                                table.addCell(createStyledCell(listAport.get(countPay)));
                                             }
                                         } else {
                                             table.addCell(createStyledCell("-"));
@@ -356,12 +400,12 @@ public class ReporteAbono {
                                     if (statusMonth) {
 
                                         if (fechaPago.getMonth() == currentMonth.getMonth() || fechaPago.isBefore(currentMonth)) {
-                                            total += listMonto.get(count);
+                                            total += listAport.get(countPay);
 
                                         }
 
                                         if (fechaPago.getMonth() == currentMonth.getMonth()) {
-                                            table.addCell(createStyledCell(listMonto.get(count)).setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD)));
+                                            table.addCell(createStyledCell(listAport.get(countPay)).setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD)));
                                         } else {
                                             table.addCell(createStyledCell(""));
                                         }
@@ -370,21 +414,19 @@ public class ReporteAbono {
                                         if (fechaPago.getMonth() == currentMonth.getMonth() || fechaPago.isBefore(currentMonth)) {
 
                                             if (fechaPago.getMonth() == currentMonth.getMonth()) {
-                                                table.addCell(createStyledCell(listMonto.get(count)).setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD)));
+                                                table.addCell(createStyledCell(listAport.get(countPay)).setFont(PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD)));
                                             } else {
-                                                table.addCell(createStyledCell(listMonto.get(count)));
+                                                table.addCell(createStyledCell(listAport.get(countPay)));
                                             }
-
-                                            total += listMonto.get(count);
-
+                                            
+                                            total += listAport.get(countPay);
                                         } else {
-
                                             table.addCell(createStyledCell(""));
                                         }
                                     }
                                 }
-                                count++;
-
+                        
+                                countPay++;
                             } else {
                                 table.addCell(createStyledCell(""));
                             }
@@ -400,11 +442,13 @@ public class ReporteAbono {
                                     .sum(); // Suma todos los elementos
 
                         }
-
+                        
+                        totalAmount += total;
+                        
                         table.addCell(createStyledCell(String.format("%,.2f", total)));
                         table.addCell(createStyledCell(estado));
 
-                        totalAmount += total;
+                        
                     }
 
                     for (String header : headers) {

@@ -48,6 +48,10 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jTableListEmple = new javax.swing.JTable();
         jLabel3 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
+        jDialog2 = new javax.swing.JDialog();
+        jScrollPane5 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
+        jLabel7 = new javax.swing.JLabel();
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jPanel3 = new javax.swing.JPanel();
         jPanel8 = new javax.swing.JPanel();
@@ -96,10 +100,10 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jTextFieldSearchSoliBond = new javax.swing.JTextField();
         jButton1 = new javax.swing.JButton();
         jSeparator6 = new javax.swing.JSeparator();
-        dcBirthDate2 = new com.toedter.calendar.JDateChooser();
+        dateStart = new com.toedter.calendar.JDateChooser();
         jLabel6 = new javax.swing.JLabel();
-        dcBirthDate3 = new com.toedter.calendar.JDateChooser();
-        jButton2 = new javax.swing.JButton();
+        dateFinaly = new com.toedter.calendar.JDateChooser();
+        jButtonShowList = new javax.swing.JButton();
         jSeparator7 = new javax.swing.JSeparator();
         jButtonReportBond = new javax.swing.JButton();
         searchConcept = new javax.swing.JTextField();
@@ -205,6 +209,50 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
             .addGroup(jDialog1Layout.createSequentialGroup()
                 .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(0, 0, Short.MAX_VALUE))
+        );
+
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "FILA", "DNI", "NOMBRE COMPLETO", "MONTO"
+            }
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane5.setViewportView(jTable1);
+
+        jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel7.setText("POR FAVOR REVISAR LAS SIGUIENTES FILAS EN EL EXCEL");
+
+        javax.swing.GroupLayout jDialog2Layout = new javax.swing.GroupLayout(jDialog2.getContentPane());
+        jDialog2.getContentPane().setLayout(jDialog2Layout);
+        jDialog2Layout.setHorizontalGroup(
+            jDialog2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jDialog2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jScrollPane5)
+                .addContainerGap())
+            .addGroup(jDialog2Layout.createSequentialGroup()
+                .addGap(117, 117, 117)
+                .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 456, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(159, Short.MAX_VALUE))
+        );
+        jDialog2Layout.setVerticalGroup(
+            jDialog2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jDialog2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane5, javax.swing.GroupLayout.DEFAULT_SIZE, 325, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         setBackground(new java.awt.Color(255, 255, 255));
@@ -528,10 +576,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jTableListConcept.setBackground(new java.awt.Color(255, 255, 255));
         jTableListConcept.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null}
+
             },
             new String [] {
                 "CÓDIGO", "DESCRIPCIÓN", "UNIDADES", "PRIORIDAD", "PRECIO DE VENTA", "PRECIO DE COSTO"
@@ -605,17 +650,14 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
 
         jTableListBonos.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null}
+
             },
             new String [] {
                 "N. SOLICITUD", "CONCEPTO", "TRABAJADOR", "CUOTAS", "MONTO", "ESTATUS"
             }
         ) {
             boolean[] canEdit = new boolean [] {
-                false, false, false, false, true, false
+                false, false, false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -639,18 +681,20 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
 
         jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/iconVoucher/search.png"))); // NOI18N
 
-        dcBirthDate2.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        dcBirthDate2.setPreferredSize(new java.awt.Dimension(190, 30));
+        dateStart.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        dateStart.setDateFormatString("yyyy-MM-dd");
+        dateStart.setPreferredSize(new java.awt.Dimension(190, 30));
 
         jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel6.setForeground(new java.awt.Color(0, 0, 0));
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel6.setText("A");
 
-        dcBirthDate3.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        dcBirthDate3.setPreferredSize(new java.awt.Dimension(190, 30));
+        dateFinaly.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        dateFinaly.setDateFormatString("yyyy-MM-dd");
+        dateFinaly.setPreferredSize(new java.awt.Dimension(190, 30));
 
-        jButton2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/update.png"))); // NOI18N
+        jButtonShowList.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/update.png"))); // NOI18N
 
         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
@@ -679,13 +723,13 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addGroup(jPanel6Layout.createSequentialGroup()
-                                .addComponent(dcBirthDate2, javax.swing.GroupLayout.PREFERRED_SIZE, 155, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(dateStart, javax.swing.GroupLayout.PREFERRED_SIZE, 155, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(dcBirthDate3, javax.swing.GroupLayout.PREFERRED_SIZE, 155, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(dateFinaly, javax.swing.GroupLayout.PREFERRED_SIZE, 155, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addComponent(jButtonShowList, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
@@ -709,14 +753,13 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
                             .addComponent(jTextFieldSearchSoliBond)
                             .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                         .addGap(33, 33, 33)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jSeparator6, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(dcBirthDate2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(dateStart, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(dcBirthDate3, javax.swing.GroupLayout.DEFAULT_SIZE, 48, Short.MAX_VALUE)
-                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(dateFinaly, javax.swing.GroupLayout.DEFAULT_SIZE, 48, Short.MAX_VALUE)
+                    .addComponent(jButtonShowList, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jSeparator7, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -761,10 +804,9 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup buttonGroup1;
-    public com.toedter.calendar.JDateChooser dcBirthDate2;
-    public com.toedter.calendar.JDateChooser dcBirthDate3;
+    public com.toedter.calendar.JDateChooser dateFinaly;
+    public com.toedter.calendar.JDateChooser dateStart;
     public javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
     public javax.swing.JButton jButtonEliminarBono;
     public javax.swing.JButton jButtonEliminarConcept;
     public javax.swing.JButton jButtonRegisterBond;
@@ -772,16 +814,19 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
     public javax.swing.JButton jButtonRegistroConcepto;
     public javax.swing.JButton jButtonRenunciarBono;
     public javax.swing.JButton jButtonReportBond;
+    public javax.swing.JButton jButtonShowList;
     public javax.swing.JComboBox<String> jComboBoxSearchConceptBond;
     public javax.swing.JComboBox<String> jComboDescont;
     public javax.swing.JComboBox<String> jComboSearchWorker;
     public javax.swing.JDialog jDialog1;
+    public javax.swing.JDialog jDialog2;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel7;
     public javax.swing.JLabel jLabelCodeWorker;
     public javax.swing.JLabel jLabelShowDNIWorker;
     public javax.swing.JLabel jLabelShowDNIWorker1;
@@ -802,6 +847,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
+    private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JSeparator jSeparator3;
@@ -810,6 +856,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
     private javax.swing.JSeparator jSeparator6;
     private javax.swing.JSeparator jSeparator7;
     public javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JTable jTable1;
     public javax.swing.JTable jTableListBonos;
     public javax.swing.JTable jTableListConcept;
     public javax.swing.JTable jTableListDetalle;

@@ -82,7 +82,7 @@
             <Component class="javax.swing.JTable" name="jTableListLoanDetails">
               <Properties>
                 <Property name="model" type="javax.swing.table.TableModel" editor="org.netbeans.modules.form.editors2.TableModelEditor">
-                  <Table columnCount="5" rowCount="4">
+                  <Table columnCount="5" rowCount="0">
                     <Column editable="false" title="MONTO " type="java.lang.Object"/>
                     <Column editable="false" title="PARCIAL" type="java.lang.Object"/>
                     <Column editable="false" title="CUOTA" type="java.lang.Object"/>

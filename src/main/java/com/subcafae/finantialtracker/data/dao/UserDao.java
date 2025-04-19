@@ -38,14 +38,26 @@ public class UserDao {
 
             if (rs.next()) {
                 int currentState = rs.getInt("state");
+                if (currentState == 9) {
+                    JOptionPane.showMessageDialog(null, "No se puede bloquiar a una cuenta super administrador");
+                    return false;
+                }
                 int newState = (currentState == 1) ? 0 : 1; // Cambia automático: 1 → 0, 0 → 1
 
                 try (PreparedStatement updateStmt = connection.prepareStatement(sqlUpdate)) {
                     updateStmt.setInt(1, newState);
                     updateStmt.setString(2, username);
+
                     int rowsUpdated = updateStmt.executeUpdate();
-                    return rowsUpdated > 0;
+                    if (rowsUpdated > 0) {
+                        return true;
+                    } else {
+                        JOptionPane.showMessageDialog(null, "No se logro cambiar de estado");
+                        return false;
+                    }
                 }
+            } else {
+                JOptionPane.showMessageDialog(null, "No se encontró usuario");
             }
         } catch (SQLException e) {
             System.out.println("Error -> " + e.getMessage());
@@ -91,7 +103,6 @@ public class UserDao {
                 if (BCrypt.checkpw(password, storedPassword)) {
 
                     return new UserTb(
-           
                             rs.getInt("iduser"),
                             rs.getString("username"),
                             rs.getInt("idEmployee"),

@@ -17,6 +17,7 @@ import com.subcafae.finantialtracker.view.ViewMain;
 import com.subcafae.finantialtracker.view.component.ComponentManageBond;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -117,12 +118,14 @@ public class ModelManageBond {
 
     public void insertServiceConepto() {
         try {
+            
             ServiceConceptTb serviceConceptTb = new ServiceConceptTb();
+            
             serviceConceptTb.setDescription(componentManageBond.jTextFieldDescription.getText());
-            serviceConceptTb.setCostPrice(Double.parseDouble(String.format("%.2f", Double.valueOf(componentManageBond.jTextFieldPrecioCosto.getText()))));
-            serviceConceptTb.setSalePrice(Double.parseDouble(String.format("%.2f", Double.valueOf(componentManageBond.jTextFieldVenta.getText()))));
-            serviceConceptTb.setPriority(Integer.parseInt(componentManageBond.jTextFieldPrioridad.getText()));
-            serviceConceptTb.setUnid(Integer.parseInt(componentManageBond.jTextFieldUnidades.getText()));
+            serviceConceptTb.setCostPrice(componentManageBond.jTextFieldPrecioCosto.getText().isBlank() ? 0.0 :Double.parseDouble(String.format("%.2f", Double.valueOf(componentManageBond.jTextFieldPrecioCosto.getText()))));
+            serviceConceptTb.setSalePrice(componentManageBond.jTextFieldVenta.getText().isBlank() ? 0.0 : Double.parseDouble(String.format("%.2f", Double.valueOf(componentManageBond.jTextFieldVenta.getText()))));
+            serviceConceptTb.setPriority(componentManageBond.jTextFieldPrioridad.getText().isBlank() ? 0 : Integer.parseInt(componentManageBond.jTextFieldPrioridad.getText()));
+            serviceConceptTb.setUnid(componentManageBond.jTextFieldUnidades.getText().isBlank() ? 0 :Integer.parseInt(componentManageBond.jTextFieldUnidades.getText()));
             serviceConceptTb.setPriorityConcept(componentManageBond.jRadioButtonPaga.isSelected() ? "Primero" : "Segundo");
             serviceConceptTb.setCreatedBy(user.getId());
             serviceConceptTb.setCreatedAt(LocalDate.now().toString());
@@ -182,11 +185,11 @@ public class ModelManageBond {
         }
     }
 
-    public void insertListTableBono() {
+    public void insertListTableBono(Date start , Date finaly) {
         try {
             ViewMain.loading.setVisible(true);
             List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
-            List<AbonoTb> listAbono = abonoDao.findAllAbonos();
+            List<AbonoTb> listAbono = abonoDao.findAllAbonos(new java.sql.Date(start.getTime()), new java.sql.Date(finaly.getTime()));
             DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListBonos.getModel();
             model.setRowCount(0);
             for (AbonoTb abonoTb : listAbono) {

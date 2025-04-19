@@ -113,8 +113,10 @@ public class ModelManageLoan extends LoanDao {
             }
 
             System.out.println("Meses dados -> " + loan.getDues());
+
             generateExcelLiquidación(componentManageLoan.textAmountLoan.getText(),
                     refinan.toString(), loan.getDues(), loan.getEmployeeId(), Boolean.FALSE);
+            soliNum = "";
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(null, ex.getMessage(), "GESTIÓN PRESTAMO", JOptionPane.ERROR_MESSAGE);
@@ -145,11 +147,11 @@ public class ModelManageLoan extends LoanDao {
             return;
         }
 
-        montoPrestadoChange = Math.abs(Double.parseDouble(String.format("%.2f", montoPrestamo - refinanciadoText)));
+        montoPrestadoChange = montoPrestamo - refinanciadoText;
 
-        tasaNominalPeriodo = Double.valueOf(String.format("%.2f", Math.pow(1 + tasaNominalMensual, meses) - 1));
+        tasaNominalPeriodo = Math.pow(1 + tasaNominalMensual, meses) - 1;
 
-        interesMensual = Double.valueOf(String.format("%.2f", (tasaNominalPeriodo * montoPrestamo) / meses));
+        interesMensual = (tasaNominalPeriodo * montoPrestamo) / meses;
 
         //Valor agregado '* meses'
         fondoIntangibleTotal = (Math.ceil(montoPrestamo / 500.0) * 0.50) * meses;
@@ -157,12 +159,14 @@ public class ModelManageLoan extends LoanDao {
         // el interesTotal tiene que ir antes 
         interesTotal = interesMensual * meses;
 
-        cuotaMensualConFondoIntangible = Double.valueOf(String.format("%.2f", (Double.valueOf(String.format("%.2f", interesTotal)) + fondoIntangibleTotal)));
+        cuotaMensualConFondoIntangible = interesTotal + fondoIntangibleTotal;
 
         //El capital mensual tiene que calcularse despues de la cuota mensual para sumarse y que salga el valor dividiendo con los meses
         capitalMensual = Double.valueOf(String.format("%.2f", (Double.parseDouble(String.format("%.2f", cuotaMensualConFondoIntangible)) + montoPrestamo) / meses));
-
-        capitalSinInteresMensual = Double.valueOf(String.format("%.2f", montoPrestamo / meses));
+        
+        
+        
+        capitalSinInteresMensual = Math.floor((montoPrestamo / meses) * 100) / 100;
 
         if (demo) {
             insertDataDemo(montoPrestadoChange, montoPrestado, meses);
@@ -171,15 +175,26 @@ public class ModelManageLoan extends LoanDao {
         //txtTotalPaymentDemo
     }
 
+    //    Double.parseDouble(String.format("%.2f", interesTotal)),
+    //                    fondoIntangibleTotal,
+    //                    capitalMensual,
+    
     public void insertDataDemo(Double montoPrestamo, Double monto, int meses) {
+        
+  
+        Double total = Double.valueOf(String.format("%.2f", interesTotal)) + fondoIntangibleTotal + monto;
+        
         componentManageLoan.jTextFieldCapitalMensual.setText(capitalSinInteresMensual.toString());
-        componentManageLoan.jTextFieldInteresMensual.setText(interesMensual.toString());
-        componentManageLoan.jTextFieldInteresTotal.setText(interesTotal.toString());
-        componentManageLoan.jTextFieldTotalPagar.setText(String.format("%.2f", (capitalMensual * meses)));
+        componentManageLoan.jTextFieldInteresMensual.setText(String.format("%.2f", interesMensual));
+        componentManageLoan.jTextFieldInteresTotal.setText(String.format("%.2f", interesTotal));
+        componentManageLoan.jTextFieldTotalPagar.setText("" + total);
         componentManageLoan.jTextFieldCuotaMensual.setText(capitalMensual.toString());
         componentManageLoan.jTextFieldMontoPrestar.setText(monto.toString());
         componentManageLoan.jTextFieldMontoGirar.setText(montoPrestadoChange.toString());
+        
     }
+    
+    //
 
     public void generateExcelLiquidación(String prestamo, String refinanaciamiento, Integer meses, String dni, Boolean demo) {
         if (refinanaciamiento == null) {
@@ -226,11 +241,13 @@ public class ModelManageLoan extends LoanDao {
                     refinanaciamiento,
                     Double.parseDouble(String.format("%.2f", Double.parseDouble(prestamo))),
                     montoPrestadoChange,
-                    interesTotal,
+                    Double.parseDouble(String.format("%.2f", interesTotal)),
                     fondoIntangibleTotal,
                     capitalMensual,
-                    meses, dni
+                    meses,
+                    dni != null ? dni.concat(" - " + soliNum) : null
             );
+            
         } catch (NumberFormatException e) {
             // Mostrar un mensaje si alguna conversión falla
             JOptionPane.showMessageDialog(null, "Error: Asegúrate de que todos los valores sean numéricos.");
@@ -251,7 +268,7 @@ public class ModelManageLoan extends LoanDao {
         }
     }
 
-    public void insertTablet(java.util.Date dateStart , java.util.Date dateFinaly) {
+    public void insertTablet(java.util.Date dateStart, java.util.Date dateFinaly) {
         List<Loan> list = getAllLoanss(new java.sql.Date(dateStart.getTime()), new java.sql.Date(dateFinaly.getTime()));
         DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
         model.setRowCount(0);

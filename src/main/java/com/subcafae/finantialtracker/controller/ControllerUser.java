@@ -98,7 +98,7 @@ public class ControllerUser implements ActionListener {
                 user1.getUsername(),
                 user1.getEmployeeName(),
                 user1.getRol(),
-                user1.getState().equalsIgnoreCase("1") ? "ACTIVADO" : "BLOQUIADO"
+                user1.getState().equalsIgnoreCase("1") ? "ACTIVADO" :   user1.getState().equalsIgnoreCase("9") ? "ADMIN" : "BLOQUIADO"
             });
         }
     }
@@ -139,16 +139,14 @@ public class ControllerUser implements ActionListener {
                 return;
             }
             boolean ver = new UserDao().toggleUserState(componentUser.jTextFieldUserBlock.getText());
-            if (!ver) {
-                JOptionPane.showMessageDialog(null, "NO SE LOGRO CAMBIAR", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
-            }
+
             if (ver) {
                 JOptionPane.showMessageDialog(null, "SE CAMBIO DE ESTADO", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
             }
             componentUser.jTextFieldUserBlock.setText("");
             listTable();
         }
-        
+
         if (e.getSource().equals(componentUser.jButtonRegisterUser)) {
             if (componentUser.jTextFieldUser.getText().isBlank()
                     || new String(componentUser.jPasswordFieldEscribaContrase.getPassword()).isBlank()
@@ -175,6 +173,8 @@ public class ControllerUser implements ActionListener {
     }
 
     public void clear() {
+        componentUser.jLabelDni.setText("");
+        componentUser.jLabelName.setText("");
         componentUser.jTextFieldUser.setText("");
         componentUser.jPasswordFieldEscribaContrase.setText("");
         componentUser.jPasswordFieldRepitaContrase.setText("");

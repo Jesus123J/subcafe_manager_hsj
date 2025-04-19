@@ -164,6 +164,9 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
             if (usser.getRol().equalsIgnoreCase("ADMINISTRADOR")) {
                 centerInternalComponent(componentManageUser);
             }
+            if (usser.getRol().equalsIgnoreCase("SUPER ADMINISTRADOR")) {
+                centerInternalComponent(componentManageUser);
+            }
         }
         if (e.getSource().equals(viewMain.jMenuPago)) {
             viewMain.jLabelCode.setText("");

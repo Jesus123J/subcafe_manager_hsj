@@ -21,7 +21,16 @@ public class AbonoDetailsTb {
     private String createdAt;
     private String modifiedBy;
     private String modifiedAt;
+    private Double monto;
 
+    public Double getMonto() {
+        return monto;
+    }
+
+    public void setMonto(Double monto) {
+        this.monto = monto;
+    }
+    
     public String getPaymentDate() {
         return paymentDate;
     }

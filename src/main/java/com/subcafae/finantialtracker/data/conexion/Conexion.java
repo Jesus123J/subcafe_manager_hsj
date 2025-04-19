@@ -24,6 +24,7 @@ public class Conexion {
         try {
             connection = DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null , "Error -> " + e.getMessage());
             JOptionPane.showMessageDialog(null, "No hay conexion , comuniquese con el administrador");
             System.exit(0);
             //  throw new RuntimeException("Error al conectar a la base de datos", e);

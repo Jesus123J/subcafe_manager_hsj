@@ -49,6 +49,7 @@ public class ControllerManageWorker extends ModelManageWorker implements ActionL
                 JOptionPane.showMessageDialog(null, "Rellene el campo con un dni", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+            
             try {
                 Optional<EmployeeTb> emple = new EmployeeDao().findById(componentManageWorker.jTextFieldBuscarForDni.getText());
                 if (!emple.isPresent()) {
@@ -86,6 +87,7 @@ public class ControllerManageWorker extends ModelManageWorker implements ActionL
                 return;
             }
         }
+        
         if (e.getSource().equals(componentManageWorker.jButtonEliminarPerson)) {
             if (componentManageWorker.textFieldNameDeleteUser.getText().isBlank()) {
                 JOptionPane.showMessageDialog(null, "Rellene el campo con un dni", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);

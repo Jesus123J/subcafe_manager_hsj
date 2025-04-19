@@ -99,13 +99,8 @@ public class RegistroDao {
 
     public boolean insertarRegistroCompleto(RegistroTb registro, LoanDetailsTb prestamo, AbonoDetailsTb bonos, Double monto) {
 
-        String findLoanIdQuery = "SELECT LoanID, payment FROM loandetail WHERE ID = ?";
-
         String sqlRegistro = "CALL InsertarRegistro(?,?);";
         String sqlObtenerID = "SELECT LAST_INSERT_ID()"; // Obtener el último ID insertado
-
-        String sqlPrestamo = "INSERT INTO soli_prestamo (registro_id,soli_prestamo,id_prestamoDetails) VALUES (?, ?,?)";
-        String sqlBono = "INSERT INTO soli_bonus (registro_id,soli_abono,id_abonoDetails) VALUES (?, ?,?)";
 
         try (PreparedStatement stmtRegistro = conn.prepareStatement(sqlRegistro, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -164,13 +159,13 @@ public class RegistroDao {
 
     }
 
-    // Método para insertar un nuevo registro y sus detalles de préstamo y bono
+    //  Método para insertar un nuevo registro y sus detalles de préstamo y bono
     public boolean insertarRegistroCompleto(RegistroTb registro, List<LoanDetailsTb> prestamos, List<AbonoDetailsTb> bonos) {
-
+        System.out.println("Prestamoms " + prestamos.toString());
+        System.out.println("Prestamoms " + bonos.toString());
+        
         String sqlRegistro = "CALL InsertarRegistro(?,?);";
         String sqlObtenerID = "SELECT LAST_INSERT_ID()"; // Obtener el último ID insertado
-        String sqlPrestamo = "INSERT INTO soli_prestamo (registro_id,soli_prestamo,id_prestamoDetails) VALUES (?, ?,?)";
-        String sqlBono = "INSERT INTO soli_bonus (registro_id,soli_abono,id_abonoDetails) VALUES (?, ?,?)";
 
         try (PreparedStatement stmtRegistro = conn.prepareStatement(sqlRegistro, Statement.RETURN_GENERATED_KEYS)) {
             conn.setAutoCommit(false); // Desactivar auto-commit para manejar transacción
@@ -192,27 +187,28 @@ public class RegistroDao {
             // 3. Insertar en la tabla prestamo si existen préstamos
             if (!prestamos.isEmpty()) {
                 System.out.println("Id de registro / " + idRegistro);
-                try (PreparedStatement stmtPrestamo = conn.prepareStatement(sqlPrestamo)) {
-                    for (LoanDetailsTb p : prestamos) {
-                        stmtPrestamo.setInt(1, idRegistro);
-                        stmtPrestamo.setString(2, "");
-                        stmtPrestamo.setLong(3, p.getId());
-                        stmtPrestamo.executeUpdate();
-                    }
+
+                for (LoanDetailsTb p : prestamos) {
+                    insertRegisterDetail(idRegistro, null, p.getId(), p.getMonto());
+//                    stmtPrestamo.setInt(1, idRegistro);
+//                    stmtPrestamo.setString(2, "");
+//                    stmtPrestamo.setLong(3, p.getId());
+//                    stmtPrestamo.executeUpdate();
                 }
+
             }
 
             // 4. Insertar en la tabla bono si existen bonos
             if (!bonos.isEmpty()) {
-                System.out.println("Id de registro / " + idRegistro);
-                try (PreparedStatement stmtBono = conn.prepareStatement(sqlBono)) {
-                    for (AbonoDetailsTb b : bonos) {
-                        stmtBono.setInt(1, idRegistro);
-                        stmtBono.setString(2, "");
-                        stmtBono.setLong(3, b.getId());
-                        stmtBono.executeUpdate();
-                    }
+
+                for (AbonoDetailsTb b : bonos) {
+                    insertRegisterDetail(idRegistro, b.getId(), null, b.getMonto());
+//                    stmtBono.setInt(1, idRegistro);
+//                    stmtBono.setString(2, "");
+//                    stmtBono.setLong(3, b.getId());
+//                    stmtBono.executeUpdate();
                 }
+
             }
 
             // 5. Confirmar la transacción

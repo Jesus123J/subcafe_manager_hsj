@@ -28,6 +28,16 @@ public class LoanDetailsTb {
     private LocalDateTime createdAt;
     private int modifiedBy;
     private LocalDateTime modifiedAt;
+    private Double monto;
+
+    public Double getMonto() {
+        return monto;
+    }
+
+    public void setMonto(Double monto) {
+        this.monto = monto;
+    }
+    
 
     // Constructor vacío
     public LoanDetailsTb() {}
