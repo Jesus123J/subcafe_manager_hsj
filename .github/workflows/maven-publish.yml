@@ -31,9 +31,13 @@ jobs:
       run: |
         unzip resources/launch4j-3.50-win32.zip -d launch4j
 
-    - name: Convertir JAR a EXE
+    - name: Verificar archivos descomprimidos
       run: |
-        launch4j/launch4j resources/app_configuration_launch4j.xml
+        ls -l launch4j/
+
+    - name: Convertir JAR a EXE en Linux
+      run: |
+        java -jar launch4j/launch4j.jar resources/app_configuration_launch4j.xml
 
     - name: Renombrar ejecutable
       run: mv resources/Subcafae.exe "Subcafae - HSJv0.0.2.exe"
