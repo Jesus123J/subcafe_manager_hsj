@@ -2,8 +2,8 @@
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>${workspace}/target/FinantialTracker-1.0-SNAPSHOT-jar-with-dependencies.jar</jar>
-  <outfile>${workspace}/builds/Subcafae_HSJ_0.0.2.exe</outfile>
+  <jar>target/FinantialTracker-1.0-SNAPSHOT-jar-with-dependencies.jar</jar>
+  <outfile>builds/Subcafae - HSJv0.0.2.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>
@@ -13,7 +13,7 @@
   <stayAlive>false</stayAlive>
   <restartOnCrash>false</restartOnCrash>
   <manifest></manifest>
-  <icon>${workspace}/resources/icons/log.ico</icon>
+  <icon>resources/icons/log.ico</icon>
   <jre>
     <bundledJre64Bit>false</bundledJre64Bit>
     <bundledJreAsFallback>false</bundledJreAsFallback>
