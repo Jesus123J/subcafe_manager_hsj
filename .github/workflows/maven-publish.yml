@@ -27,17 +27,13 @@ jobs:
     - name: Compilar con Maven
       run: mvn -B package --file pom.xml
 
-    - name: Extraer Launch4j desde el repositorio
+    - name: Verificar archivos en Launch4j
       run: |
-        unzip resources/launch4j-3.50-win32.zip -d launch4j
+        ls -R resources/launch4j/
 
-    - name: Verificar archivos descomprimidos
+    - name: Ejecutar Launch4j para convertir JAR a EXE
       run: |
-        ls -l launch4j/
-
-    - name: Convertir JAR a EXE en Linux
-      run: |
-        java -jar launch4j/launch4j.jar resources/app_configuration_launch4j.xml
+        java -jar resources/launch4j/launch4j.jar resources/app_configuration_launch4j.xml
 
     - name: Renombrar ejecutable
       run: mv resources/Subcafae.exe "Subcafae - HSJv0.0.2.exe"
