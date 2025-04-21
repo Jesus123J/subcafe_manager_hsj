@@ -27,10 +27,17 @@ jobs:
     - name: Compilar con Maven
       run: mvn -B package --file pom.xml
 
-    - name: Instalar Launch4j
+    - name: Descargar e instalar Launch4j
       run: |
-        wget --no-check-certificate http://sourceforge.net/projects/launch4j/files/latest/download -O launch4j.zip
-        unzip launch4j.zip -d launch4j
+        wget -O launch4j.zip https://sourceforge.net/projects/launch4j/files/latest/download
+        unzip -o launch4j.zip -d launch4j || echo "Error al descomprimir el archivo. Verifica que la URL sea correcta."
+
+    - name: Verificar instalación de Launch4j
+      run: |
+        if [ ! -f launch4j/launch4j ]; then
+          echo "Launch4j no se instaló correctamente"
+          exit 1
+        fi
 
     - name: Convertir JAR a EXE
       run: |
