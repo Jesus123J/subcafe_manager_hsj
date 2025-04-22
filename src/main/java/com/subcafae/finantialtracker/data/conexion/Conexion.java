@@ -17,7 +17,7 @@ public class Conexion {
 
      private static final String URL = "jdbc:mariadb://localhost:3306/FinancialTracker1?useUnicode=true&characterEncoding=UTF-8&collation=utf8mb4_0900_ai_ci";
     private static final String USER = "root";
-    private static final String PASSWORD = "123456789";
+    private static final String PASSWORD = "";
     private static Connection connection = null;
 
     static {
