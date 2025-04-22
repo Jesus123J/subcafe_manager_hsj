@@ -85,7 +85,7 @@ public class SolicitudPrestamo {
                 
                 document.add(new Paragraph(
                         "Yo, " + principalName + ", identificado(a) con DNI N° " + principalDni + "; " +
-                        "Servidor Designado al Hospital \"San José\" Callao, del servicio de " + campo + " solicito un préstamo de S/" + String.format("%.2f", montoPrestamo) + " soles para ser descontado en "+ dues +" meses, "+
+                        "Servidor Designado al Hospital \"San José\" Callao, solicito un préstamo de S/" + String.format("%.2f", montoPrestamo) + " soles para ser descontado en "+ dues +" meses, "+
                         "por motivos PERSONALES para lo cual adjunto boletas de pago como sustento a la presente solicitud para que el personal CAS la presente solicitud deberá ser evaluada.\n "+
                         "Asimismo, conforme a lo establecido en el inciso “C” de la 3ra Disposición Transitoria de la ley 28411 (Ley del Sistema Nacional de Presupuesto); autorizo que se me "+
                         "descuente por planilla de haberes, incentivos laborales o planilla CAS el referido préstamo más  intereses por el monto de S/. " + String.format("%.2f", cuotaMensual * dues) + " siendo mi descuento"+
@@ -122,7 +122,7 @@ public class SolicitudPrestamo {
                 document.add(tableB);
 
                 document.add(new Paragraph(
-                        "El TAP, " + principalName + " del Servicio de " + campo + " (Destacadado del IEEP: ____________________________) \n" + 
+                        "El TAP, " + principalName + "\n" + 
                         "a) Cuenta con disponibilidad económica de S/............... para que se efectúe el descuento mensuamente durante (...............) meses, de la Planilla de (............................), de acuerdo al anexo 1 del Manual de Préstamos del SUBCAFAE.\n" + 
                         "b) El TAP solicitante NO cuenta con disponibilidad económica ......\n\n")
                         .setFontSize(9));
@@ -143,7 +143,7 @@ public class SolicitudPrestamo {
                 
                 document.add(new Paragraph(
                         "Yo, " + nameAval + ", Identificado con DNI N°" + dniAval + " Trabajador(a) nombrado(a) del Hospital San José - Callao, " +
-                        "en el servicio de " + campoAval + " al solicitante por la cantidad de S/ " + String.format("%.2f", montoPrestamo)  + " soles, por el préstamo solicitado al SUBCAFAE del Hospital \"San Jose\" - Callao. En caso de incumplimiento del pago de la deuda por el solicitante, " + 
+                        "garantizo al solicitante por la cantidad de S/ " + String.format("%.2f", montoPrestamo)  + " soles, por el préstamo solicitado al SUBCAFAE del Hospital \"San Jose\" - Callao. En caso de incumplimiento del pago de la deuda por el solicitante, " + 
                         "AUTORIZO a que se me descuente de mis haberes y/o incentivos de acuerdo a la Ley, por la cantidad insoluta del préstamo otorgado.\n\n")
                         .setFontSize(9));
                 

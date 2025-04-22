@@ -135,6 +135,7 @@ public class ModelManageBond {
             insertListTableConcept();
 
         } catch (NumberFormatException | SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error -> " + e.getMessage(), "GÉSTION ABONOS", JOptionPane.OK_OPTION);
             JOptionPane.showMessageDialog(null, "Ocurrio un problema", "GÉSTION ABONOS", JOptionPane.OK_OPTION);
         }
     }

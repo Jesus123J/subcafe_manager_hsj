@@ -158,6 +158,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
             } catch (SQLException ex) {
                 ViewMain.loading.dispose();
                 System.out.println("Error -> " + ex.getMessage());
+                
                 JOptionPane.showMessageDialog(null, "Ocurrio un problema", "GÉSTION ABONOS", JOptionPane.OK_OPTION);
             }
 

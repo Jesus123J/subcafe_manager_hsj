@@ -439,12 +439,12 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
                     }
                     if (!guarantorR.isPresent()) {
-                        compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), "              ", "             ", employeeR.get().getFullName(), employeeR.get().getNationalId());
+                        compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), employeeR.get().getFullName(), employeeR.get().getNationalId(), "              ", "             ");
                         // JOptionPane.showMessageDialog(null, "Este préstamo no contiene AVAL");
                         return;
                     }
 
-                    compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), guarantorR.get().getFullName(), guarantorR.get().getNationalId(), employeeR.get().getFullName(), employeeR.get().getNationalId());
+                    compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), employeeR.get().getFullName(), employeeR.get().getNationalId() , guarantorR.get().getFullName(), guarantorR.get().getNationalId());
                 } finally {
                     ViewMain.loading.dispose();
 
