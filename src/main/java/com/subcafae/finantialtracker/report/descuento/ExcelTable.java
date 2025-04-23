@@ -4,10 +4,16 @@
  */
 package com.subcafae.finantialtracker.report.descuento;
 
+import com.subcafae.finantialtracker.data.entity.Loan;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
@@ -30,6 +36,172 @@ import org.apache.poi.ss.util.CellRangeAddress;
  * @author Jesus Gutierrez
  */
 public class ExcelTable {
+
+    public static void exportToExcel(List<Loan> loans, String message, int broad) throws IOException {
+        JFileChooser chooser = new JFileChooser();
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de Excel", "xls");
+        chooser.setFileFilter(filter);
+        chooser.setDialogTitle("Guardar Archivo");
+        chooser.setAcceptAllFileFilterUsed(false);
+
+        if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+            String location = chooser.getSelectedFile().toString().concat(".xls");
+
+            try {
+                File archiveXLS = new File(location);
+                if (archiveXLS.exists()) {
+                    archiveXLS.delete();
+                }
+                archiveXLS.createNewFile();
+                Workbook book = new HSSFWorkbook();
+
+                try (FileOutputStream archive = new FileOutputStream(archiveXLS)) {
+                    Sheet hoja = book.createSheet("Préstamos");
+
+                    // Encabezado de la tabla con estilos
+                    Row headerRow = hoja.createRow(3);
+                    String[] columnas = {"FECHA DE APROBACION", "N° SOLICITUD", "SOLICITANTE", "GARANTE", "REFINANCIADO",
+                        "MONTO SOLICITADO", "MONTO GIRADO", "CANT. CUOTAS", "INTERES TOTAL",
+                        "FONDO INTANGIBLE TOTAL", "CUOTA MENSUAL CAPITAL", "CUOTA INTERES MENSUAL",
+                        "CUOTA FONDO INTANGIBLE MENSUAL", "VALOR CUOTA MENSUAL", "ESTADO", "RESPONSABILIDAD DE PAGO"};
+
+                    CellStyle headerStyle = book.createCellStyle();
+                    Font headerFont = book.createFont();
+                    headerFont.setBold(true);
+                    headerStyle.setFont(headerFont);
+                    headerStyle.setAlignment(HorizontalAlignment.CENTER);
+                    headerStyle.setBorderBottom(BorderStyle.THIN);
+
+                    for (int c = 0; c < columnas.length; c++) {
+                        Cell celda = headerRow.createCell(c);
+                        celda.setCellValue(columnas[c]);
+                        celda.setCellStyle(headerStyle);
+                    }
+
+                    // Variables para almacenar sumas
+                    double totalRefinanciado = 0, totalMontoSolicitado = 0, totalMontoGirado = 0,
+                            totalInteresTotal = 0, totalFondoIntangible = 0, totalCuotaCapital = 0,
+                            totalCuotaInteres = 0, totalCuotaFondoIntangible = 0, totalValorCuota = 0;
+
+                    // Filtrar préstamos por estado "Aceptado"
+                    int rowNum = 4;
+                    for (Loan loan : loans) {
+                        if ("Aceptado".equalsIgnoreCase(loan.getState()) && loan.getModificado() != null) {
+                            Row fila = hoja.createRow(rowNum++);
+                            fila.createCell(0).setCellValue(loan.getModificado());
+                            fila.createCell(1).setCellValue(loan.getSoliNum());
+                            fila.createCell(2).setCellValue(loan.getSolicitorName());
+                            fila.createCell(3).setCellValue(loan.getGuarantorName() == null ? "" : loan.getGuarantorName());
+
+                            double refinanciado = loan.getRefinanciado() == null ? 0 : loan.getRefinanciado().doubleValue();
+                            fila.createCell(4).setCellValue(refinanciado);
+                            totalRefinanciado += refinanciado;
+
+                            double montoSolicitado = loan.getRequestedAmount().doubleValue();
+                            fila.createCell(5).setCellValue(montoSolicitado);
+                            totalMontoSolicitado += montoSolicitado;
+
+                            double montoGirado = loan.getAmountWithdrawn() == null || loan.getAmountWithdrawn().doubleValue() == 0.00
+                                    ? loan.getRequestedAmount().doubleValue() : loan.getAmountWithdrawn().doubleValue();
+
+                            fila.createCell(6).setCellValue(montoGirado);
+                            totalMontoGirado += montoGirado;
+
+                            fila.createCell(7).setCellValue(loan.getCantCuota());
+
+                            double interesTotal = loan.getInterTo() == null ? 0 : loan.getInterTo().doubleValue();
+                            fila.createCell(8).setCellValue(interesTotal);
+                            totalInteresTotal += interesTotal;
+
+                            double fondoIntangible = loan.getFondoTo() == null ? 0 : loan.getFondoTo().doubleValue();
+                            fila.createCell(9).setCellValue(fondoIntangible);
+                            totalFondoIntangible += fondoIntangible;
+
+                            double cuotaMensualCapital = loan.getCuotaMenSin() == null ? 0 : loan.getCuotaMenSin().doubleValue();
+                            fila.createCell(10).setCellValue(cuotaMensualCapital);
+                            totalCuotaCapital += cuotaMensualCapital;
+
+                            double cuotaInteresMensual = loan.getCuotaInter() == null ? 0 : loan.getCuotaInter().doubleValue();
+                            fila.createCell(11).setCellValue(cuotaInteresMensual);
+                            totalCuotaInteres += cuotaInteresMensual;
+
+                            double cuotaFondoIntangible = loan.getCuotaFond() == null ? 0 : loan.getCuotaFond().doubleValue();
+                            fila.createCell(12).setCellValue(cuotaFondoIntangible);
+                            totalCuotaFondoIntangible += cuotaFondoIntangible;
+
+                            double valorCuotaMensual = loan.getValor() == null ? 0 : loan.getValor().doubleValue();
+                            fila.createCell(13).setCellValue(valorCuotaMensual);
+                            totalValorCuota += valorCuotaMensual;
+
+                            fila.createCell(14).setCellValue(loan.getState());
+                            fila.createCell(15).setCellValue(loan.getPaymentResponsibility());
+                        }
+                    }
+
+                    // Fila de totales, alineada con las columnas correspondientes
+                    double[] totales = {totalRefinanciado, totalMontoSolicitado, totalMontoGirado, totalInteresTotal,
+                        totalFondoIntangible, totalCuotaCapital, totalCuotaInteres, totalCuotaFondoIntangible, totalValorCuota};
+
+                    CellStyle boldStyle = book.createCellStyle();
+                    Font boldFont = book.createFont();
+                    boldFont.setBold(true);
+                    boldStyle.setFont(boldFont);
+
+                    Row totalRow = hoja.createRow(rowNum);
+               
+                    Cell name = totalRow.createCell(3);
+                    name.setCellValue("TOTAL : ");
+                    name.setCellStyle(boldStyle);
+
+                    Cell totalCell = totalRow.createCell(4);
+                    totalCell.setCellValue(totales[0]);
+                    totalCell.setCellStyle(boldStyle);
+
+                    Cell a = totalRow.createCell(5);
+                    a.setCellValue(totales[1]);
+                    a.setCellStyle(boldStyle);
+
+                    Cell b = totalRow.createCell(6);
+                    b.setCellValue(totales[2]);
+                    b.setCellStyle(boldStyle);
+
+                    Cell c = totalRow.createCell(8);
+                    c.setCellValue(totales[3]);
+                    c.setCellStyle(boldStyle);
+
+                    Cell d = totalRow.createCell(9);
+                    d.setCellValue(totales[4]);
+                    d.setCellStyle(boldStyle);
+
+                    Cell e = totalRow.createCell(10);
+                    e.setCellValue(totales[5]);
+                    e.setCellStyle(boldStyle);
+                    Cell f = totalRow.createCell(11);
+                    f.setCellValue(totales[6]);
+                    f.setCellStyle(boldStyle);
+
+                    Cell g = totalRow.createCell(12);
+                    g.setCellValue(totales[7]);
+                    g.setCellStyle(boldStyle);
+
+                    Cell df = totalRow.createCell(13);
+                    df.setCellValue(totales[8]);
+                    df.setCellStyle(boldStyle);
+
+                    // Ajustar automáticamente el ancho de las columnas
+                    for (int das = 0; das < columnas.length; das++) {
+                        hoja.autoSizeColumn(das);
+                    }
+
+                    book.write(archive);
+                }
+                Desktop.getDesktop().open(archiveXLS);
+
+            } catch (IOException | NumberFormatException e) {
+                throw e;
+            }
+        }
+    }
 
     public static void exportToExcel(JTable t, String message, int broad) throws IOException {
         // Crear un Chooser para especificar la ruta de Guardado de archivo Excel

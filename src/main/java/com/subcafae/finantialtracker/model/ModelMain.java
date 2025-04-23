@@ -1307,10 +1307,10 @@ public class ModelMain {
 
                 }
 
-                if (prestamos.isEmpty() && bonos.isEmpty()) {
-                    System.out.println("nO HAY DEUDAS");
-                    return;
-                }
+//                if (prestamos.isEmpty() && bonos.isEmpty()) {
+//                    System.out.println("nO HAY DEUDAS");
+//                    return;
+//                }
 
                 new RegistroDao().insertarRegistroCompleto(registroTb, prestamos, bonos);
 

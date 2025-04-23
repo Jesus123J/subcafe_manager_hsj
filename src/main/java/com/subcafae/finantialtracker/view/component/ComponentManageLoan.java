@@ -37,7 +37,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 ((JLabel) c).setHorizontalAlignment(SwingConstants.CENTER);
                 c.setFont(new Font("Arial", Font.PLAIN, 14)); // Cambia "14" por el tamaño deseado
                 // Obtener el valor de la columna "Estado" en la fila actual
-                String estado = table.getValueAt(row, 5).toString();
+                String estado = table.getValueAt(row, 14).toString();
 
                 // Configurar colores según el estado
                 switch (estado) {
@@ -638,11 +638,11 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
 
             },
             new String [] {
-                "N. Solicitud", "SOLICITANTE", "AVAL", "MONTO SOLICITADO", "MONTO GIRADO", "ESTADO", "RESPONSABILIDAD"
+                "FECHA DE APROBACION", "N. Solicitud", "SOLICITANTE", "AVAL", "REFINANCIADO", "MONTO SOLICITADO", "MONTO GIRADO", "CANT. CUOTAS", "INTERES TOTAL", "FONDO INTANGIBLE TOTAL", "CUOTA MENSUAL CAPITAL", "CUOTA INTERES MENSUAL", "CUOTA FONDO INTANGIBLE  MENSUAL", "VALOR CUOTA MENSUAL", "ESTADO", "RESPONSABILIDAD"
             }
         ) {
             boolean[] canEdit = new boolean [] {
-                false, false, false, false, false, false, false
+                false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -650,6 +650,24 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
             }
         });
         jScrollPane1.setViewportView(jTableLoanList);
+        if (jTableLoanList.getColumnModel().getColumnCount() > 0) {
+            jTableLoanList.getColumnModel().getColumn(0).setMinWidth(0);
+            jTableLoanList.getColumnModel().getColumn(0).setMaxWidth(0);
+            jTableLoanList.getColumnModel().getColumn(7).setMinWidth(0);
+            jTableLoanList.getColumnModel().getColumn(7).setMaxWidth(0);
+            jTableLoanList.getColumnModel().getColumn(8).setMinWidth(0);
+            jTableLoanList.getColumnModel().getColumn(8).setMaxWidth(0);
+            jTableLoanList.getColumnModel().getColumn(9).setMinWidth(0);
+            jTableLoanList.getColumnModel().getColumn(9).setMaxWidth(0);
+            jTableLoanList.getColumnModel().getColumn(10).setMinWidth(0);
+            jTableLoanList.getColumnModel().getColumn(10).setMaxWidth(0);
+            jTableLoanList.getColumnModel().getColumn(11).setMinWidth(0);
+            jTableLoanList.getColumnModel().getColumn(11).setMaxWidth(0);
+            jTableLoanList.getColumnModel().getColumn(12).setMinWidth(0);
+            jTableLoanList.getColumnModel().getColumn(12).setMaxWidth(0);
+            jTableLoanList.getColumnModel().getColumn(13).setMinWidth(0);
+            jTableLoanList.getColumnModel().getColumn(13).setMaxWidth(0);
+        }
 
         jButtonExcelList.setBackground(new java.awt.Color(0, 153, 0));
         jButtonExcelList.setForeground(new java.awt.Color(255, 255, 255));

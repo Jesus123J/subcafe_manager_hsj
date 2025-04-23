@@ -33,6 +33,7 @@ public class LoanDao extends LoanDetailsDao {
 
     private final Connection connection;
     public String soliNum;
+
     public LoanDao() {
         this.connection = Conexion.getConnection();
     }
@@ -202,28 +203,65 @@ public class LoanDao extends LoanDetailsDao {
         return loans;
     }
 
-    public List<Loan> getAllLoanss() {
+    public List<Loan> searchLoan(String numberSoli) {
+
         List<Loan> loans = new ArrayList<>();
-        String sql = "SELECT l.ID, l.SoliNum, "
-                + "e1.fullName AS SolicitorName, "
-                + "e2.fullName AS GuarantorName, "
-                + "l.RequestedAmount, l.AmountWithdrawn, l.State, l.PaymentResponsibility "
-                + "FROM loan l "
-                + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id "
-                + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id";
+        String sql = "SELECT \n"
+                + "    l.ID, l.ModifiedAt, l.SoliNum, \n"
+                + "    e1.fullName AS SolicitorName, \n"
+                + "    e2.fullName AS GuarantorName, \n"
+                + "    (SELECT SUM(MonthlyFeeValue - IFNULL(payment, 0)) \n"
+                + "     FROM loandetail \n"
+                + "     WHERE LoanID = l.RefinanceParentID AND State IN ('pendiente', 'parcial') \n"
+                + "     GROUP BY LoanID) AS Refinanciado,\n"
+                + "    l.RequestedAmount, l.AmountWithdrawn,\n"
+                + "    l.Dues,\n"
+                + "    dd.TotalInterest,\n"
+                + "    dd.TotalIntangibleFund,\n"
+                + "    dd.MonthlyCapitalInstallment,\n"
+                + "    dd.MonthlyInterestFee,\n"
+                + "    dd.MonthlyIntangibleFundFee,\n"
+                + "    dd.MonthlyFeeValue,\n"
+                + "    l.State, l.PaymentResponsibility \n"
+                + "FROM loan l \n"
+                + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id \n"
+                + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id\n"
+                + "LEFT JOIN (\n"
+                + "    SELECT LoanID, \n"
+                + "           SUM(TotalInterest) AS TotalInterest, \n"
+                + "           SUM(TotalIntangibleFund) AS TotalIntangibleFund, \n"
+                + "           SUM(MonthlyCapitalInstallment) AS MonthlyCapitalInstallment, \n"
+                + "           SUM(MonthlyInterestFee) AS MonthlyInterestFee, \n"
+                + "           SUM(MonthlyIntangibleFundFee) AS MonthlyIntangibleFundFee, \n"
+                + "           SUM(MonthlyFeeValue) AS MonthlyFeeValue\n"
+                + "    FROM loandetail\n"
+                + "    GROUP BY LoanID\n"
+                + ") dd ON dd.LoanID = l.ID "
+                + "WHERE l.SoliNum = ?";
 
-        try (Statement statement = connection.createStatement()) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
 
-            ResultSet rs = statement.executeQuery(sql);
+            statement.setString(1, numberSoli);
+
+            ResultSet rs = statement.executeQuery();
 
             while (rs.next()) {
                 loans.add(new Loan(
                         rs.getInt("ID"),
+                        rs.getDate("ModifiedAt") == null ? "" : rs.getDate("ModifiedAt").toString(),
                         rs.getString("SoliNum"),
                         rs.getString("SolicitorName"),
                         rs.getString("GuarantorName"),
                         rs.getBigDecimal("RequestedAmount"),
                         rs.getBigDecimal("AmountWithdrawn"),
+                        rs.getBigDecimal("Refinanciado"),
+                        rs.getInt("Dues"),
+                        rs.getBigDecimal("TotalInterest"),
+                        rs.getBigDecimal("TotalIntangibleFund"),
+                        rs.getBigDecimal("MonthlyCapitalInstallment"),
+                        rs.getBigDecimal("MonthlyInterestFee"),
+                        rs.getBigDecimal("MonthlyIntangibleFundFee"),
+                        rs.getBigDecimal("MonthlyFeeValue"),
                         rs.getString("State"),
                         rs.getString("PaymentResponsibility").equalsIgnoreCase("EMPLOYEE") ? "SOLICITANTE" : "AVAL"
                 ));
@@ -236,14 +274,38 @@ public class LoanDao extends LoanDetailsDao {
 
     public List<Loan> getAllLoanss(Date fechaInicio, Date fechaFin) {
         List<Loan> loans = new ArrayList<>();
-        String sql = "SELECT l.ID, l.SoliNum, "
-                + "e1.fullName AS SolicitorName, "
-                + "e2.fullName AS GuarantorName, "
-                + "l.RequestedAmount, l.AmountWithdrawn, l.State, l.PaymentResponsibility "
-                + "FROM loan l "
-                + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id "
-                + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id "
-                + "WHERE DATE(l.CreatedAt) BETWEEN ? AND ? ORDER BY l.CreatedAt ASC";
+        String sql = "SELECT \n"
+                + "    l.ID, l.ModifiedAt, l.SoliNum, \n"
+                + "    e1.fullName AS SolicitorName, \n"
+                + "    e2.fullName AS GuarantorName, \n"
+                + "    (SELECT SUM(MonthlyFeeValue - IFNULL(payment, 0)) \n"
+                + "     FROM loandetail \n"
+                + "     WHERE LoanID = l.RefinanceParentID AND State IN ('pendiente', 'parcial') \n"
+                + "     GROUP BY LoanID) AS Refinanciado,\n"
+                + "    l.RequestedAmount, l.AmountWithdrawn,\n"
+                + "    l.Dues,\n"
+                + "    dd.TotalInterest,\n"
+                + "    dd.TotalIntangibleFund,\n"
+                + "    dd.MonthlyCapitalInstallment,\n"
+                + "    dd.MonthlyInterestFee,\n"
+                + "    dd.MonthlyIntangibleFundFee,\n"
+                + "    dd.MonthlyFeeValue,\n"
+                + "    l.State, l.PaymentResponsibility \n"
+                + "FROM loan l \n"
+                + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id \n"
+                + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id\n"
+                + "LEFT JOIN (\n"
+                + "    SELECT LoanID, \n"
+                + "           SUM(TotalInterest) AS TotalInterest, \n"
+                + "           SUM(TotalIntangibleFund) AS TotalIntangibleFund, \n"
+                + "           SUM(MonthlyCapitalInstallment) AS MonthlyCapitalInstallment, \n"
+                + "           SUM(MonthlyInterestFee) AS MonthlyInterestFee, \n"
+                + "           SUM(MonthlyIntangibleFundFee) AS MonthlyIntangibleFundFee, \n"
+                + "           SUM(MonthlyFeeValue) AS MonthlyFeeValue\n"
+                + "    FROM loandetail\n"
+                + "    GROUP BY LoanID\n"
+                + ") dd ON dd.LoanID = l.ID"
+                + " WHERE DATE(l.CreatedAt) BETWEEN ? AND ? ORDER BY l.CreatedAt ASC";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setDate(1, new java.sql.Date(fechaInicio.getTime()));
@@ -254,11 +316,20 @@ public class LoanDao extends LoanDetailsDao {
             while (rs.next()) {
                 loans.add(new Loan(
                         rs.getInt("ID"),
+                        rs.getDate("ModifiedAt") == null ? "" : rs.getDate("ModifiedAt").toString(),
                         rs.getString("SoliNum"),
                         rs.getString("SolicitorName"),
                         rs.getString("GuarantorName"),
                         rs.getBigDecimal("RequestedAmount"),
                         rs.getBigDecimal("AmountWithdrawn"),
+                        rs.getBigDecimal("Refinanciado"),
+                        rs.getInt("Dues"),
+                        rs.getBigDecimal("TotalInterest"),
+                        rs.getBigDecimal("TotalIntangibleFund"),
+                        rs.getBigDecimal("MonthlyCapitalInstallment"),
+                        rs.getBigDecimal("MonthlyInterestFee"),
+                        rs.getBigDecimal("MonthlyIntangibleFundFee"),
+                        rs.getBigDecimal("MonthlyFeeValue"),
                         rs.getString("State"),
                         rs.getString("PaymentResponsibility").equalsIgnoreCase("EMPLOYEE") ? "SOLICITANTE" : "AVAL"
                 ));
@@ -465,8 +536,7 @@ public class LoanDao extends LoanDetailsDao {
         // Actualizar estado del préstamo original
         String updateSql = "UPDATE loan SET State = 'Refinanciado' , StateLoan = 'Pagado' WHERE ID = ?";
 
-      //  String updateSqlLoanDetail = "UPDATE loandetail SET State = 'Pagado' WHERE LoanID = ? ";
-
+        //  String updateSqlLoanDetail = "UPDATE loandetail SET State = 'Pagado' WHERE LoanID = ? ";
         try (PreparedStatement stmt = connection.prepareStatement(updateSql)) {
             stmt.setInt(1, originalLoan.getId());
             stmt.executeUpdate();
@@ -476,7 +546,6 @@ public class LoanDao extends LoanDetailsDao {
 //            stmt.setInt(1, originalLoan.getId());
 //            stmt.executeUpdate();
 //        }
-
         // Configurar nuevo préstamo como refinanciación
         newLoan.setRefinanceParentId(originalLoan.getId());
     }
@@ -500,7 +569,7 @@ public class LoanDao extends LoanDetailsDao {
 
                 int newId = generatedKeys.getInt(1);
                 updateSoliNum(newId); // Generar número de solicitud
-                
+
                 return newId;
             }
         }

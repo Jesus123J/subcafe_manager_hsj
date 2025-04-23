@@ -163,9 +163,7 @@ public class ModelManageLoan extends LoanDao {
 
         //El capital mensual tiene que calcularse despues de la cuota mensual para sumarse y que salga el valor dividiendo con los meses
         capitalMensual = Double.valueOf(String.format("%.2f", (Double.parseDouble(String.format("%.2f", cuotaMensualConFondoIntangible)) + montoPrestamo) / meses));
-        
-        
-        
+
         capitalSinInteresMensual = Math.floor((montoPrestamo / meses) * 100) / 100;
 
         if (demo) {
@@ -178,12 +176,10 @@ public class ModelManageLoan extends LoanDao {
     //    Double.parseDouble(String.format("%.2f", interesTotal)),
     //                    fondoIntangibleTotal,
     //                    capitalMensual,
-    
     public void insertDataDemo(Double montoPrestamo, Double monto, int meses) {
-        
-  
+
         Double total = Double.valueOf(String.format("%.2f", interesTotal)) + fondoIntangibleTotal + monto;
-        
+
         componentManageLoan.jTextFieldCapitalMensual.setText(capitalSinInteresMensual.toString());
         componentManageLoan.jTextFieldInteresMensual.setText(String.format("%.2f", interesMensual));
         componentManageLoan.jTextFieldInteresTotal.setText(String.format("%.2f", interesTotal));
@@ -191,11 +187,10 @@ public class ModelManageLoan extends LoanDao {
         componentManageLoan.jTextFieldCuotaMensual.setText(capitalMensual.toString());
         componentManageLoan.jTextFieldMontoPrestar.setText(monto.toString());
         componentManageLoan.jTextFieldMontoGirar.setText(montoPrestadoChange.toString());
-        
-    }
-    
-    //
 
+    }
+
+    //
     public void generateExcelLiquidación(String prestamo, String refinanaciamiento, Integer meses, String dni, Boolean demo) {
         if (refinanaciamiento == null) {
             refinanaciamiento = "0.0";
@@ -247,7 +242,7 @@ public class ModelManageLoan extends LoanDao {
                     meses,
                     dni != null ? dni.concat(" - " + soliNum) : null
             );
-            
+
         } catch (NumberFormatException e) {
             // Mostrar un mensaje si alguna conversión falla
             JOptionPane.showMessageDialog(null, "Error: Asegúrate de que todos los valores sean numéricos.");
@@ -273,12 +268,23 @@ public class ModelManageLoan extends LoanDao {
         DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
         model.setRowCount(0);
         for (Loan loan : list) {
+            System.out.print(" ff " + loan.getAmountWithdrawn());
             model.addRow(new Object[]{
+                
+                loan.getModificado() == null ? "" : loan.getModificado(),
                 loan.getSoliNum(),
                 loan.getSolicitorName(),
-                loan.getGuarantorName(),
+                loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
+                loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
                 loan.getRequestedAmount(),
-                loan.getAmountWithdrawn(),
+                loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
+                loan.getCantCuota(),
+                loan.getInterTo() == null ? "" : loan.getInterTo(),
+                loan.getFondoTo() == null ? "" : loan.getFondoTo(),
+                loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
+                loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
+                loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
+                loan.getValor() == null ? "" : loan.getValor(),
                 loan.getState(),
                 loan.getPaymentResponsibility()
             });

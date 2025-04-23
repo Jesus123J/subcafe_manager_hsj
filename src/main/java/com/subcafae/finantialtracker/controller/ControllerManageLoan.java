@@ -202,7 +202,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
                 ViewMain.loading.setVisible(true);
 
-                List<Loan> listTable = new LoanDao().getAllLoanss().stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(componentManageLoan.jTextFieldSearchLoanNum.getText())).collect(Collectors.toList());
+                List<Loan> listTable = new LoanDao().searchLoan(componentManageLoan.jTextFieldSearchLoanNum.getText());
 
                 if (!listTable.isEmpty()) {
 
@@ -212,11 +212,20 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                     for (Loan loan : listTable) {
 
                         model.addRow(new Object[]{
+                            loan.getModificado() == null ? "" : loan.getModificado(),
                             loan.getSoliNum(),
                             loan.getSolicitorName(),
-                            loan.getGuarantorName(),
+                            loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
+                            loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
                             loan.getRequestedAmount(),
-                            loan.getAmountWithdrawn(),
+                            loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
+                            loan.getCantCuota(),
+                            loan.getInterTo() == null ? "" : loan.getInterTo(),
+                            loan.getFondoTo() == null ? "" : loan.getFondoTo(),
+                            loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
+                            loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
+                            loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
+                            loan.getValor() == null ? "" : loan.getValor(),
                             loan.getState(),
                             loan.getPaymentResponsibility()
                         });
@@ -237,13 +246,16 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
         }
         if (e.getSource().equals(componentManageLoan.jButtonExcelList)) {
             try {
-                System.out.println("List -> " + componentManageLoan.jTableLoanList.getRowCount());
-                if (componentManageLoan.jTableLoanList.getRowCount() == 0) {
-                    JOptionPane.showMessageDialog(null, "No se encuentra nada en la tabla", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+
+                if (componentManageLoan.dateStart.getDate() != null || componentManageLoan.dateFinaly.getDate() != null) {
+                    List<Loan> list = getAllLoanss(new java.sql.Date(componentManageLoan.dateStart.getDate().getTime()), new java.sql.Date(componentManageLoan.dateFinaly.getDate().getTime()));
+                    ExcelTable.exportToExcel(list, "PRESTAMOS", 6);
+                } else {
+                    JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
                     return;
                 }
-                ExcelTable.exportToExcel(componentManageLoan.jTableLoanList, "PRESTAMOS", 6);
             } catch (IOException ex) {
+                JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
                 //Logger.getLogger(ControllerManageLoan.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
@@ -444,7 +456,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                         return;
                     }
 
-                    compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), employeeR.get().getFullName(), employeeR.get().getNationalId() , guarantorR.get().getFullName(), guarantorR.get().getNationalId());
+                    compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), employeeR.get().getFullName(), employeeR.get().getNationalId(), guarantorR.get().getFullName(), guarantorR.get().getNationalId());
                 } finally {
                     ViewMain.loading.dispose();
 
@@ -614,7 +626,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                     // Actualiza la tabla para reflejar cualquier cambio visual
                     componentManageLoan.jTableLoanList.repaint();
 
-                    String soliNum = componentManageLoan.jTableLoanList.getValueAt(index, 0).toString();
+                    String soliNum = componentManageLoan.jTableLoanList.getValueAt(index, 1).toString();
                     try {
 
                         Optional<LoanTb> loan = findLoan(soliNum);
@@ -695,7 +707,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                         } else if (loan.get().getState().equalsIgnoreCase("Aceptado") || loan.get().getState().equalsIgnoreCase("Refinanciado")) {
 
                             try {
-                                Loan loann = new LoanDao().getAllLoanss().stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(loan.get().getSoliNum())).findFirst().get();
+                                Loan loann = new LoanDao().searchLoan(loan.get().getSoliNum()).getFirst();
 
                                 Optional<LoanTb> showRe = new LoanDao().findLoan(soliNum);
                                 if (showRe.isPresent()) {
@@ -733,14 +745,16 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                                 DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList1.getModel();
                                 model.setRowCount(0);
 
+                                List<Loan> listTableFind = new LoanDao().searchLoan(soliNum);
+
                                 model.addRow(new Object[]{
-                                    componentManageLoan.jTableLoanList.getValueAt(index, 0).toString(),
-                                    componentManageLoan.jTableLoanList.getValueAt(index, 1).toString(),
-                                    componentManageLoan.jTableLoanList.getValueAt(index, 2) != null ? componentManageLoan.jTableLoanList.getValueAt(index, 2).toString() : "",
-                                    componentManageLoan.jTableLoanList.getValueAt(index, 3).toString(),
-                                    componentManageLoan.jTableLoanList.getValueAt(index, 4).toString(),
-                                    componentManageLoan.jTableLoanList.getValueAt(index, 5).toString(),
-                                    componentManageLoan.jTableLoanList.getValueAt(index, 6).toString()
+                                    listTableFind.getFirst().getSoliNum(),
+                                    listTableFind.getFirst().getSolicitorName(),
+                                    listTableFind.getFirst().getGuarantorName(),
+                                    listTableFind.getFirst().getRequestedAmount(),
+                                    listTableFind.getFirst().getAmountWithdrawn().toString().equalsIgnoreCase("0.00")  ? listTableFind.getFirst().getRequestedAmount() : listTableFind.getFirst().getAmountWithdrawn(),
+                                    listTableFind.getFirst().getState(),
+                                    listTableFind.getFirst().getPaymentResponsibility()
                                 });
 
                                 methodListDeta(soliNum);
@@ -865,8 +879,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
                                     componentManageLoan.jLabelMonto.setText(String.format("%.2f", montfo));
 
-                                    List<Loan> listt = new LoanDao().getAllLoanss();
-                                    List<Loan> listTableFind = listt.stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(soliNum)).collect(Collectors.toList());
+                                    List<Loan> listTableFind = new LoanDao().searchLoan(soliNum);
 
                                     DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList1.getModel();
                                     model.setRowCount(0);
@@ -876,7 +889,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                                         listTableFind.getFirst().getSolicitorName(),
                                         listTableFind.getFirst().getGuarantorName(),
                                         listTableFind.getFirst().getRequestedAmount(),
-                                        listTableFind.getFirst().getAmountWithdrawn(),
+                                        listTableFind.getFirst().getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? listTableFind.getFirst().getRequestedAmount() : listTableFind.getFirst().getAmountWithdrawn(),
                                         listTableFind.getFirst().getState(),
                                         listTableFind.getFirst().getPaymentResponsibility()
                                     });
