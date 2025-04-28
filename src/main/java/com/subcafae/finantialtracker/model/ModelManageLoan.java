@@ -11,7 +11,9 @@ import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
 import com.subcafae.finantialtracker.data.entity.LoanTb;
 import com.subcafae.finantialtracker.report.loanReport.ExcelDemo;
 import com.subcafae.finantialtracker.util.TextFieldValidator;
+import com.subcafae.finantialtracker.view.ViewMain;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -41,6 +43,7 @@ public class ModelManageLoan extends LoanDao {
         TextFieldValidator.applyIntegerFilter(componentManageLoan.textSearchLoanSoli);
         TextFieldValidator.applyIntegerFilter(componentManageLoan.jTextFieldSearchLoanNum);
         TextFieldValidator.applyDecimalFilter(componentManageLoan.textAmountLoan);
+        TextFieldValidator.applyDecimalFilter(componentManageLoan.textAmountLoan1);
         TextFieldValidator.applyDecimalFilter(componentManageLoan.textRefinanciamientoDemostration);
         TextFieldValidator.applyDecimalFilter(componentManageLoan.jTextFieldMontoDemostration);
 
@@ -90,6 +93,16 @@ public class ModelManageLoan extends LoanDao {
 
     protected void insertDataLoan(EmployeeTb employeeApplicant, EmployeeTb employeeAval, JTextField textAmountLoan, Object selectedItem) {
         try {
+
+            if (componentManageLoan.textAmountLoan1.getText().isBlank()) {
+                componentManageLoan.textAmountLoan1.setText("0.0");
+            }
+
+            if (Double.parseDouble(componentManageLoan.textAmountLoan1.getText()) > Double.parseDouble(componentManageLoan.textAmountLoan.getText())) {
+                JOptionPane.showMessageDialog(null, "El refinanciado puesto es mayor al monto solicitado");
+                return;
+            }
+
             LoanTb loan;
             loan = new LoanTb(
                     employeeApplicant.getNationalId(),
@@ -106,7 +119,7 @@ public class ModelManageLoan extends LoanDao {
                     null,
                     "Ordinario", "EMPLOYEE");
 
-            Double refinan = createLoanWithStateValidation(loan);
+            Double refinan = createLoanWithStateValidation(loan, Double.parseDouble(componentManageLoan.textAmountLoan1.getText()));
 
             if (refinan == null) {
                 return;
@@ -192,6 +205,7 @@ public class ModelManageLoan extends LoanDao {
 
     //
     public void generateExcelLiquidación(String prestamo, String refinanaciamiento, Integer meses, String dni, Boolean demo) {
+
         if (refinanaciamiento == null) {
             refinanaciamiento = "0.0";
         }
@@ -264,31 +278,48 @@ public class ModelManageLoan extends LoanDao {
     }
 
     public void insertTablet(java.util.Date dateStart, java.util.Date dateFinaly) {
-        List<Loan> list = getAllLoanss(new java.sql.Date(dateStart.getTime()), new java.sql.Date(dateFinaly.getTime()));
-        DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
-        model.setRowCount(0);
-        for (Loan loan : list) {
-            System.out.print(" ff " + loan.getAmountWithdrawn());
-            model.addRow(new Object[]{
-                
-                loan.getModificado() == null ? "" : loan.getModificado(),
-                loan.getSoliNum(),
-                loan.getSolicitorName(),
-                loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
-                loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
-                loan.getRequestedAmount(),
-                loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
-                loan.getCantCuota(),
-                loan.getInterTo() == null ? "" : loan.getInterTo(),
-                loan.getFondoTo() == null ? "" : loan.getFondoTo(),
-                loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
-                loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
-                loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
-                loan.getValor() == null ? "" : loan.getValor(),
-                loan.getState(),
-                loan.getPaymentResponsibility()
-            });
-        }
+
+        ViewMain.loading.setVisible(true);
+        componentManageLoan.setEnabled(false);
+        new Thread(() -> {
+
+            List<Loan> list = getAllLoanss(new java.sql.Date(dateStart.getTime()), new java.sql.Date(dateFinaly.getTime()));
+            DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
+            model.setRowCount(0);
+            for (Loan loan : list) {
+                System.out.print(" ff " + loan.getAmountWithdrawn());
+                if (loan.getRequestedAmount() != loan.getAmountWithdrawn()) {
+                    if (loan.getRefinanciado() == null) {
+                        if (!loan.getAmountWithdrawn().toString().equals("0.00")) {
+                            Double daod = Double.parseDouble(loan.getRequestedAmount().toString()) - Double.parseDouble(loan.getAmountWithdrawn().toString());
+                            loan.setRefinanciado(BigDecimal.valueOf(daod));
+                        }
+                    }
+                }
+                model.addRow(new Object[]{
+                    loan.getModificado() == null ? "" : loan.getModificado(),
+                    loan.getSoliNum(),
+                    loan.getSolicitorName(),
+                    loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
+                    loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
+                    loan.getRequestedAmount(),
+                    loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
+                    loan.getCantCuota(),
+                    loan.getInterTo() == null ? "" : loan.getInterTo(),
+                    loan.getFondoTo() == null ? "" : loan.getFondoTo(),
+                    loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
+                    loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
+                    loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
+                    loan.getValor() == null ? "" : loan.getValor(),
+                    loan.getState(),
+                    loan.getPaymentResponsibility()
+                });
+            }
+            ViewMain.loading.setVisible(false);
+            componentManageLoan.setEnabled(true);
+
+        }).start();
+
     }
 
     public void desingJDialog() {

@@ -57,7 +57,7 @@ public class AbonoDetailsDao {
                 double totalPayment = currentPayment + newPayment;
 
                 // Determinar el nuevo estado según el pago total
-                String loandetailState = totalPayment >= monthlyFeeValue ? "Pagado" : "Parcial";
+                String loandetailState = totalPayment == monthlyFeeValue ? "Pagado" : "Parcial";
 
                 // Actualizar loandetail con el nuevo monto acumulado y estado
                 stmtUpdateLoandetail.setDouble(1, totalPayment);

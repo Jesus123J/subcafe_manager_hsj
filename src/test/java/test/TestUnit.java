@@ -4,7 +4,9 @@
  */
 package test;
 
+import com.subcafae.finantialtracker.controller.ControllerMain;
 import com.subcafae.finantialtracker.data.conexion.Conexion;
+import com.subcafae.finantialtracker.model.ModelMain;
 import java.sql.Connection;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.AfterAll;
@@ -18,31 +20,29 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Jesus Gutierrez
  */
 public class TestUnit {
-    
+
     public TestUnit() {
     }
-    
+
     @Test
-    public  void test(){
-//        String compon = "B";
-//        assertEquals("B", "A", "No hay conexion");
-//        
-        
+    public void test() {
+
+   
+
     }
-    
-    
+
     @BeforeAll
     public static void setUpClass() {
     }
-    
+
     @AfterAll
     public static void tearDownClass() {
     }
-    
+
     @BeforeEach
     public void setUp() {
     }
-    
+
     @AfterEach
     public void tearDown() {
     }

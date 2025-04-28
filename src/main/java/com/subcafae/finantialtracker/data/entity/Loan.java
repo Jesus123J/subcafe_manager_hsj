@@ -207,7 +207,8 @@ public class Loan {
 
     @Override
     public String toString() {
-        return "Loan{" + "id=" + id + ", soliNum=" + soliNum + ", solicitorName=" + solicitorName + ", guarantorName=" + guarantorName + ", requestedAmount=" + requestedAmount + ", amountWithdrawn=" + amountWithdrawn + ", state=" + state + ", paymentResponsibility=" + paymentResponsibility + '}';
+        return "Loan{" + "id=" + id + ", soliNum=" + soliNum + ", solicitorName=" + solicitorName + ", guarantorName=" + guarantorName + ", requestedAmount=" + requestedAmount + ", amountWithdrawn=" + amountWithdrawn + ", refinanciado=" + refinanciado + ", cantCuota=" + cantCuota + ", interTo=" + interTo + ", fondoTo=" + fondoTo + ", cuotaMenSin=" + cuotaMenSin + ", cuotaInter=" + cuotaInter + ", cuotaFond=" + cuotaFond + ", valor=" + valor + ", modificado=" + modificado + ", state=" + state + ", paymentResponsibility=" + paymentResponsibility + '}';
     }
+
 
 }

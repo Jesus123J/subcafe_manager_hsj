@@ -40,7 +40,7 @@ public class LoanDetailsDao extends EmployeeDao {
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, soli);
             stmt.executeUpdate();
-            
+
             JOptionPane.showMessageDialog(null, "Se cambio de estado, se paso todos las deudas para el aval");
             return true;
         } catch (SQLException e) {
@@ -73,7 +73,7 @@ public class LoanDetailsDao extends EmployeeDao {
                 double totalPayment = currentPayment + newPayment;
 
                 // Determinar el nuevo estado según el pago total
-                String loandetailState = totalPayment >= monthlyFeeValue ? "Pagado" : "Parcial";
+                String loandetailState = totalPayment == monthlyFeeValue ? "Pagado" : "Parcial";
 
                 // Actualizar loandetail con el nuevo monto acumulado y estado
                 stmtUpdateLoandetail.setDouble(1, totalPayment);
@@ -189,9 +189,9 @@ public class LoanDetailsDao extends EmployeeDao {
     // Método para insertar múltiples LoanDetails
     public void insertMultipleLoanDetails(LoanDetailsTb loanDetails, LoanTb loan, int user) throws SQLException {
         String insertSql = "INSERT INTO loandetail (LoanID, Dues, TotalInterest, TotalIntangibleFund, "
-                + "MonthlyCapitalInstallment, MonthlyInterestFee, MonthlyIntangibleFundFee, "
+                + "MonthlyCapitalInstallment, MonthlyInterestFee, MonthlyIntangibleFundFee, MonthlyFeeValue,"
                 + " PaymentDate, State, CreatedBy, CreatedAt) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "VALUES (?, ?, ?, ?, ?, ?, ? , ?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(insertSql)) {
 
@@ -206,8 +206,8 @@ public class LoanDetailsDao extends EmployeeDao {
                 stmt.setDouble(5, loanDetails.getMonthlyCapitalInstallment());
                 stmt.setDouble(6, loanDetails.getMonthlyInterestFee());
                 stmt.setDouble(7, loanDetails.getMonthlyIntangibleFundFee());
-//                stmt.setDouble(8, loanDetails.getMonthlyFeeValue());
 
+//                stmt.setDouble(8, loanDetails.getMonthlyFeeValue());
                 LocalDate lastDayOfMonth = currentDate.withDayOfMonth(currentDate.lengthOfMonth());
 
 // Convertir LocalDate a java.util.Date
@@ -217,11 +217,12 @@ public class LoanDetailsDao extends EmployeeDao {
                 java.sql.Date sqlDate = new java.sql.Date(utilDate.getTime());
 
 // Usar el objeto java.sql.Date en el PreparedStatement
-                stmt.setDate(8, sqlDate);
+                stmt.setDouble(8, loanDetails.getMonthlyFeeValue());
+                stmt.setDate(9, sqlDate);
 
-                stmt.setString(9, "Pendiente");
-                stmt.setInt(10, user);
-                stmt.setTimestamp(11, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+                stmt.setString(10, "Pendiente");
+                stmt.setInt(11, user);
+                stmt.setTimestamp(12, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 
                 stmt.addBatch(); // Agregar cada registro al batch
 

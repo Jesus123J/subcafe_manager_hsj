@@ -65,23 +65,8 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
         }
         if (e.getSource().equals(viewMain.jButtonSearchDocument)) {
 
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Selecciona un archivo TXT");
+            procesarArchivo();
 
-            fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Archivos de texto", "txt"));
-
-            int seleccion = fileChooser.showOpenDialog(null);
-
-            if (seleccion == JFileChooser.APPROVE_OPTION) {
-                if (esTxt(fileChooser.getSelectedFile().getAbsolutePath())) {
-                    File archivo = fileChooser.getSelectedFile();
-                    procesarArchivo(archivo);
-                } else {
-                    JOptionPane.showMessageDialog(null, "Archivo no compatible");
-                }
-            } else {
-                // System.out.println("No se seleccionó ningún archivo.");
-            }
         }
         if (e.getSource().equals(viewMain.jButton2)) {
             if (!viewMain.jTextFieldNumeroVoucher.getText().isBlank()) {

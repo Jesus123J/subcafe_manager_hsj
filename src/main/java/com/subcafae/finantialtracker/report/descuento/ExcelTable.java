@@ -9,6 +9,7 @@ import java.awt.Desktop;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -86,14 +87,28 @@ public class ExcelTable {
                     // Filtrar préstamos por estado "Aceptado"
                     int rowNum = 4;
                     for (Loan loan : loans) {
+
+                        if (loan.getRequestedAmount() != loan.getAmountWithdrawn()) {
+                            if (loan.getRefinanciado() == null) {
+                                if (!loan.getAmountWithdrawn().toString().equals("0.00")) {
+                                    Double daod = Double.parseDouble(loan.getRequestedAmount().toString()) - Double.parseDouble(loan.getAmountWithdrawn().toString());
+                                    loan.setRefinanciado(BigDecimal.valueOf(daod));
+                                }
+                            }
+                        }
                         if ("Aceptado".equalsIgnoreCase(loan.getState()) && loan.getModificado() != null) {
+                            
+                            System.out.println("Model - > " + loan.toString());
+                            
                             Row fila = hoja.createRow(rowNum++);
+                            
                             fila.createCell(0).setCellValue(loan.getModificado());
                             fila.createCell(1).setCellValue(loan.getSoliNum());
                             fila.createCell(2).setCellValue(loan.getSolicitorName());
                             fila.createCell(3).setCellValue(loan.getGuarantorName() == null ? "" : loan.getGuarantorName());
 
                             double refinanciado = loan.getRefinanciado() == null ? 0 : loan.getRefinanciado().doubleValue();
+                           
                             fila.createCell(4).setCellValue(refinanciado);
                             totalRefinanciado += refinanciado;
 
@@ -148,7 +163,7 @@ public class ExcelTable {
                     boldStyle.setFont(boldFont);
 
                     Row totalRow = hoja.createRow(rowNum);
-               
+
                     Cell name = totalRow.createCell(3);
                     name.setCellValue("TOTAL : ");
                     name.setCellStyle(boldStyle);

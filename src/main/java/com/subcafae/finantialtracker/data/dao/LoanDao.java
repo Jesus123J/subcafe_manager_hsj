@@ -228,12 +228,12 @@ public class LoanDao extends LoanDetailsDao {
                 + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id\n"
                 + "LEFT JOIN (\n"
                 + "    SELECT LoanID, \n"
-                + "           SUM(TotalInterest) AS TotalInterest, \n"
-                + "           SUM(TotalIntangibleFund) AS TotalIntangibleFund, \n"
-                + "           SUM(MonthlyCapitalInstallment) AS MonthlyCapitalInstallment, \n"
-                + "           SUM(MonthlyInterestFee) AS MonthlyInterestFee, \n"
-                + "           SUM(MonthlyIntangibleFundFee) AS MonthlyIntangibleFundFee, \n"
-                + "           SUM(MonthlyFeeValue) AS MonthlyFeeValue\n"
+                + "            TotalInterest, \n"
+                + "          TotalIntangibleFund, \n"
+                + "          MonthlyCapitalInstallment, \n"
+                + "          MonthlyInterestFee, \n"
+                + "           MonthlyIntangibleFundFee, \n"
+                + "          MonthlyFeeValue\n"
                 + "    FROM loandetail\n"
                 + "    GROUP BY LoanID\n"
                 + ") dd ON dd.LoanID = l.ID "
@@ -296,12 +296,12 @@ public class LoanDao extends LoanDetailsDao {
                 + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id\n"
                 + "LEFT JOIN (\n"
                 + "    SELECT LoanID, \n"
-                + "           SUM(TotalInterest) AS TotalInterest, \n"
-                + "           SUM(TotalIntangibleFund) AS TotalIntangibleFund, \n"
-                + "           SUM(MonthlyCapitalInstallment) AS MonthlyCapitalInstallment, \n"
-                + "           SUM(MonthlyInterestFee) AS MonthlyInterestFee, \n"
-                + "           SUM(MonthlyIntangibleFundFee) AS MonthlyIntangibleFundFee, \n"
-                + "           SUM(MonthlyFeeValue) AS MonthlyFeeValue\n"
+                + "           TotalInterest, \n"
+                + "           TotalIntangibleFund, \n"
+                + "          MonthlyCapitalInstallment, \n"
+                + "          MonthlyInterestFee, \n"
+                + "          MonthlyIntangibleFundFee, \n"
+                + "           MonthlyFeeValue\n"
                 + "    FROM loandetail\n"
                 + "    GROUP BY LoanID\n"
                 + ") dd ON dd.LoanID = l.ID"
@@ -383,7 +383,7 @@ public class LoanDao extends LoanDetailsDao {
     }
 
     //
-    public Double createLoanWithStateValidation(LoanTb newLoan) throws SQLException {
+    public Double createLoanWithStateValidation(LoanTb newLoan, Double montoo) throws SQLException {
         Double monto = 0.0;
         try {
             connection.setAutoCommit(false);
@@ -404,51 +404,50 @@ public class LoanDao extends LoanDetailsDao {
                     newLoan.getEmployeeId(),
                     LoanTb.LoanState.Aceptado
             );
-            Optional<LoanTb> activeLoanRefi = findLatestLoanByState(
-                    newLoan.getEmployeeId(),
-                    LoanTb.LoanState.Refinanciado
-            );
+
+//            Optional<LoanTb> activeLoanRefi = findLatestLoanByState(
+//                    newLoan.getEmployeeId(),
+//                    LoanTb.LoanState.Refinanciado
+//            );
             // 3. Manejar refinanciación si existe préstamo Aceptado
             if (activeLoan.isPresent()) {
 
-                Double montoRefinanciado = calcularMontoPendientePorLoanId(activeLoan.get().getId());
+                Double montoRefinanciado = 0.0;
 
-                if (montoRefinanciado > newLoan.getRequestedAmount()) {
-                    JOptionPane.showMessageDialog(null, "Error el monto adeudado del anterior prestamo es mas grande", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
-                    return null;
+                if (activeLoan.get().getRefinanceParentId() != null) {
+
+                    if (activeLoan.get().getRefinanceParentId() != 0) {
+
+                        if (JOptionPane.showConfirmDialog(null, "¿El solicitante tiene un refinanciamiento ya puesto, desea poner otro? ") != JOptionPane.YES_OPTION) {
+                            return null;
+                        }
+                    }
+                } else {
+                    if (JOptionPane.showConfirmDialog(null, "¿Esta seguro de refinanciar el prestamo? ") != JOptionPane.YES_OPTION) {
+                        return null;
+                    }
                 }
-                int option = JOptionPane.showConfirmDialog(null, "Desea refinanciar el prestamo anterior ? ", "GESTIÓN PRESTAMO", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-                if (option == JOptionPane.NO_OPTION) {
+
+                montoRefinanciado = calcularMontoPendientePorLoanId(activeLoan.get().getId());
+
+                if (montoRefinanciado > (newLoan.getRequestedAmount() - montoo )) {
+                    JOptionPane.showMessageDialog(null, "Error el monto adeudado del anterior prestamo es mas grande", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
                     return null;
                 }
 
                 handleRefinancing(activeLoan.get(), newLoan);
-                newLoan.setAmountWithdrawn(newLoan.getRequestedAmount() - montoRefinanciado);
-                monto = montoRefinanciado;
-                JOptionPane.showMessageDialog(null, "Se está refinanciando, vaya al listado y acepte el nuevo solicitó para procesar las cuotas", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
-
-            }
-
-            if (activeLoanRefi.isPresent()) {
-
-                Double montoRefinanciado = calcularMontoPendientePorLoanId(activeLoanRefi.get().getId());
-                if (montoRefinanciado > newLoan.getRequestedAmount()) {
-                    JOptionPane.showMessageDialog(null, "Error el monto adeudado del anterior prestamo es mas grande", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
-                    return null;
-                }
-                int option = JOptionPane.showConfirmDialog(null, "Desea refinanciar el prestamo anterior ? ", "GESTIÓN PRESTAMO", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-                if (option == JOptionPane.NO_OPTION) {
-                    return null;
-                }
-                handleRefinancing(activeLoanRefi.get(), newLoan);
-                newLoan.setAmountWithdrawn(newLoan.getRequestedAmount() - montoRefinanciado);
+                newLoan.setAmountWithdrawn((newLoan.getRequestedAmount() - montoo) - montoRefinanciado);
                 monto = montoRefinanciado;
 
-                JOptionPane.showMessageDialog(null, "Se está refinanciando otra vez, vaya al listado y acepte el nuevo solicitó para procesar las cuotas", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Ya esta refinanciando, vaya al listado y acepte el nuevo solicitó para procesar las cuotas", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
 
+            } else {
+                if (montoo > 0.0) {
+                    newLoan.setAmountWithdrawn(newLoan.getRequestedAmount() - montoo);
+                    monto = montoo;
+                } 
             }
 
-            // 4. Insertar nuevo préstamo
             insertNewLoan(newLoan);
 
             if (newLoan == null) {

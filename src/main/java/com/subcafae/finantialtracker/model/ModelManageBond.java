@@ -15,8 +15,10 @@ import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.util.TextFieldValidator;
 import com.subcafae.finantialtracker.view.ViewMain;
 import com.subcafae.finantialtracker.view.component.ComponentManageBond;
+import com.toedter.calendar.JDateChooser;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
@@ -42,6 +44,7 @@ public class ModelManageBond {
     protected ServiceConceptTb Concept;
     protected List<EmployeeTb> listEmployee;
     protected List<ServiceConceptTb> listConcept;
+    public LocalDate localDate;
 
     public ModelManageBond(ComponentManageBond componentManageBond, UserTb user) {
         this.user = user;
@@ -56,6 +59,13 @@ public class ModelManageBond {
         TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldSearchSoliBond);
         TextFieldValidator.applyIntegerFilter(componentManageBond.jTextFieldUnidades);
         TextFieldValidator.applyDecimalFilter(componentManageBond.jTextFieldPrioridad);
+        componentManageBond.dateStart1.setDate(new Date());
+
+        ((JTextField) componentManageBond.dateStart1.getDateEditor().getUiComponent()).setEditable(false);
+
+        localDate = componentManageBond.dateStart1.getDate().toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
 
     }
 
@@ -118,14 +128,14 @@ public class ModelManageBond {
 
     public void insertServiceConepto() {
         try {
-            
+
             ServiceConceptTb serviceConceptTb = new ServiceConceptTb();
-            
+
             serviceConceptTb.setDescription(componentManageBond.jTextFieldDescription.getText());
-            serviceConceptTb.setCostPrice(componentManageBond.jTextFieldPrecioCosto.getText().isBlank() ? 0.0 :Double.parseDouble(String.format("%.2f", Double.valueOf(componentManageBond.jTextFieldPrecioCosto.getText()))));
+            serviceConceptTb.setCostPrice(componentManageBond.jTextFieldPrecioCosto.getText().isBlank() ? 0.0 : Double.parseDouble(String.format("%.2f", Double.valueOf(componentManageBond.jTextFieldPrecioCosto.getText()))));
             serviceConceptTb.setSalePrice(componentManageBond.jTextFieldVenta.getText().isBlank() ? 0.0 : Double.parseDouble(String.format("%.2f", Double.valueOf(componentManageBond.jTextFieldVenta.getText()))));
             serviceConceptTb.setPriority(componentManageBond.jTextFieldPrioridad.getText().isBlank() ? 0 : Integer.parseInt(componentManageBond.jTextFieldPrioridad.getText()));
-            serviceConceptTb.setUnid(componentManageBond.jTextFieldUnidades.getText().isBlank() ? 0 :Integer.parseInt(componentManageBond.jTextFieldUnidades.getText()));
+            serviceConceptTb.setUnid(componentManageBond.jTextFieldUnidades.getText().isBlank() ? 0 : Integer.parseInt(componentManageBond.jTextFieldUnidades.getText()));
             serviceConceptTb.setPriorityConcept(componentManageBond.jRadioButtonPaga.isSelected() ? "Primero" : "Segundo");
             serviceConceptTb.setCreatedBy(user.getId());
             serviceConceptTb.setCreatedAt(LocalDate.now().toString());
@@ -186,28 +196,37 @@ public class ModelManageBond {
         }
     }
 
-    public void insertListTableBono(Date start , Date finaly) {
-        try {
-            ViewMain.loading.setVisible(true);
-            List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
-            List<AbonoTb> listAbono = abonoDao.findAllAbonos(new java.sql.Date(start.getTime()), new java.sql.Date(finaly.getTime()));
-            DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListBonos.getModel();
-            model.setRowCount(0);
-            for (AbonoTb abonoTb : listAbono) {
-                model.addRow(new Object[]{
-                    abonoTb.getSoliNum(),
-                    listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get().getDescription(),
-                    new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
-                    abonoTb.getDues(),
-                    abonoTb.getMonthly(),
-                    abonoTb.getStatus()
-                });
+    public void insertListTableBono(Date start, Date finaly) {
+
+        ViewMain.loading.setVisible(true);
+        componentManageBond.setEnabled(false);
+        new Thread(() -> {
+
+            try {
+                List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
+                List<AbonoTb> listAbono = abonoDao.findAllAbonos(new java.sql.Date(start.getTime()), new java.sql.Date(finaly.getTime()));
+                DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListBonos.getModel();
+                model.setRowCount(0);
+                System.out.println("Diseño");
+                for (AbonoTb abonoTb : listAbono) {
+                    model.addRow(new Object[]{
+                        abonoTb.getSoliNum(),
+                        listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get().getDescription(),
+                        new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
+                        abonoTb.getDues(),
+                        abonoTb.getMonthly(),
+                        abonoTb.getStatus()
+                    });
+                }
+                ViewMain.loading.dispose();
+                componentManageBond.setEnabled(true);
+            } catch (SQLException ex) {
+                ViewMain.loading.dispose();
+                componentManageBond.setEnabled(true);
+                System.out.println("Error -> " + ex.getMessage());
+                JOptionPane.showMessageDialog(null, "Ocurrio un problema", "GÉSTION ABONOS", JOptionPane.OK_OPTION);
             }
-            ViewMain.loading.dispose();
-        } catch (SQLException ex) {
-            ViewMain.loading.dispose();
-            System.out.println("Error -> " + ex.getMessage());
-            JOptionPane.showMessageDialog(null, "Ocurrio un problema", "GÉSTION ABONOS", JOptionPane.OK_OPTION);
-        }
+        }).start();
+
     }
 }

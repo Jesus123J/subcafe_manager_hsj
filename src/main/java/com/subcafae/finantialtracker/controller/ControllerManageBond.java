@@ -31,6 +31,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -108,11 +109,14 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource().equals(componentManageBond.jButtonRegistorAbondForExcel)) {
-            new LeerExcelConFileChooser().method(user, super.viewMain);
+            localDate = componentManageBond.dateStart1.getDate().toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+            new LeerExcelConFileChooser().method(user, super.viewMain, localDate);
         }
         if (e.getSource().equals(componentManageBond.jButtonShowList)) {
             try {
-                
+
                 if (componentManageBond.dateStart.getDate() != null || componentManageBond.dateStart.getDate() != null) {
                     insertListTableBono(componentManageBond.dateStart.getDate(), componentManageBond.dateFinaly.getDate());
                 } else {
@@ -158,7 +162,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
             } catch (SQLException ex) {
                 ViewMain.loading.dispose();
                 System.out.println("Error -> " + ex.getMessage());
-                
+
                 JOptionPane.showMessageDialog(null, "Ocurrio un problema", "GÉSTION ABONOS", JOptionPane.OK_OPTION);
             }
 
@@ -214,7 +218,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
             }
         }
         if (e.getSource().equals(componentManageBond.jButtonReportBond)) {
-            
+
             if (componentManageBond.searchConcept.getText().isBlank()) {
                 JOptionPane.showMessageDialog(null, "Escriba el nombre del concepto", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
                 return;
@@ -225,12 +229,10 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
 
         }
         if (e.getSource().equals(componentManageBond.jButtonRegistroConcepto)) {
-            if (componentManageBond.jTextFieldDescription.getText().isBlank()
-//                    || componentManageBond.jTextFieldVenta.getText().isBlank()
-//                    || componentManageBond.jTextFieldPrecioCosto.getText().isBlank()
-//                    || componentManageBond.jTextFieldPrioridad.getText().isBlank()
-//                    || componentManageBond.jTextFieldUnidades.getText().isBlank()
-                    
+            if (componentManageBond.jTextFieldDescription.getText().isBlank() //                    || componentManageBond.jTextFieldVenta.getText().isBlank()
+                    //                    || componentManageBond.jTextFieldPrecioCosto.getText().isBlank()
+                    //                    || componentManageBond.jTextFieldPrioridad.getText().isBlank()
+                    //                    || componentManageBond.jTextFieldUnidades.getText().isBlank()
                     ) {
 
                 JOptionPane.showMessageDialog(null, "Complete todos los datos para registrar", "GESTIÓN DE BONO", JOptionPane.OK_OPTION);
@@ -254,17 +256,22 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                 return;
             }
 
+            localDate = componentManageBond.dateStart1.getDate().toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+
             AbonoTb abono = new AbonoTb();
+
             System.out.println("Concept -> " + Concept.getId());
             abono.setDues(Integer.parseInt(componentManageBond.jTextFieldDues.getSelectedItem().toString()));
             abono.setEmployeeId(String.valueOf(employee.getEmployeeId()));
-            abono.setCreatedAt(LocalDate.now().toString());
+            abono.setCreatedAt(localDate.toString());
             abono.setCreatedBy(user.getId());
             abono.setDiscountFrom(componentManageBond.jComboDescont.getSelectedItem().toString());
             abono.setServiceConceptId(String.valueOf(Concept.getId()));
 
             abono.setMonthly(Double.valueOf(String.format("%.2f", Double.valueOf(componentManageBond.jTextFieldMonthly.getText()))));
-            abono.setPaymentDate(LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth()).toString());
+            abono.setPaymentDate(localDate.withDayOfMonth(localDate.lengthOfMonth()).toString());
             abono.setStatus("Pendiente");
 
             //liempiar los componentes de clean
@@ -397,10 +404,10 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                         if (encontrado.isPresent()) {
 
                             if (encontrado.get().getStatus().equalsIgnoreCase("Pendiente")) {
-                                
+
                                 List<AbonoDetailsTb> bonodetails = new AbonoDao().getListAbonoBySoli(numSol);
 
-                                if (!bonodetails.stream().filter(predicate -> predicate.getDues() == Integer.parseInt(componentManageBond.jTableListDetalle.getValueAt(indexDetalle, 2).toString())).findFirst().get().getState(). equalsIgnoreCase("Pagado")) {
+                                if (!bonodetails.stream().filter(predicate -> predicate.getDues() == Integer.parseInt(componentManageBond.jTableListDetalle.getValueAt(indexDetalle, 2).toString())).findFirst().get().getState().equalsIgnoreCase("Pagado")) {
 
                                     JTextField text = new JTextField();
                                     Border bordeConTitulo = BorderFactory.createTitledBorder("Escriba el monto");

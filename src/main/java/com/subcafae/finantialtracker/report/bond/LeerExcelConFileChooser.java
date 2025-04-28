@@ -35,7 +35,7 @@ import java.util.logging.Logger;
 
 public class LeerExcelConFileChooser {
 
-    public void method(UserTb user, ViewMain viewMain) {
+    public void method(UserTb user, ViewMain viewMain , LocalDate fecha) {
 
         // Crear un JFileChooser para seleccionar el archivo
         JFileChooser fileChooser = new JFileChooser();
@@ -69,60 +69,67 @@ public class LeerExcelConFileChooser {
                         viewMain.setEnabled(false);
 
                         ViewMain.loading.setVisible(true);
+                        
+                        new Thread(() -> {
+                            
+                            try {
+                                List<EmployeeTb> emple = new EmployeeDao().findAll();
+                                for (RegistroExcel registro : registros) {
 
-                        try {
-                            List<EmployeeTb> emple = new EmployeeDao().findAll();
-                            for (RegistroExcel registro : registros) {
+                                    Optional<EmployeeTb> data = emple.stream().filter(predicate
+                                            -> predicate.getNationalId().equalsIgnoreCase(registro.getDni())).findFirst();
+                                    System.out.println("Data -> " + data);
+                                    if (!data.isPresent()) {
+                                        System.out.println("No se encontro usuario");
+                                        EmployeeTb employee = new EmployeeTb();
+                                        employee.setNationalId(registro.getDni());
+                                        employee.setFullName(registro.getDatos());
+                                        employee.setEmploymentStatusCode("2028");
+                                        employee.setEmploymentStatus("CAS");
+                                        employee.setStartDate(LocalDate.now());
+                                        new EmployeeDao().create(employee);
+                                        emple = new EmployeeDao().findAll();
+                                    }
+                                    AbonoTb abono = new AbonoTb();
 
-                                Optional<EmployeeTb> data = emple.stream().filter(predicate
-                                        -> predicate.getNationalId().equalsIgnoreCase(registro.getDni())).findFirst();
-                                System.out.println("Data -> " + data);
-                                if (!data.isPresent()) {
-                                    System.out.println("No se encontro usuario");
-                                    EmployeeTb employee = new EmployeeTb();
-                                    employee.setNationalId(registro.getDni());
-                                    employee.setFullName(registro.getDatos());
-                                    employee.setEmploymentStatusCode("2028");
-                                    employee.setEmploymentStatus("CAS");
-                                    employee.setStartDate(LocalDate.now());
-                                    new EmployeeDao().create(employee);
-                                    emple = new EmployeeDao().findAll();
+                                    abono.setDues(registro.getCuotas());
+
+                                    abono.setEmployeeId(String.valueOf(emple.stream().filter(predicate
+                                            -> predicate.getNationalId().equalsIgnoreCase(registro.getDni())).findFirst().get().getEmployeeId()));
+
+                                    abono.setCreatedAt(fecha.toString());
+                                    abono.setCreatedBy(user.getId());
+                                    abono.setDiscountFrom("BOLETA DE HABERES");
+                                    abono.setServiceConceptId(String.valueOf(list.get(combo.getSelectedIndex()).getId()));
+
+                                    abono.setMonthly(registro.getMonto());
+                                    abono.setPaymentDate(fecha.withDayOfMonth(fecha.lengthOfMonth()).toString());
+                                    abono.setStatus("Pendiente");
+
+                                    Integer dataa = new AbonoDao().insertAbono(abono);
+
+                                    if (dataa != null ) {
+                                        if (dataa != -1) {
+                                            abono.setId(dataa);
+                                            new AbonoDetailsDao().insertAbonoDetail(abono, user.getId());
+                                        } 
+                                    }
+
                                 }
-                                AbonoTb abono = new AbonoTb();
-
-                                abono.setDues(registro.getCuotas());
-
-                                abono.setEmployeeId(String.valueOf(emple.stream().filter(predicate
-                                        -> predicate.getNationalId().equalsIgnoreCase(registro.getDni())).findFirst().get().getEmployeeId()));
-
-                                abono.setCreatedAt(LocalDate.now().toString());
-                                abono.setCreatedBy(user.getId());
-                                abono.setDiscountFrom("BOLETA DE HABERES");
-                                abono.setServiceConceptId(String.valueOf(list.get(combo.getSelectedIndex()).getId()));
-
-                                abono.setMonthly(registro.getMonto());
-                                abono.setPaymentDate(LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth()).toString());
-                                abono.setStatus("Pendiente");
-
-                                Integer dataa = new AbonoDao().insertAbono(abono);
-
-                                if (dataa != null || dataa != -1) {
-                                    abono.setId(dataa);
-                                    new AbonoDetailsDao().insertAbonoDetail(abono, user.getId());
-                                }
-
+                            } catch (SQLException ex) {
+                                viewMain.setEnabled(true);
+                                ViewMain.loading.dispose();
+                                System.out.println("Error -> " + ex.getMessage());
+                                JOptionPane.showMessageDialog(null, "Error");
+                                return;
                             }
-                        } catch (SQLException ex) {
+
                             viewMain.setEnabled(true);
                             ViewMain.loading.dispose();
-                            System.out.println("Error -> " + ex.getMessage());
-                            JOptionPane.showMessageDialog(null, "Error");
-                            return;
-                        }
-
-                        viewMain.setEnabled(true);
-                        ViewMain.loading.dispose();
-                        JOptionPane.showMessageDialog(null, "✅ Registros cargados correctamente:");
+                            JOptionPane.showMessageDialog(null, "✅ Registros cargados correctamente:");
+                        
+                        }).start();
+                   
 
                     }
                 } catch (SQLException ex) {

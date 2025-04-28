@@ -19,14 +19,14 @@ public class LoanTb {
     private String soliNum;
     private String employeeId;
     private String guarantorIds;
-    private double RequestedAmount;
+    private Double RequestedAmount;
     private String stateLoan;
-    private double AmountWithdrawn;
-    private int dues;
+    private Double AmountWithdrawn;
+    private Integer dues;
     private LocalDate paymentDate;
     private String state;
     private Integer refinanceParentId;
-    private int createdBy;
+    private Integer createdBy;
     private Date createdAt;
     private LocalDateTime modifiedAt;
     private Integer modifiedBy;
@@ -128,7 +128,7 @@ public class LoanTb {
         return dues;
     }
 
-    public void setDues(int dues) {
+    public void setDues(Integer dues) {
         this.dues = dues;
     }
 
@@ -204,19 +204,19 @@ public class LoanTb {
         this.guarantorIds = guarantorIds;
     }
 
-    public double getRequestedAmount() {
+    public Double getRequestedAmount() {
         return RequestedAmount;
     }
 
-    public void setRequestedAmount(double RequestedAmount) {
+    public void setRequestedAmount(Double RequestedAmount) {
         this.RequestedAmount = RequestedAmount;
     }
 
-    public double getAmountWithdrawn() {
+    public Double getAmountWithdrawn() {
         return AmountWithdrawn;
     }
 
-    public void setAmountWithdrawn(double AmountWithdrawn) {
+    public void setAmountWithdrawn(Double AmountWithdrawn) {
         this.AmountWithdrawn = AmountWithdrawn;
     }
 
