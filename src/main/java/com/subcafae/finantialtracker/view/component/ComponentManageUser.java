@@ -14,7 +14,7 @@ public class ComponentManageUser extends javax.swing.JInternalFrame {
      * Creates new form ComponentManageUser
      */
     public ComponentManageUser() {
-        setTitle("GETÓN DE USUARIOS");
+        setTitle("GESTIÓN DE USUARIOS");
         setClosable(true);
         initComponents();
         jTableListUse.getTableHeader().setReorderingAllowed(false);
