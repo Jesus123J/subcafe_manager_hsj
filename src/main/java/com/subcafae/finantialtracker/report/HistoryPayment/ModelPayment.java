@@ -18,7 +18,7 @@ public class ModelPayment {
     String codeDocument;
     String amountDocument;
     Map<String,String> mapAndPaymeny = new HashMap<>();
-    List<String> amountPaymentAndLoan;
+    Map<String , String > amountPaymentAndLoan;
 
     public ModelPayment() {
     }
@@ -47,11 +47,11 @@ public class ModelPayment {
         this.amountDocument = amountDocument;
     }
 
-    public List<String> getAmountPaymentAndLoan() {
+    public Map<String , String > getAmountPaymentAndLoan() {
         return amountPaymentAndLoan;
     }
 
-    public void setAmountPaymentAndLoan(List<String> amountPaymentAndLoan) {
+    public void setAmountPaymentAndLoan(Map<String , String > amountPaymentAndLoan) {
         this.amountPaymentAndLoan = amountPaymentAndLoan;
     }
 

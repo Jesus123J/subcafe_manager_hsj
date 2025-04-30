@@ -50,6 +50,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -76,26 +78,28 @@ public class HistoryPayment {
 
         List<RegistroDetailsModel> listRegister = registroDAO.findRegisterDetailsByEmployeeId(firstEmployee.getEmployeeId().toString());
         Map<String, List<RegistroDetailsModel>> listFilte = listRegister.stream().collect(Collectors.groupingBy(RegistroDetailsModel::getCodigo));
-
+        System.out.println(listFilte.toString());
         for (Map.Entry<String, List<RegistroDetailsModel>> entry : listFilte.entrySet()) {
 
-            List<String> date = new ArrayList<>();
+            Map<String, String> date = new HashMap<>();
             Map<String, String> mapAndPaymeny = new HashMap<>();
 
             for (RegistroDetailsModel registroDetailsModel : entry.getValue()) {
                 if (registroDetailsModel.getConceptLoan() != null) {
-                    mapAndPaymeny.put(registroDetailsModel.getConceptLoan(),
+                    mapAndPaymeny.put(registroDetailsModel.getConceptLoan().trim(),
                             registroDetailsModel.getAmountPar().toString() + " - "
                             + registroDetailsModel.getMontoLoan().toString());
 
                     // SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd");
-                    date.add(registroDetailsModel.getFechaVLoan());
+                    // date.add(registroDetailsModel.getFechaVBond() + " - " + registroDetailsModel.getConceptBond());
+                    date.put(registroDetailsModel.getConceptLoan().trim(), registroDetailsModel.getFechaVLoan());
                 } else {
-                    mapAndPaymeny.put(registroDetailsModel.getConceptBond(),
+                    mapAndPaymeny.put(registroDetailsModel.getConceptBond().trim(),
                             registroDetailsModel.getAmountPar().toString() + " - "
                             + registroDetailsModel.getMontoBond().toString());
 
-                    date.add(registroDetailsModel.getFechaVBond());
+                    date.put(registroDetailsModel.getConceptBond().trim(), registroDetailsModel.getFechaVBond());
+                    ///date.add(registroDetailsModel.getFechaVBond() + " - " + registroDetailsModel.getConceptBond());
                 }
             }
 
@@ -119,24 +123,25 @@ public class HistoryPayment {
     }
 
     public void comp(List<ModelPayment> data) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar reporte");
+        fileChooser.setSelectedFile(new File("historial_pag.pdf"));
 
-        System.out.println(" data " + data.toString());
+        int userSelection = fileChooser.showSaveDialog(null);
 
-        String userHome = System.getProperty("user.home");
-        String dest = userHome
-                + "/Documents/historial_pag.pdf";
+        if (userSelection != JFileChooser.APPROVE_OPTION) {
+            System.out.println("Operación cancelada.");
+            return;
+        }
 
-        PdfWriter writer;
-        PdfDocument pdf;
-        Document document = null;
+        String dest = fileChooser.getSelectedFile().getAbsolutePath();
+
         try {
-            writer = new PdfWriter(dest);
-
-            pdf = new PdfDocument(writer);
-            document = new Document(pdf, PageSize.A4);
+            PdfWriter writer = new PdfWriter(dest);
+            PdfDocument pdf = new PdfDocument(writer);
+            Document document = new Document(pdf, PageSize.A4);
 
             pdf.addEventHandler(PdfDocumentEvent.END_PAGE, new Header());
-
             document.setMargins(100, 30, 30, 30);
             document.add(new Paragraph("HISTORIAL DE PAGOS")
                     .setTextAlignment(TextAlignment.CENTER)
@@ -145,16 +150,17 @@ public class HistoryPayment {
 
             document.add(new Paragraph("DNI: " + firstEmployee.getNationalId()));
             document.add(new Paragraph("Apellidos y Nombres: " + firstEmployee.getFullName()));
-        } catch (FileNotFoundException ex) {
+            System.out.println("Gaaa");
+            System.out.println("NN " + firstEmployee.getFullName());
+            System.out.println(document);
+            PdfFont monoFont = null;
+            try {
+                monoFont = PdfFontFactory.createFont(StandardFonts.COURIER);
+            } catch (IOException ex) {
 
-        }
-        PdfFont monoFont = null;
-        try {
-            monoFont = PdfFontFactory.createFont(StandardFonts.COURIER);
-        } catch (IOException ex) {
+            }
 
-        }
-        try {
+            System.out.println("Entro");
             Table mainTable = new Table(UnitValue.createPercentArray(new float[]{2, 2, 2, 2, 2, 2, 2}));
             mainTable.setWidth(UnitValue.createPercentValue(50));
 
@@ -167,7 +173,9 @@ public class HistoryPayment {
             mainTable.addHeaderCell(new Cell().add(new Paragraph("Monto Pagado").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setBold());
             mainTable.addHeaderCell(new Cell().add(new Paragraph("Monto Original").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setBold());
 
+            System.out.println("Entro");
             for (ModelPayment payment : data) {
+
                 // Agregar las celdas a la tabla principal
                 mainTable.addCell(
                         new Cell().add(
@@ -182,34 +190,43 @@ public class HistoryPayment {
                         payment.getAmountDocument()).setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setTextAlignment(TextAlignment.CENTER).setFontSize(7f)).setBorder(Border.NO_BORDER).setBorderBottom(new SolidBorder(1f));
                 //mainTable.addCell(new Cell(1, 3).add(subTable)); // La sub-tabla ocupa 3 columnas 
 
-                List<String> dateList = payment.getAmountPaymentAndLoan();
+                Map<String, String> dateList = payment.getAmountPaymentAndLoan();
+
                 List<Map.Entry<String, String>> amountList = new ArrayList<>(payment.getMapAndPaymeny().entrySet());
+                System.out.println("Entro");
 
-                int maxRows = Math.max(dateList.size(), amountList.size());
 // Obtener el ancho de la columna principal
-
 // Crear la subtabla con 3 columnas
                 Table subTable = new Table(UnitValue.createPercentArray(new float[]{2, 1, 1, 1}));
                 subTable.setWidth(UnitValue.createPercentValue(100));
+                System.out.println("Entro");
 
 // Agregar celdas con un ancho fijo
-                for (int i = 0; i < maxRows; i++) {
-                    Cell conceptCell = new Cell().add(new Paragraph(i < amountList.size() ? amountList.get(i).getKey() : " ")).setFontSize(7f)
+                System.out.println(dateList.toString());
+                System.out.println(amountList.toString());
+
+                for (int i = 0; i < amountList.size(); i++) {
+                    System.out.println("Entro");
+                    Cell conceptCell = new Cell().add(new Paragraph(amountList.get(i).getKey())).setFontSize(7f)
                             .setTextAlignment(TextAlignment.LEFT).setMinWidth(80f).setMaxWidth(80f);
                     subTable.addCell(conceptCell).setBorder(Border.NO_BORDER);
-
-                    Cell dateCell = new Cell().add(new Paragraph(i < dateList.size() ? dateList.get(i) : " ")).setFontSize(7f)
+                    System.out.println("Entro");
+                    Cell dateCell = new Cell().add(new Paragraph(dateList.get(amountList.get(i).getKey()))).setFontSize(7f)
                             .setTextAlignment(TextAlignment.CENTER).setMinWidth(70f).setMaxWidth(70f);
                     subTable.addCell(dateCell).setBorder(Border.NO_BORDER);
-
-                    Cell amountParcialCell = new Cell().add(new Paragraph(i < amountList.size() ? amountList.get(i).getValue().toString().split("-")[0].trim().toString() : " "))
+                    System.out.println(dateList.get(amountList.get(i).getKey()));
+                    System.out.println("Entro");
+                    Cell amountParcialCell = new Cell().add(new Paragraph(amountList.get(i).getValue().toString().split("-")[0].trim().toString()))
                             .setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setMaxWidth(60f).setFontSize(7f);
                     subTable.addCell(amountParcialCell).setBorder(Border.NO_BORDER);
-
-                    Cell amountTotalCell = new Cell().add(new Paragraph(i < amountList.size() ? amountList.get(i).getValue().toString().split("-")[1].trim().toString() : " "))
+                    System.out.println("Entro");
+                    Cell amountTotalCell = new Cell().add(new Paragraph(amountList.get(i).getValue().toString().split("-")[1].trim().toString()))
                             .setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setMaxWidth(60f).setFontSize(7f);
                     subTable.addCell(amountTotalCell).setBorder(Border.NO_BORDER);
                 }
+
+                System.out.println("Pepeee");
+                System.out.println("Entro");
 
 // Crear la celda que contendrá la subtabla
                 Cell subTableCell = new Cell(1, 4).add(subTable);
@@ -217,23 +234,41 @@ public class HistoryPayment {
                 subTableCell.setPadding(0);
                 subTableCell.setWidth(50); // Fijar el ancho para que no se desajuste
                 mainTable.addCell(subTableCell).setBorder(Border.NO_BORDER).setBorderBottom(new SolidBorder(1f));
+
+                System.out.println("Loaa");
             }
 
+            System.out.println("MM " + firstEmployee.getFullName());
+
+            System.out.println("Entro");
+
+            System.out.println("MM " + firstEmployee.getFullName());
+
+            System.out.println("Document " + document);
+
             document.add(mainTable);
+
+            System.out.println("Document " + document);
+
             document.add(new LineSeparator(new SolidLine(1f)) // Grosor de 1 punto
                     .setMarginTop(10).setMarginTop(10));
 
             document.close();
 
+            System.out.println("LOLA");
             System.out.println("Reporte generado en: " + dest);
+            System.out.println("Pepe");
             try {
                 Desktop.getDesktop().open(new File(dest));
             } catch (IOException ex) {
+                System.out.println("Entro");
+                JOptionPane.showMessageDialog(null, ex.getMessage());
                 //Logger.getLogger(TabbedPane.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-        } catch (Exception e) {
-            System.out.println(" error " + e.getMessage());
+        } catch (FileNotFoundException ex) {
+            JOptionPane.showMessageDialog(null, ex.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrio un Problema");
         }
 
     }

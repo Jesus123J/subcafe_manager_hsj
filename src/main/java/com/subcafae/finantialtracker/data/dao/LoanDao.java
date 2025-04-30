@@ -226,17 +226,11 @@ public class LoanDao extends LoanDetailsDao {
                 + "FROM loan l \n"
                 + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id \n"
                 + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id\n"
-                + "LEFT JOIN (\n"
-                + "    SELECT LoanID, \n"
-                + "            TotalInterest, \n"
-                + "          TotalIntangibleFund, \n"
-                + "          MonthlyCapitalInstallment, \n"
-                + "          MonthlyInterestFee, \n"
-                + "           MonthlyIntangibleFundFee, \n"
-                + "          MonthlyFeeValue\n"
-                + "    FROM loandetail\n"
-                + "    GROUP BY LoanID\n"
-                + ") dd ON dd.LoanID = l.ID "
+               + "LEFT JOIN (\n"
+                + "    SELECT ld.* \n"
+                + "    FROM loandetail ld \n"
+                + "    WHERE ld.ID = (SELECT MIN(ID) FROM loandetail WHERE LoanID = ld.LoanID) \n"
+                + ") dd ON dd.LoanID = l.ID \n"
                 + "WHERE l.SoliNum = ?";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -295,17 +289,11 @@ public class LoanDao extends LoanDetailsDao {
                 + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id \n"
                 + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id\n"
                 + "LEFT JOIN (\n"
-                + "    SELECT LoanID, \n"
-                + "           TotalInterest, \n"
-                + "           TotalIntangibleFund, \n"
-                + "          MonthlyCapitalInstallment, \n"
-                + "          MonthlyInterestFee, \n"
-                + "          MonthlyIntangibleFundFee, \n"
-                + "           MonthlyFeeValue\n"
-                + "    FROM loandetail\n"
-                + "    GROUP BY LoanID\n"
-                + ") dd ON dd.LoanID = l.ID"
-                + " WHERE DATE(l.CreatedAt) BETWEEN ? AND ? ORDER BY l.CreatedAt ASC";
+                + "    SELECT ld.* \n"
+                + "    FROM loandetail ld \n"
+                + "    WHERE ld.ID = (SELECT MIN(ID) FROM loandetail WHERE LoanID = ld.LoanID) \n"
+                + ") dd ON dd.LoanID = l.ID \n"
+                + "WHERE DATE(l.CreatedAt) BETWEEN ? AND ? ORDER BY l.CreatedAt ASC";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setDate(1, new java.sql.Date(fechaInicio.getTime()));
@@ -335,6 +323,7 @@ public class LoanDao extends LoanDetailsDao {
                 ));
             }
         } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error -< " + e.getMessage());
             e.printStackTrace();
         }
         return loans;
@@ -430,7 +419,7 @@ public class LoanDao extends LoanDetailsDao {
 
                 montoRefinanciado = calcularMontoPendientePorLoanId(activeLoan.get().getId());
 
-                if (montoRefinanciado > (newLoan.getRequestedAmount() - montoo )) {
+                if (montoRefinanciado > (newLoan.getRequestedAmount() - montoo)) {
                     JOptionPane.showMessageDialog(null, "Error el monto adeudado del anterior prestamo es mas grande", "GESTIÓN PRESTAMO", JOptionPane.WARNING_MESSAGE);
                     return null;
                 }
@@ -445,7 +434,7 @@ public class LoanDao extends LoanDetailsDao {
                 if (montoo > 0.0) {
                     newLoan.setAmountWithdrawn(newLoan.getRequestedAmount() - montoo);
                     monto = montoo;
-                } 
+                }
             }
 
             insertNewLoan(newLoan);

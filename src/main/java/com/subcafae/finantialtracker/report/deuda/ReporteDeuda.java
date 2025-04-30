@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import javax.swing.JFileChooser;
 
 public class ReporteDeuda {
 
@@ -89,9 +90,19 @@ public class ReporteDeuda {
 
         try {
 
-            String userHome = System.getProperty("user.home");
-            String fileName = userHome + "/Documents/Reporte_Deuda_" + nameEmployee + ".pdf";
-            PdfWriter writer = new PdfWriter(fileName);
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Guardar reporte de Deuda");
+            fileChooser.setSelectedFile(new File("reporte_deuda.pdf"));
+
+            int userSelection = fileChooser.showSaveDialog(null);
+
+            if (userSelection != JFileChooser.APPROVE_OPTION) {
+                System.out.println("Operación cancelada.");
+                return;
+            }
+
+            PdfWriter writer = new PdfWriter(fileChooser.getSelectedFile().getAbsolutePath());
+            
             PdfDocument pdfDoc = new PdfDocument(writer);
 
             try (Document document = new Document(pdfDoc)) {
@@ -115,7 +126,7 @@ public class ReporteDeuda {
 //                }
             }
 
-            abrirArchivo(fileName);
+            abrirArchivo(fileChooser.getSelectedFile().getAbsolutePath());
 
         } catch (FileNotFoundException ex) {
 
@@ -186,7 +197,6 @@ public class ReporteDeuda {
             return;
         }
         // String requestNumberLoan, double debtLoan, int duesLoan, String fvencimientoLoan, String[][] prestamoData, String[][] fondoData
-       
 
         document.add(new Paragraph("SECCIÓN DE PRÉSTAMOS").setBold().setFontSize(12));
 
@@ -211,16 +221,16 @@ public class ReporteDeuda {
             table.addHeaderCell(new Cell().add(new Paragraph("Vencimiento").setBold().setTextAlignment(TextAlignment.CENTER)));
 
             table.addHeaderCell(new Cell().add(new Paragraph("Monto").setBold().setTextAlignment(TextAlignment.CENTER)));
-          
+
             double totalPrestamo = 0.0;
-            
+
             for (int i = 0; i < entry.getValue().size(); i++) {
                 table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size())).setTextAlignment(TextAlignment.CENTER));
                 table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getFechaVencimiento())).setTextAlignment(TextAlignment.CENTER));
                 table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getMonto())).setTextAlignment(TextAlignment.CENTER));
                 totalPrestamo += Double.parseDouble(entry.getValue().get(i).getMonto());
             }
-            
+
             document.add(table);
 
             // Mostrar el total de deuda del préstamo

@@ -281,6 +281,7 @@ public class ModelManageLoan extends LoanDao {
 
         ViewMain.loading.setVisible(true);
         componentManageLoan.setEnabled(false);
+        
         new Thread(() -> {
 
             List<Loan> list = getAllLoanss(new java.sql.Date(dateStart.getTime()), new java.sql.Date(dateFinaly.getTime()));
