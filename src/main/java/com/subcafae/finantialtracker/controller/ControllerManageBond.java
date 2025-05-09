@@ -75,6 +75,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
         componentManageBond.jTableListDetalle.getSelectionModel().addListSelectionListener(this);
         componentManageBond.jButtonRegistorAbondForExcel.addActionListener(this);
         componentManageBond.jButtonShowList.addActionListener(this);
+        
 //        componentManageBond.jDialog1.addWindowListener(new WindowAdapter() {
 //            @Override
 //            public void windowClosing(WindowEvent e) {
@@ -116,7 +117,6 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
         }
         if (e.getSource().equals(componentManageBond.jButtonShowList)) {
             try {
-
                 if (componentManageBond.dateStart.getDate() != null || componentManageBond.dateStart.getDate() != null) {
                     insertListTableBono(componentManageBond.dateStart.getDate(), componentManageBond.dateFinaly.getDate());
                 } else {
@@ -128,7 +128,6 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                 JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
                 return;
             }
-
         }
         if (e.getSource().equals(componentManageBond.jButton1)) {
             if (componentManageBond.jTextFieldSearchSoliBond.getText().isBlank()) {

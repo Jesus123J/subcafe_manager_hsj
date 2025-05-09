@@ -75,7 +75,7 @@ public class EmployeeDao {
                 stmtDelete.setInt(1, employeeId);
                 return stmtDelete.executeUpdate() > 0;
             } else {
-                JOptionPane.showMessageDialog(null, "No se puede eliminar, el empleado tiene préstamos o bonos registrados.", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(null, "No se puede eliminar, el empleado tiene préstamos o abonos registrados.", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);
 
                 return false;
             }

@@ -506,7 +506,7 @@ public class ReporteAbono {
                                     .setFont(PdfFontFactory.createFont(StandardFonts.COURIER))
                             );
                         } else if (header.equalsIgnoreCase("TOTAL")) {
-                            cell = new Cell().add(new Paragraph(String.valueOf(totalAmount))
+                            cell = new Cell().add(new Paragraph(String.format("%.2f" , totalAmount))
                                     .setTextAlignment(TextAlignment.LEFT)
                                     .setFontSize(10f)
                                     .setFont(PdfFontFactory.createFont(StandardFonts.COURIER))

@@ -15,16 +15,16 @@ import javax.swing.JOptionPane;
  */
 public class Conexion {
 
-     private static final String URL = "jdbc:mariadb://localhost:3306/FinancialTracker1?useUnicode=true&characterEncoding=UTF-8&collation=utf8mb4_0900_ai_ci";
+    private static final String URL = "jdbc:mariadb://localhost:3306/FinancialTracker1?useUnicode=true&characterEncoding=UTF-8&collation=utf8mb4_0900_ai_ci&useSSL=false";
     private static final String USER = "root";
-    private static final String PASSWORD = "123456789";
+    private static final String PASSWORD = "";
     private static Connection connection = null;
 
     static {
         try {
             connection = DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null , "Error -> " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error -> " + e.getMessage());
             JOptionPane.showMessageDialog(null, "No hay conexion , comuniquese con el administrador");
             System.exit(0);
             //  throw new RuntimeException("Error al conectar a la base de datos", e);
@@ -33,7 +33,7 @@ public class Conexion {
 
     public static Connection getConnection() {
         if (connection == null) {
-            JOptionPane.showMessageDialog(null, "Error de conexión" , "" , JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Error de conexión", "", JOptionPane.WARNING_MESSAGE);
             System.exit(0);
         }
         return connection;

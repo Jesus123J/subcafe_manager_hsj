@@ -22,8 +22,6 @@ import com.itextpdf.layout.element.*;
 import com.itextpdf.layout.properties.*;
 import com.itextpdf.layout.borders.Border;
 import java.awt.Desktop;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -34,8 +32,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
 
 public class ReporteConcepto {
 
