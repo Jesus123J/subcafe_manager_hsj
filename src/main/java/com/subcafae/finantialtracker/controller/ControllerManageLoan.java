@@ -63,7 +63,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
     public ControllerManageLoan(ComponentManageLoan componentManageLoan, UserTb user) {
 
         super(componentManageLoan);
-
+        componentManageLoan.dateStart1.setDate(new Date());
         ((JTextField) componentManageLoan.comboBoxApplicant.getEditor().getEditorComponent()).addKeyListener(this);
         ((JTextField) componentManageLoan.comboBoxAval.getEditor().getEditorComponent()).addKeyListener(this);
 
@@ -519,7 +519,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
             }
 
-            insertDataLoan(employeeApplicant, employeeAval, componentManageLoan.textAmountLoan, componentManageLoan.jComboBoxCuotas.getSelectedItem());
+            insertDataLoan(employeeApplicant, employeeAval, componentManageLoan.textAmountLoan, componentManageLoan.jComboBoxCuotas.getSelectedItem() , componentManageLoan.dateStart1.getDate());
         }
         if (e.getSource().equals(componentManageLoan.jButtonCalcularDemo)) {
             if (componentManageLoan.jTextFieldMontoDemostration.getText().isBlank()) {
@@ -634,6 +634,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
         int index = componentManageLoan.jTabbedPane1.getSelectedIndex();
         switch (index) {
             case 0 -> {
+                componentManageLoan.dateStart1.setDate(new Date());
             }
             case 1 -> {
             }

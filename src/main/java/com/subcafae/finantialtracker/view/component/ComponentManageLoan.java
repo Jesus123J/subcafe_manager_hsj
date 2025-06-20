@@ -132,6 +132,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jButtonCalcularDemo = new javax.swing.JButton();
         jSeparator6 = new javax.swing.JSeparator();
         jSeparator5 = new javax.swing.JSeparator();
+        dateStart1 = new com.toedter.calendar.JDateChooser();
         jPanel4 = new javax.swing.JPanel();
         jPanel13 = new javax.swing.JPanel();
         jButtonReporteCompromisoPago = new javax.swing.JButton();
@@ -461,7 +462,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 .addComponent(jTextFieldTotalPagar, javax.swing.GroupLayout.PREFERRED_SIZE, 117, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jTextFieldCuotaMensual, javax.swing.GroupLayout.PREFERRED_SIZE, 117, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(29, Short.MAX_VALUE))
+                .addContainerGap(33, Short.MAX_VALUE))
         );
         jPanel8Layout.setVerticalGroup(
             jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -532,6 +533,10 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 .addGap(10, 10, 10))
         );
 
+        dateStart1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        dateStart1.setDateFormatString("yyyy-MM-dd");
+        dateStart1.setPreferredSize(new java.awt.Dimension(190, 30));
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -543,7 +548,8 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                     .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 243, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 0, Short.MAX_VALUE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(dateStart1, javax.swing.GroupLayout.PREFERRED_SIZE, 173, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jSeparator5)
                     .addComponent(jPanel14, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
@@ -552,7 +558,9 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(dateStart1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -595,7 +603,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
                     .addComponent(jButtonSolicitudLoan, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jButtonReporteCompromisoAval, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButtonReporteCompromisoPago, javax.swing.GroupLayout.DEFAULT_SIZE, 463, Short.MAX_VALUE))
+                    .addComponent(jButtonReporteCompromisoPago, javax.swing.GroupLayout.DEFAULT_SIZE, 467, Short.MAX_VALUE))
                 .addGap(305, 305, 305))
         );
         jPanel13Layout.setVerticalGroup(
@@ -607,7 +615,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 .addComponent(jButtonReporteCompromisoAval, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jButtonSolicitudLoan, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(115, Short.MAX_VALUE))
+                .addContainerGap(117, Short.MAX_VALUE))
         );
 
         textSearchLoanSoli.setBackground(new java.awt.Color(255, 255, 255));
@@ -731,7 +739,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                                 .addComponent(jButtonBuscar, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(18, 18, 18))
                             .addComponent(jSeparator3, javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 1028, Short.MAX_VALUE))
+                            .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 1032, Short.MAX_VALUE))
                         .addContainerGap())
                     .addComponent(jSeparator4, javax.swing.GroupLayout.Alignment.TRAILING)))
         );
@@ -901,6 +909,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
     public javax.swing.JComboBox<String> comboBoxAval;
     public com.toedter.calendar.JDateChooser dateFinaly;
     public com.toedter.calendar.JDateChooser dateStart;
+    public com.toedter.calendar.JDateChooser dateStart1;
     public javax.swing.JButton jButton1;
     public javax.swing.JButton jButtonBuscar;
     public javax.swing.JButton jButtonCalcularDemo;

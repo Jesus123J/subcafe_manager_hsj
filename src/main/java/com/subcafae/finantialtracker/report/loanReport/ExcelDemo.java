@@ -17,7 +17,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,6 +42,7 @@ public class ExcelDemo {
             double fondoInta,
             double descuentoMens,
             int meses,
+            Date util,
             String dniSoli
     ) {
         String EmployeeDNI = "";
@@ -88,7 +91,9 @@ public class ExcelDemo {
         // 3. LIQUIDACIÓN DE PRÉSTAMO DEL SUB-CAFAE
         createMergedCell(sheet, 6, 7, 0, 5, "LIQUIDACIÓN DE PRÉSTAMO DEL SUB-CAFAE", largeTitleStyle);
 
-        LocalDate fechaActual = LocalDate.now();
+        LocalDate fechaActual = util.toInstant()
+                                  .atZone(ZoneId.systemDefault())
+                                  .toLocalDate();
 
         DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 

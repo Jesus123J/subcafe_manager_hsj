@@ -18,6 +18,7 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
@@ -91,7 +92,7 @@ public class ModelManageLoan extends LoanDao {
         }
     }
 
-    protected void insertDataLoan(EmployeeTb employeeApplicant, EmployeeTb employeeAval, JTextField textAmountLoan, Object selectedItem) {
+    protected void insertDataLoan(EmployeeTb employeeApplicant, EmployeeTb employeeAval, JTextField textAmountLoan, Object selectedItem , java.util.Date fecha) {
         try {
 
             if (componentManageLoan.textAmountLoan1.getText().isBlank()) {
@@ -110,11 +111,13 @@ public class ModelManageLoan extends LoanDao {
                     Double.parseDouble("0.0"),
                     Double.parseDouble(componentManageLoan.textAmountLoan.getText()),
                     Integer.parseInt(selectedItem.toString()),
-                    LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth()),
+                    fecha.toInstant()
+                                  .atZone(ZoneId.systemDefault())
+                                  .toLocalDate(),
                     "Pendiente",
                     null,
                     1,
-                    new Date(new java.util.Date().getTime()),
+                    new Date(fecha.getTime()),
                     null,
                     null,
                     "Ordinario", "EMPLOYEE");
@@ -254,7 +257,8 @@ public class ModelManageLoan extends LoanDao {
                     fondoIntangibleTotal,
                     capitalMensual,
                     meses,
-                    dni != null ? dni.concat(" - " + soliNum) : null
+                        componentManageLoan.dateStart1.getDate(),
+                    dni != null ? dni.concat(" - " + soliNum) : null         
             );
 
         } catch (NumberFormatException e) {
