@@ -20,6 +20,12 @@
     </properties>
 
     <dependencies>
+        <!-- Maven -->
+        <dependency>
+          <groupId>net.sf.jasperreports</groupId>
+          <artifactId>jasperreports</artifactId>
+          <version>6.21.5</version> <!-- Usa la versión que compile tu reporte -->
+        </dependency>
         <!-- Encriptación de contraseñas -->
         <dependency>
             <groupId>org.mindrot</groupId>

@@ -19,6 +19,7 @@ com\subcafae\finantialtracker\model\ModelMain$3.class
 com\subcafae\finantialtracker\util\TextFieldValidator$1.class
 com\subcafae\finantialtracker\data\dao\RegistroDao.class
 com\subcafae\finantialtracker\view\component\ComponentManageBond$3.class
+com\subcafae\finantialtracker\model\ListDataReport.class
 com\subcafae\finantialtracker\report\loanReport\CompromisoPagoAval.class
 com\subcafae\finantialtracker\view\component\ComponentManageWorker$1.class
 com\subcafae\finantialtracker\data\entity\EmployeeTb$Gender.class
@@ -42,6 +43,7 @@ com\subcafae\finantialtracker\view\component\ComponentManageLoan$1.class
 com\subcafae\finantialtracker\view\component\ComponentManageLoan.class
 com\subcafae\finantialtracker\controller\ControllerManageBond.class
 com\subcafae\finantialtracker\report\bond\LeerExcelConFileChooser.class
+com\subcafae\finantialtracker\model\ReporteAbonoData.class
 com\subcafae\finantialtracker\data\dao\LoanDao.class
 com\subcafae\finantialtracker\data\entity\User.class
 com\subcafae\finantialtracker\report\descuento\DatosPersona.class
@@ -52,7 +54,7 @@ com\subcafae\finantialtracker\report\loanReport\SolicitudPrestamo.class
 com\subcafae\finantialtracker\view\component\ComponentManageBond$5.class
 com\subcafae\finantialtracker\view\ViewMain$7.class
 com\subcafae\finantialtracker\model\ModelManageBond.class
-com\subcafae\finantialtracker\report\HistoryPayment\HistoryPayment$Header.class
+com\subcafae\finantialtracker\model\ReportPayementData.class
 com\subcafae\finantialtracker\util\TextFieldValidator.class
 com\subcafae\finantialtracker\data\entity\UserTb.class
 com\subcafae\finantialtracker\report\HistoryPayment\AbonoDetailResult.class

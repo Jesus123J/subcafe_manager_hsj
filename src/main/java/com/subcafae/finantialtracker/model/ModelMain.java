@@ -52,6 +52,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Array;
@@ -63,6 +64,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -75,6 +77,7 @@ import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
 import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
@@ -82,6 +85,16 @@ import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.JTextComponent;
 import net.miginfocom.swing.MigLayout;
+import net.sf.jasperreports.engine.JREmptyDataSource;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanArrayDataSource;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.util.JRLoader;
+import net.sf.jasperreports.view.JasperViewer;
 
 /**
  *
@@ -104,17 +117,33 @@ public class ModelMain {
     protected UserTb usser;
 
     public ModelMain(ViewMain viewMain) {
-
+        System.out.println("Entrando al constructor");
         try {
+            System.out.println("1");
             model = (DefaultTableModel) viewMain.jTableDataEncontradaFile.getModel();
+
+            System.out.println("2");
             modelFindNot = (DefaultTableModel) viewMain.jTableNoEncontrado.getModel();
+
+            System.out.println("3");
             this.componentManageBond = new ComponentManageBond();
+
+            System.out.println("4");
             this.componentManageLoan = new ComponentManageLoan();
+
+            System.out.println("5");
             this.componentManageUser = new ComponentManageUser();
+
+            System.out.println("6");
             this.componentManageWorker = new ComponentManageWorker();
 
+            System.out.println("7");
             TextFieldValidator.applyIntegerFilter(viewMain.jTextFieldChequeVoucher);
+
+            System.out.println("8");
             TextFieldValidator.applyDecimalFilter(viewMain.jTextFieldMountVoucher);
+
+            System.out.println("9");
             TextFieldValidator.applyIntegerFilter(viewMain.jTextFieldCuentaVoucher);
 
 //        new ControllerManageLoan(componentManageLoan, user);
@@ -124,6 +153,7 @@ public class ModelMain {
             init();
             combo();
         } catch (Exception e) {
+            System.out.println("Error /| " + e.getMessage());
         }
 
     }
@@ -164,6 +194,7 @@ public class ModelMain {
         viewMain.toFront();
         viewMain.setLocationRelativeTo(null);
         viewMain.setVisible(true);
+        System.out.println("Se muestra el frame");
     }
 
     public void eliminarCOmponent() {
@@ -314,7 +345,7 @@ public class ModelMain {
                 viewMain.loading.setVisible(true);
 
                 String dniSeleccionado = nombre.split(" - ")[0].trim();
-                
+
                 HistoryPayment historyPayment = new HistoryPayment();
 
                 historyPayment.HistoryPatment(dniSeleccionado);
@@ -322,7 +353,7 @@ public class ModelMain {
                 viewMain.loading.dispose();
 
             } catch (Exception ex) {
-                
+
                 System.out.println("Error -> " + ex.getMessage());
                 JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DESCUENTO", JOptionPane.WARNING_MESSAGE);
                 viewMain.loading.dispose();
@@ -728,6 +759,8 @@ public class ModelMain {
                 new ReporteDeuda().reporteDeuda(
                         employeeFind.getFullName(), employeeFind.getNationalId(),
                         lisComAbono, listComLoan);
+                
+                document_report(employeeFind, listComLoan, lisComAbono);
 
                 viewMain.loading.dispose();
 
@@ -1252,5 +1285,176 @@ public class ModelMain {
         }).start();
 
         //   viewMain.loading.dispose();
+    }
+
+    //Leer el documento
+    public void document() {
+        try {
+
+            List<ReporteAbonoData> listaAbonos = new ArrayList<>();
+
+            ReporteAbonoData abono1 = new ReporteAbonoData();
+            abono1.setSection_var("Secundaria A");
+            abono1.setNum_solicitud_var("SOL-2025-001");
+            abono1.setNum_cuotas_pendiente_var("2");
+            abono1.setVencimiento_information_var("30 de septiembre de 2025");
+            abono1.setConcepto_var("Pensión mensual");
+            abono1.setTotal_var("350.00");
+
+// Cambia List.of(...) por ArrayList<Map<String, ?>> si necesitas mutabilidad
+            List<Map<String, ?>> detalles1 = new ArrayList<>();
+            detalles1.add(Map.of("details_var", "Cuota 1", "vencimiento_var", "2025-08-01", "amount_var", "150.00"));
+            detalles1.add(Map.of("details_var", "Cuota 2", "vencimiento_var", "2025-09-01", "amount_var", "200.00"));
+
+            abono1.setDetalles(detalles1);
+
+            ReporteAbonoData abono2 = new ReporteAbonoData();
+            // abono2.setSection_var("Secundaria B");
+            abono2.setNum_solicitud_var("SOL-2025-002");
+            abono2.setNum_cuotas_pendiente_var("1");
+            abono2.setVencimiento_information_var("30 de octubre de 2025");
+            abono2.setConcepto_var("Pensión mensual");
+            abono2.setTotal_var("200.00");
+
+            List<Map<String, ?>> detalles2 = new ArrayList<>();
+            detalles2.add(Map.of("details_var", "Cuota 1", "vencimiento_var", "2025-10-01", "amount_var", "200.00"));
+            abono2.setDetalles(detalles2);
+
+            listaAbonos.add(abono1);
+            listaAbonos.add(abono2);
+
+// Parámetros del encabezado principal
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("name_lastname_var", "Thiago Jesus");
+            parameters.put("dni_var", "73321206");
+
+// Carga el .jasper (NO el .jrxml si estás usando JRLoader)
+            InputStream reporteStream = getClass().getResourceAsStream("/reports/ReporteAbono.jasper");
+            JasperReport jasperReport = (JasperReport) JRLoader.loadObject(reporteStream);
+
+// Fuente de datos del reporte principal
+            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(listaAbonos);
+
+// Genera el reporte
+            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
+            JasperViewer.viewReport(jasperPrint, false);
+
+        } catch (JRException ex) {
+            Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        // 7. Exportar a PDF (ejemplo)
+    }
+
+
+
+    private void document_report(EmployeeTb employeeFind, Map<LoanTb, List<ReporteDeuda>> listComLoan, Map<AbonoTb, List<ReporteDeuda>> listAbond) {
+        try {
+            Integer sectionLoan = 0, sectionBond = 0;
+            // Initial
+            List<ReporteAbonoData> listReport = new ArrayList<>();
+
+//       
+            for (Map.Entry<AbonoTb, List<ReporteDeuda>> entry : listAbond.entrySet()) {
+
+                ReporteAbonoData abono1 = new ReporteAbonoData();
+                abono1.setSection_var("");
+                if (sectionBond == 0) {
+                    abono1.setSection_var("SECCIÓN DE ABONOS");
+                }
+                abono1.setConcepto_var(entry.getValue().getFirst().getConceptBono());
+                abono1.setNum_solicitud_var(entry.getValue().getFirst().getNumSoli());
+                abono1.setNum_cuotas_pendiente_var(String.valueOf(entry.getValue().size()));
+                abono1.setVencimiento_information_var(entry.getValue().getLast().getFechaVencimiento());
+
+                List<Map<String, ?>> detalles2 = new ArrayList<>();
+                Double amountTotal = 0.0;
+
+                for (int i = 0; i < entry.getValue().size(); i++) {
+
+                    detalles2.add(Map.of(
+                            "details_var", entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size(),
+                            "vencimiento_var", entry.getValue().get(i).getFechaVencimiento(),
+                            "amount_var", entry.getValue().get(i).getMonto()));
+                    amountTotal += Double.parseDouble(entry.getValue().get(i).getMonto());
+                    //  totalAbonos += Double.parseDouble(entry.getValue().get(i).getMonto());  // Acumulando la deuda
+                }
+                abono1.setTotal_var("TOTAL DE DEUDA DEL ABONO: " + amountTotal.toString());
+                abono1.setDetalles(detalles2);
+
+                listReport.add(abono1);
+                sectionBond = 1;
+            }
+
+            for (Map.Entry<LoanTb, List<ReporteDeuda>> entry : listComLoan.entrySet()) {
+
+                ReporteAbonoData abono1 = new ReporteAbonoData();
+                abono1.setSection_var("");
+                if (sectionLoan == 0) {
+                    abono1.setSection_var("SECCIÓN DE PRÉSTAMOS");
+                }
+                abono1.setConcepto_var("PRÉSTAMO " + entry.getValue().getFirst().getNumSoli());
+                abono1.setNum_solicitud_var(entry.getValue().getFirst().getNumSoli());
+                abono1.setNum_cuotas_pendiente_var(String.valueOf(entry.getValue().size()));
+                abono1.setVencimiento_information_var(entry.getValue().getLast().getFechaVencimiento());
+
+                List<Map<String, ?>> detalles2 = new ArrayList<>();
+                Double amountTotal = 0.0;
+
+                for (int i = 0; i < entry.getValue().size(); i++) {
+
+                    detalles2.add(Map.of(
+                            "details_var", entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size(),
+                            "vencimiento_var", entry.getValue().get(i).getFechaVencimiento(),
+                            "amount_var", entry.getValue().get(i).getMonto()));
+                    amountTotal += Double.parseDouble(entry.getValue().get(i).getMonto());
+                    //  totalAbonos += Double.parseDouble(entry.getValue().get(i).getMonto());  // Acumulando la deuda
+                }
+                abono1.setTotal_var("TOTAL DE DEUDA DEL PRÉSTAMO: " + amountTotal.toString());
+                abono1.setDetalles(detalles2);
+
+                listReport.add(abono1);
+                sectionLoan = 1;
+
+            }
+
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("name_lastname_var", employeeFind.getFullName());
+            parameters.put("dni_var", employeeFind.getNationalId());
+
+// Carga el .jasper (NO el .jrxml si estás usando JRLoader)
+            InputStream reporteStream = getClass().getResourceAsStream("/reports/report_history_debt.jasper");
+
+            // Cargar el reporte
+            JasperReport jasperReport = (JasperReport) JRLoader.loadObject(reporteStream);
+
+            // Crear fuente de datos desde la lista
+            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(listReport);
+
+            // Llenar el reporte con los datos
+            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
+
+            // Crear una instancia personalizada del visor
+            JasperViewer jasperViewer = new JasperViewer(jasperPrint, false);
+
+            // Obtener el JFrame interno del visor
+            JFrame frame = (JFrame) jasperViewer.getContentPane().getParent().getParent().getParent();
+
+            // Cambiar el título de la ventana
+            frame.setTitle("REPORTE DE DEUDA");
+
+            // Cambiar el ícono de la ventana
+            ImageIcon icon = new ImageIcon(viewMain.getIconImage()); // asegúrate de que este recurso exista
+
+            frame.setIconImage(icon.getImage());
+
+            // Mostrar el visor
+            jasperViewer.setVisible(true);
+        } catch (Exception e) {
+
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al mostrar el reporte: " + e.getMessage());
+
+        }
     }
 }

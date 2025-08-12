@@ -43,6 +43,9 @@ import com.subcafae.finantialtracker.data.dao.LoanDetailsDao;
 import com.subcafae.finantialtracker.data.dao.RegistroDao;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
 import com.subcafae.finantialtracker.data.entity.RegistroDetailsModel;
+import com.subcafae.finantialtracker.model.ListDataReport;
+import com.subcafae.finantialtracker.model.ReportPayementData;
+import java.io.InputStream;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -50,8 +53,17 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.util.JRLoader;
+import net.sf.jasperreports.view.JasperViewer;
 
 /**
  *
@@ -122,194 +134,86 @@ public class HistoryPayment {
 
     }
 
-    public void comp(List<ModelPayment> data) {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Guardar reporte");
-        fileChooser.setSelectedFile(new File("historial_pag.pdf"));
-
-        int userSelection = fileChooser.showSaveDialog(null);
-
-        if (userSelection != JFileChooser.APPROVE_OPTION) {
-            System.out.println("Operación cancelada.");
-            return;
-        }
-
-        String dest = fileChooser.getSelectedFile().getAbsolutePath();
-
+    private void document_history(List<ModelPayment> data) {
         try {
-            PdfWriter writer = new PdfWriter(dest);
-            PdfDocument pdf = new PdfDocument(writer);
-            Document document = new Document(pdf, PageSize.A4);
 
-            pdf.addEventHandler(PdfDocumentEvent.END_PAGE, new Header());
-            document.setMargins(100, 30, 30, 30);
-            document.add(new Paragraph("HISTORIAL DE PAGOS")
-                    .setTextAlignment(TextAlignment.CENTER)
-                    .setBold()
-                    .setFontSize(16));
+            Map<String, Object> parametros = new HashMap<>();
+            parametros.put("lastName_parameter", firstEmployee.getFullName());
+            parametros.put("dni_parameter", firstEmployee.getNationalId());
 
-            document.add(new Paragraph("DNI: " + firstEmployee.getNationalId()));
-            document.add(new Paragraph("Apellidos y Nombres: " + firstEmployee.getFullName()));
-            System.out.println("Gaaa");
-            System.out.println("NN " + firstEmployee.getFullName());
-            System.out.println(document);
-            PdfFont monoFont = null;
-            try {
-                monoFont = PdfFontFactory.createFont(StandardFonts.COURIER);
-            } catch (IOException ex) {
+            List<Map<String, ?>> detalles = new ArrayList<>();
 
-            }
-
-            System.out.println("Entro");
-            Table mainTable = new Table(UnitValue.createPercentArray(new float[]{2, 2, 2, 2, 2, 2, 2}));
-            mainTable.setWidth(UnitValue.createPercentValue(50));
-
-            // Encabezados .setVerticalAlignment(VerticalAlignment.MIDDLE)
-            mainTable.addHeaderCell(new Cell().add(new Paragraph("Fecha").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setBold());
-            mainTable.addHeaderCell(new Cell().add(new Paragraph("Documento").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(70f).setBold());
-            mainTable.addHeaderCell(new Cell().add(new Paragraph("Monto Planilla").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(70f).setBold());
-            mainTable.addHeaderCell(new Cell().add(new Paragraph("Concepto de Pago").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(80f).setBold());
-            mainTable.addHeaderCell(new Cell().add(new Paragraph("Vencimiento").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(70f).setBold());
-            mainTable.addHeaderCell(new Cell().add(new Paragraph("Monto Pagado").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setBold());
-            mainTable.addHeaderCell(new Cell().add(new Paragraph("Monto Original").setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setFontSize(7f).setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setBold());
-
-            System.out.println("Entro");
+            List<Map<String, ?>> detalles_var  = new ArrayList<>();
+            
             for (ModelPayment payment : data) {
+                Map<String, Object> fila = new HashMap<>();
+                fila.put("date_field", payment.getFecha()); // Debe ser String
+                fila.put("document_field", payment.getCodeDocument());
+                fila.put("amount_field", payment.getAmountDocument());
 
-                // Agregar las celdas a la tabla principal
-                mainTable.addCell(
-                        new Cell().add(
-                                new Paragraph(
-                                        payment.getFecha()).setFont(
-                                        monoFont)).setVerticalAlignment(
-                                        VerticalAlignment.MIDDLE).setTextAlignment(
-                                        TextAlignment.CENTER).setFontSize(7f)).setBorder(Border.NO_BORDER).setBorderBottom(new SolidBorder(1f));
-                mainTable.addCell(new Cell().add(new Paragraph(payment.getCodeDocument())
-                        .setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setTextAlignment(TextAlignment.CENTER).setFontSize(7f)).setBorder(Border.NO_BORDER).setBorderBottom(new SolidBorder(1f)).setMarginTop(5f);
-                mainTable.addCell(new Cell().add(new Paragraph(
-                        payment.getAmountDocument()).setFont(monoFont)).setVerticalAlignment(VerticalAlignment.MIDDLE).setTextAlignment(TextAlignment.CENTER).setFontSize(7f)).setBorder(Border.NO_BORDER).setBorderBottom(new SolidBorder(1f));
-                //mainTable.addCell(new Cell(1, 3).add(subTable)); // La sub-tabla ocupa 3 columnas 
+                // Subdetalle (otra lista de maps)
+                List<Map<String, Object>> subDetalles = new ArrayList<>();
 
                 Map<String, String> dateList = payment.getAmountPaymentAndLoan();
 
                 List<Map.Entry<String, String>> amountList = new ArrayList<>(payment.getMapAndPaymeny().entrySet());
-                System.out.println("Entro");
-
-// Obtener el ancho de la columna principal
-// Crear la subtabla con 3 columnas
-                Table subTable = new Table(UnitValue.createPercentArray(new float[]{2, 1, 1, 1}));
-                subTable.setWidth(UnitValue.createPercentValue(100));
-                System.out.println("Entro");
-
-// Agregar celdas con un ancho fijo
-                System.out.println(dateList.toString());
-                System.out.println(amountList.toString());
 
                 for (int i = 0; i < amountList.size(); i++) {
-                    System.out.println("Entro");
-                    Cell conceptCell = new Cell().add(new Paragraph(amountList.get(i).getKey())).setFontSize(7f)
-                            .setTextAlignment(TextAlignment.LEFT).setMinWidth(80f).setMaxWidth(80f);
-                    subTable.addCell(conceptCell).setBorder(Border.NO_BORDER);
-                    System.out.println("Entro");
-                    Cell dateCell = new Cell().add(new Paragraph(dateList.get(amountList.get(i).getKey()))).setFontSize(7f)
-                            .setTextAlignment(TextAlignment.CENTER).setMinWidth(70f).setMaxWidth(70f);
-                    subTable.addCell(dateCell).setBorder(Border.NO_BORDER);
-                    System.out.println(dateList.get(amountList.get(i).getKey()));
-                    System.out.println("Entro");
-                    Cell amountParcialCell = new Cell().add(new Paragraph(amountList.get(i).getValue().toString().split("-")[0].trim().toString()))
-                            .setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setMaxWidth(60f).setFontSize(7f);
-                    subTable.addCell(amountParcialCell).setBorder(Border.NO_BORDER);
-                    System.out.println("Entro");
-                    Cell amountTotalCell = new Cell().add(new Paragraph(amountList.get(i).getValue().toString().split("-")[1].trim().toString()))
-                            .setTextAlignment(TextAlignment.CENTER).setMinWidth(60f).setMaxWidth(60f).setFontSize(7f);
-                    subTable.addCell(amountTotalCell).setBorder(Border.NO_BORDER);
+                    Map<String, Object> subFila = new HashMap<>();
+                    subFila.put("concept_payment_field", amountList.get(i).getKey());
+                    subFila.put("vencimiento_field", dateList.get(amountList.get(i).getKey()));
+                    subFila.put("amount_payment_field", amountList.get(i).getValue().toString().split("-")[0].trim().toString());
+                    subFila.put("amount_pri_field", amountList.get(i).getValue().toString().split("-")[1].trim().toString());
+                    subDetalles.add(subFila);
                 }
 
-                System.out.println("Pepeee");
-                System.out.println("Entro");
-
-// Crear la celda que contendrá la subtabla
-                Cell subTableCell = new Cell(1, 4).add(subTable);
-                subTableCell.setBorder(Border.NO_BORDER);
-                subTableCell.setPadding(0);
-                subTableCell.setWidth(50); // Fijar el ancho para que no se desajuste
-                mainTable.addCell(subTableCell).setBorder(Border.NO_BORDER).setBorderBottom(new SolidBorder(1f));
-
-                System.out.println("Loaa");
+                fila.put("detalles_sub", subDetalles); // importante: esta clave debe coincidir con el JRXML
+                detalles.add(fila);
             }
+            detalles_var.add(Map.of("detalles" , detalles));
+            
+            System.out.println("Salio");
 
-            System.out.println("MM " + firstEmployee.getFullName());
+            InputStream reporteStream = getClass().getResourceAsStream("/reports/report_payment.jasper");
 
-            System.out.println("Entro");
+            // Cargar el reporte
+            JasperReport jasperReport = (JasperReport) JRLoader.loadObject(reporteStream);
 
-            System.out.println("MM " + firstEmployee.getFullName());
+            System.out.println("Model -> " + detalles.toString());
+            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(detalles_var);
+            // Llenar el reporte con los datos
+            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parametros, dataSource);
 
-            System.out.println("Document " + document);
+            // Crear una instancia personalizada del visor
+            JasperViewer jasperViewer = new JasperViewer(jasperPrint, false);
 
-            document.add(mainTable);
+            // Obtener el JFrame interno del visor
+            JFrame frame = (JFrame) jasperViewer.getContentPane().getParent().getParent().getParent();
 
-            System.out.println("Document " + document);
+            // Cambiar el título de la ventana
+            frame.setTitle("REPORTE DE DEUDA");
 
-            document.add(new LineSeparator(new SolidLine(1f)) // Grosor de 1 punto
-                    .setMarginTop(10).setMarginTop(10));
+            // Cambiar el ícono de la ventana
+            ImageIcon icon = new ImageIcon(getClass().getResource("/IconGeneral/logoIcon.png")); // asegúrate de que este recurso exista
 
-            document.close();
+            frame.setIconImage(icon.getImage());
 
-            System.out.println("LOLA");
-            System.out.println("Reporte generado en: " + dest);
-            System.out.println("Pepe");
-            try {
-                Desktop.getDesktop().open(new File(dest));
-            } catch (IOException ex) {
-                System.out.println("Entro");
-                JOptionPane.showMessageDialog(null, ex.getMessage());
-                //Logger.getLogger(TabbedPane.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
-        } catch (FileNotFoundException ex) {
-            JOptionPane.showMessageDialog(null, ex.getMessage());
-            JOptionPane.showMessageDialog(null, "Ocurrio un Problema");
+            // Mostrar el visor
+            jasperViewer.setVisible(true);
+        } catch (JRException ex) {
+            Logger.getLogger(HistoryPayment.class.getName()).log(Level.SEVERE, null, ex);
         }
 
     }
 
-    static class Header implements IEventHandler {
+    public void comp(List<ModelPayment> data) {
 
-        @Override
-        public void handleEvent(Event event) {
-            PdfDocumentEvent docEvent = (PdfDocumentEvent) event;
-            PdfDocument pdfDoc = docEvent.getDocument();
-            PdfPage page = docEvent.getPage();
-            int pageNumber = pdfDoc.getPageNumber(page);
-            Rectangle pageSize = page.getPageSize();
-            PdfCanvas pdfCanvas = new PdfCanvas(page.newContentStreamBefore(), page.getResources(), pdfDoc);
+        try {
+            document_history(data);
 
-            String fechaActual = new SimpleDateFormat("dd/MM/yyyy").format(new Date());
-
-            try {
-
-                PdfFont font = PdfFontFactory.createFont(StandardFonts.COURIER);
-                pdfCanvas.beginText()
-                        .setFontAndSize(font, 10)
-                        .moveText(pageSize.getLeft() + 40, pageSize.getTop() - 30)
-                        .showText("HISTORIAL DE PAGOS")
-                        .moveText(200, 0)
-                        .showText("Fecha: " + fechaActual)
-                        .moveText(250, 0)
-                        .showText("Página: " + pageNumber)
-                        .endText();
-
-                pdfCanvas.moveTo(pageSize.getLeft() + 30, pageSize.getTop() - 35)
-                        .lineTo(pageSize.getRight() - 30, pageSize.getTop() - 35)
-                        .setStrokeColor(ColorConstants.BLACK)
-                        .setLineWidth(1)
-                        .stroke();
-
-            } catch (IOException ex) {
-                //  Logger.getLogger(ReporteAbono.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
-            pdfCanvas.release();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, ex.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrio un Problema");
         }
 
     }

@@ -24,12 +24,14 @@ import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 
 /**
  *
  * @author Jesus Gutierrez
  */
 public class ModelManageLoan extends LoanDao {
+    
 
     public ComponentManageLoan componentManageLoan;
     protected List<EmployeeTb> listEmployeeApplicant;
