@@ -517,10 +517,9 @@ public class ModelMain {
                             }
 
                         } else {
-
                             if (employee1.getNationalId().equalsIgnoreCase(loan1.getGuarantorIds())) {
 
-                                for (LoanDetailsTb loanDetail1 : loanDetails) {
+                                for (LoanDetailsTb loanDetail1 : new LoanDetailsDao().findLoanDetailsByLoanId(loan1.getId())) {
 
                                     if (loan1.getId() == loanDetail1.getLoanId() && (loanDetail1.getState().equalsIgnoreCase("Pendiente") || loanDetail1.getState().equalsIgnoreCase("Parcial"))) {
 
@@ -759,7 +758,7 @@ public class ModelMain {
                 new ReporteDeuda().reporteDeuda(
                         employeeFind.getFullName(), employeeFind.getNationalId(),
                         lisComAbono, listComLoan);
-                
+
                 document_report(employeeFind, listComLoan, lisComAbono);
 
                 viewMain.loading.dispose();
@@ -1345,8 +1344,6 @@ public class ModelMain {
 
         // 7. Exportar a PDF (ejemplo)
     }
-
-
 
     private void document_report(EmployeeTb employeeFind, Map<LoanTb, List<ReporteDeuda>> listComLoan, Map<AbonoTb, List<ReporteDeuda>> listAbond) {
         try {
