@@ -38,6 +38,7 @@ import com.subcafae.finantialtracker.view.component.ComponentManageBond;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
 import com.subcafae.finantialtracker.view.component.ComponentManageUser;
 import com.subcafae.finantialtracker.view.component.ComponentManageWorker;
+import com.subcafae.finantialtracker.view.component.ComponentSearchEmpl;
 import com.sun.jna.platform.win32.WinBase;
 import java.awt.Color;
 import java.awt.Image;
@@ -272,57 +273,14 @@ public class ModelMain {
 
         new Thread(() -> {
 
-            EmployeeDao empleadoDao = new EmployeeDao();
-
-            String[] workerOptions = {"CAS", "Nombrado"};
-
-            String nombresBuscar = (String) JOptionPane.showInputDialog(
-                    null,
-                    "Selecciona el tipo de trabajador:",
-                    "Tipo de Trabajador",
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    workerOptions,
-                    workerOptions[0]
-            );
-            if (nombresBuscar == null) {
-                return;
-            }
-
             try {
-
-                String[] employee = empleadoDao.findAll()
-                        .stream().filter(predicate -> predicate.getEmploymentStatus().equalsIgnoreCase(nombresBuscar)
-                        ).map(
-                                map -> map.getNationalId().concat(" - ".concat(map.getFullName()))
-                        ).toArray(String[]::new);
-
-                String nombre = (String) JOptionPane.showInputDialog(
-                        null,
-                        "Selecciona el tipo de trabajador:",
-                        "Listado de Trabajador",
-                        JOptionPane.QUESTION_MESSAGE,
-                        null,
-                        employee,
-                        employee[0]
-                );
-
-                if (nombre == null) {
-                    return;
-                }
-
-                viewMain.loading.setVisible(true);
-
-                String dniSeleccionado = nombre.split(" - ")[0].trim();
                 
-                HistoryPayment historyPayment = new HistoryPayment();
-
-                historyPayment.HistoryPatment(dniSeleccionado);
-
-                viewMain.loading.dispose();
+            EmployeeDao empleadoDao = new EmployeeDao();
+            centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE PAGOS", empleadoDao.findAll(), false , viewMain));
+          
 
             } catch (Exception ex) {
-                
+
                 System.out.println("Error -> " + ex.getMessage());
                 JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DESCUENTO", JOptionPane.WARNING_MESSAGE);
                 viewMain.loading.dispose();
@@ -489,7 +447,7 @@ public class ModelMain {
 
                             if (employee1.getNationalId().equalsIgnoreCase(loan1.getGuarantorIds())) {
 
-                                for (LoanDetailsTb loanDetail1 : loanDetails) {
+                                for (LoanDetailsTb loanDetail1 : new LoanDetailsDao().findLoanDetailsByLoanId(loan1.getId())) {
 
                                     if (loan1.getId() == loanDetail1.getLoanId() && (loanDetail1.getState().equalsIgnoreCase("Pendiente") || loanDetail1.getState().equalsIgnoreCase("Parcial"))) {
 
@@ -571,175 +529,21 @@ public class ModelMain {
 
     public void reportDeuda() {
 
-        new Thread(() -> {
-
-            try {
-
-                List<EmployeeTb> listEmployee = new EmployeeDao().findAll();
-
-                if (listEmployee.isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "No hay ningún empleado.", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                String[] namee = listEmployee.stream().map(name -> name.getNationalId().concat(" - " + name.getFullName())).toArray(String[]::new);
-
-                String nombresBuscar = (String) JOptionPane.showInputDialog(
-                        null,
-                        "Listado de trabajadores",
-                        "GESTIÓN DE DEUDAS",
-                        JOptionPane.QUESTION_MESSAGE,
-                        null,
-                        namee,
-                        namee[0]
-                );
-
-                if (nombresBuscar == null) {
-                    JOptionPane.showMessageDialog(null, "No seleccionaste ningún empleado.", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                viewMain.loading.setVisible(true);
-
-                List<ServiceConceptTb> listService = new ServiceConceptDao().getAllServiceConcepts();
-                System.out.println("Entrando -------- ");
-                EmployeeTb employeeFind = listEmployee.stream().filter(predicate -> predicate.getNationalId().equalsIgnoreCase(nombresBuscar.split("-")[0].trim())).findFirst().get();
-                System.out.println("Entrando ");
-                List<AbonoTb> listAbond = new AbonoDao().findAllAbonos().stream().filter(
-                        predicate
-                        -> predicate.getEmployeeId().equalsIgnoreCase(employeeFind.getEmployeeId().toString())
-                        && predicate.getStatus().equalsIgnoreCase("Pendiente")
-                ).collect(Collectors.toList());
-                System.out.println("Entrando ");
-
-                List<LoanTb> listLoan = new ArrayList<>();
-
-                for (LoanTb allLoan : new LoanDao().getAllLoans()) {
-
-                    if (allLoan.getPaymentResponsibility().equalsIgnoreCase("EMPLOYEE") && allLoan.getState().equalsIgnoreCase("Aceptado") && allLoan.getStateLoan().equalsIgnoreCase("Pendiente")) {
-                        if (employeeFind.getNationalId().equalsIgnoreCase(allLoan.getEmployeeId())) {
-                            listLoan.add(new LoanTb(
-                                    allLoan.getId(),
-                                    allLoan.getSoliNum(),
-                                    allLoan.getEmployeeId(),
-                                    allLoan.getGuarantorIds(),
-                                    allLoan.getAmountWithdrawn(),
-                                    allLoan.getRequestedAmount(),
-                                    allLoan.getDues(),
-                                    allLoan.getPaymentDate(),
-                                    allLoan.getState(),
-                                    allLoan.getRefinanceParentId(),
-                                    allLoan.getCreatedBy(),
-                                    allLoan.getCreatedAt(),
-                                    allLoan.getModifiedAt(),
-                                    allLoan.getModifiedBy(),
-                                    allLoan.getType(),
-                                    allLoan.getPaymentResponsibility()));
-                        }
-                    } else if (allLoan.getPaymentResponsibility().equalsIgnoreCase("GUARANTOR") && allLoan.getState().equalsIgnoreCase("Aceptado") && allLoan.getStateLoan().equalsIgnoreCase("Pendiente")) {
-                        if (employeeFind.getNationalId().equalsIgnoreCase(allLoan.getGuarantorIds())) {
-
-                            listLoan.add(new LoanTb(
-                                    allLoan.getId(),
-                                    allLoan.getSoliNum(),
-                                    allLoan.getEmployeeId(),
-                                    allLoan.getGuarantorIds(),
-                                    allLoan.getAmountWithdrawn(),
-                                    allLoan.getRequestedAmount(),
-                                    allLoan.getDues(),
-                                    allLoan.getPaymentDate(),
-                                    allLoan.getState(),
-                                    allLoan.getRefinanceParentId(),
-                                    allLoan.getCreatedBy(),
-                                    allLoan.getCreatedAt(),
-                                    allLoan.getModifiedAt(),
-                                    allLoan.getModifiedBy(),
-                                    allLoan.getType(),
-                                    allLoan.getPaymentResponsibility()));
-                        }
-                    }
-
-                }
-                System.out.println("Entrando ");
-
-                Map<AbonoTb, List<ReporteDeuda>> lisComAbono = new HashMap<>();
-                Map<LoanTb, List<ReporteDeuda>> listComLoan = new HashMap<>();
-
-                for (AbonoTb abonoTb : listAbond) {
-
-                    ServiceConceptTb service = listService.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get();
-                    //
-                    List<ReporteDeuda> listBonoo = new ArrayList<>();
-
-                    for (AbonoDetailsTb allAbonoDetail : new AbonoDetailsDao().getAllAbonoDetails()) {
-
-                        if (allAbonoDetail.getAbonoID() == abonoTb.getId() && (allAbonoDetail.getState().equalsIgnoreCase("Parcial") || allAbonoDetail.getState().equalsIgnoreCase("Pendiente"))) {
-
-                            ReporteDeuda modelBono = new ReporteDeuda();
-                            modelBono.setConceptBono(service.getDescription());
-                            modelBono.setDetalleCouta(String.valueOf(allAbonoDetail.getDues()));
-                            modelBono.setFechaVencimiento(allAbonoDetail.getPaymentDate());
-                            modelBono.setMonto(String.format("%.2f", allAbonoDetail.getMonthly() - allAbonoDetail.getPayment()));
-                            modelBono.setNumSoli(abonoTb.getSoliNum());
-
-                            listBonoo.add(modelBono);
-
-                        }
-                    }
-
-                    lisComAbono.put(abonoTb, listBonoo);
-
-                }
-
-                for (LoanTb loanTb : listLoan) {
-
-                    List<ReporteDeuda> listPrestamo = new ArrayList<>();
-
-                    for (LoanDetailsTb allLoanDetail : new LoanDetailsDao().getAllLoanDetails()) {
-
-                        if (allLoanDetail.getLoanId() == loanTb.getId() && (allLoanDetail.getState().equalsIgnoreCase("Parcial") || allLoanDetail.getState().equalsIgnoreCase("Pendiente"))) {
-
-                            ReporteDeuda modelPrestamo = new ReporteDeuda();
-                            System.out.println("SOli -> " + loanTb.getSoliNum());
-                            modelPrestamo.setNumSoli(loanTb.getSoliNum());
-                            modelPrestamo.setDetalleCouta(String.valueOf(allLoanDetail.getDues()));
-                            modelPrestamo.setFechaVencimiento(allLoanDetail.getPaymentDate().toString());
-                            modelPrestamo.setMonto(String.format("%.2f", allLoanDetail.getMonthlyFeeValue() - allLoanDetail.getPayment()));
-                            //
-                            Double montoSinFondo = allLoanDetail.getMonthlyFeeValue() - allLoanDetail.getMonthlyIntangibleFundFee();
-
-                            if (montoSinFondo <= Double.valueOf(modelPrestamo.getMonto())) {
-                                modelPrestamo.setFondo(String.valueOf(allLoanDetail.getMonthlyIntangibleFundFee()));
-                            }
-
-                            listPrestamo.add(modelPrestamo);
-
-                        }
-                        listComLoan.put(loanTb, listPrestamo);
-                    }
-                }
-
-                if (listComLoan.isEmpty() && lisComAbono.isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "No hay bonos y préstamos con el trabajador", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                    viewMain.loading.dispose();
-                    return;
-                }
-
-                new ReporteDeuda().reporteDeuda(
-                        employeeFind.getFullName(), employeeFind.getNationalId(),
-                        lisComAbono, listComLoan);
-
-                viewMain.loading.dispose();
-
-            } catch (SQLException ex) {
-                System.out.println("Error -> " + ex.getMessage());
-                JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                viewMain.loading.dispose();
-                // Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+        List<EmployeeTb> listEmployee;
+        try {
+            listEmployee = new EmployeeDao().findAll();
+            if (listEmployee.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "No hay ningún empleado.", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                return;
             }
 
-        }).start();
+            centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE DEUDAS", listEmployee, true , viewMain));
+          
+        } catch (SQLException ex) {
+            Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
+        // viewMain.loading.setVisible(true);
     }
 
     public void cleanVoucher() {

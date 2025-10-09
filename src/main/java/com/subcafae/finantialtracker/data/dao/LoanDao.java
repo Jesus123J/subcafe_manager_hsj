@@ -226,7 +226,7 @@ public class LoanDao extends LoanDetailsDao {
                 + "FROM loan l \n"
                 + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id \n"
                 + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id\n"
-               + "LEFT JOIN (\n"
+                + "LEFT JOIN (\n"
                 + "    SELECT ld.* \n"
                 + "    FROM loandetail ld \n"
                 + "    WHERE ld.ID = (SELECT MIN(ID) FROM loandetail WHERE LoanID = ld.LoanID) \n"
@@ -574,18 +574,57 @@ public class LoanDao extends LoanDetailsDao {
     }
 
     public void updateSoliNumStatus(String soliNum, String status, int userModifi) throws SQLException {
+        String selectSql = "SELECT RefinanceParentId FROM loan WHERE SoliNum = ?";
+        String updateParentSql = "UPDATE loan SET State = ?, ModifiedAt = ?, ModifiedBy = ? WHERE SoliNum = ?";
+        String updateChildSql = "UPDATE loan SET State = ?, ModifiedAt = ?, ModifiedBy = ? WHERE Id = ?";
 
-        String updateSql = "UPDATE loan SET State = ? , ModifiedAt = ? ,ModifiedBy = ?  WHERE SoliNum = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(updateSql)) {
-            stmt.setString(1, status);
-            stmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
-            stmt.setInt(3, userModifi);
-            stmt.setString(4, soliNum);
+        connection.setAutoCommit(false);
 
-            stmt.executeUpdate();
+        try (
+                PreparedStatement stmtSelect = connection.prepareStatement(selectSql); PreparedStatement stmtUpdateParent = connection.prepareStatement(updateParentSql); PreparedStatement stmtUpdateChild = connection.prepareStatement(updateChildSql)) {
+            // 🔹 1️⃣ Buscar el préstamo principal
+            stmtSelect.setString(1, soliNum);
+            ResultSet rs = stmtSelect.executeQuery();
+
+            if (!rs.next()) {
+                throw new SQLException("No se encontró ningún préstamo con SoliNum = " + soliNum);
+            }
+
+            int parentId = rs.getInt("RefinanceParentId");
+
+            // 🔹 2️⃣ Actualizar préstamo principal
+            stmtUpdateParent.setString(1, status);
+            stmtUpdateParent.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+            stmtUpdateParent.setInt(3, userModifi);
+            stmtUpdateParent.setString(4, soliNum);
+            stmtUpdateParent.executeUpdate();
+
+            // 🔹 3️⃣ Si el estado es "Cancelado", buscar préstamo refinanciado
+            if (status.equalsIgnoreCase("Denegado")) {
+
+                stmtUpdateChild.setString(1, "Aceptado");
+                stmtUpdateChild.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+                stmtUpdateChild.setInt(3, userModifi);
+                stmtUpdateChild.setInt(4, parentId);
+
+                int updatedChild = stmtUpdateChild.executeUpdate();
+
+                if (updatedChild > 0) {
+                    System.out.println("✔ El préstamo refinanciado fue actualizado a 'Aceptado'.");
+                }
+
+            }
+
+            connection.commit();
+
+        } catch (SQLException ex) {
+            connection.rollback();
+            throw ex;
+        } finally {
+            connection.setAutoCommit(true);
         }
     }
-
+    
     private void setInsertParameters(PreparedStatement stmt, LoanTb loan) throws SQLException {
 
         stmt.setString(1, loan.getEmployeeId());
