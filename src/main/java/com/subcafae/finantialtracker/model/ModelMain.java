@@ -1152,19 +1152,24 @@ public class ModelMain {
                     List<AbonoTb> abonoList = new AbonoDao().findAbonosByEmployeeAndCurrentYear(entry.getKey().getEmployeeId().toString());
                     List<LoanTb> prestamoList = new LoanDao().findLoansByEmployeeId(entry.getKey().getNationalId());
 
+                    // Recolectar TODAS las cuotas pendientes/parciales de préstamos
                     for (LoanTb loanTb : prestamoList) {
                         for (LoanDetailsTb loanDetailsTb : new LoanDetailsDao().findLoanDetailsByLoanId(loanTb.getId())) {
                             if (loanDetailsTb.getState().equalsIgnoreCase("Pendiente") || loanDetailsTb.getState().equalsIgnoreCase("Parcial")) {
                                 LocalDate fechaVencimiento = loanDetailsTb.getPaymentDate().toLocalDate();
-                                if (LocalDate.now().isAfter(fechaVencimiento)) {
-                                    System.out.println("Se encuentra un prestamo pendiente");
+                                // Solo agregar si está vencida o es del mes actual
+                                if (LocalDate.now().isAfter(fechaVencimiento)
+                                    || (LocalDate.now().getMonth().equals(fechaVencimiento.getMonth())
+                                        && LocalDate.now().getYear() == fechaVencimiento.getYear())) {
                                     prestamos.add(loanDetailsTb);
-                                } else if (LocalDate.now().getMonth().equals(fechaVencimiento.getMonth()) && LocalDate.now().getYear() == fechaVencimiento.getYear()) {
-                                    prestamos.add(loanDetailsTb);
+                                    System.out.println("Se encuentra un prestamo pendiente - Fecha: " + loanDetailsTb.getPaymentDate());
                                 }
                             }
                         }
                     }
+
+                    // Ordenar por fecha de vencimiento (más antigua primero)
+                    prestamos.sort((p1, p2) -> p1.getPaymentDate().compareTo(p2.getPaymentDate()));
 
                     List<AbonoDetailsTb> firtsServ = new ArrayList<>();
                     List<AbonoDetailsTb> secondServ = new ArrayList<>();
@@ -1184,36 +1189,36 @@ public class ModelMain {
                         }
                     }
 
-                    //
+                    // Recolectar TODAS las cuotas de abonos (primera prioridad)
                     for (AbonoDetailsTb abonoDetailsTb : firtsServ) {
-
                         if (abonoDetailsTb.getState().equalsIgnoreCase("Pendiente") || abonoDetailsTb.getState().equalsIgnoreCase("Parcial")) {
-
                             LocalDate payment = LocalDate.parse(abonoDetailsTb.getPaymentDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-                            if (LocalDate.now().isAfter(payment)) {
-                                System.out.println("Se encontro una deuda de abono primer");
+                            // Solo agregar si está vencida o es del mes actual
+                            if (LocalDate.now().isAfter(payment)
+                                || (LocalDate.now().getMonth().equals(payment.getMonth())
+                                    && LocalDate.now().getYear() == payment.getYear())) {
                                 bonos.add(abonoDetailsTb);
-                            } else if (LocalDate.now().getMonth().equals(payment.getMonth()) && LocalDate.now().getYear() == payment.getYear()) {
-                                bonos.add(abonoDetailsTb);
+                                System.out.println("Se encontro una deuda de abono primera prioridad - Fecha: " + abonoDetailsTb.getPaymentDate());
                             }
                         }
                     }
 
+                    // Recolectar TODAS las cuotas de abonos (segunda prioridad)
                     for (AbonoDetailsTb abonoDetailsTb : secondServ) {
-
                         if (abonoDetailsTb.getState().equalsIgnoreCase("Pendiente") || abonoDetailsTb.getState().equalsIgnoreCase("Parcial")) {
-
                             LocalDate payment = LocalDate.parse(abonoDetailsTb.getPaymentDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-                            if (LocalDate.now().isAfter(payment)) {
-                                System.out.println("Se encontro una deuda de abono primer");
+                            // Solo agregar si está vencida o es del mes actual
+                            if (LocalDate.now().isAfter(payment)
+                                || (LocalDate.now().getMonth().equals(payment.getMonth())
+                                    && LocalDate.now().getYear() == payment.getYear())) {
                                 bonos.add(abonoDetailsTb);
-                            } else if (LocalDate.now().getMonth().equals(payment.getMonth()) && LocalDate.now().getYear() == payment.getYear()) {
-                                bonos.add(abonoDetailsTb);
+                                System.out.println("Se encontro una deuda de abono segunda prioridad - Fecha: " + abonoDetailsTb.getPaymentDate());
                             }
                         }
                     }
+
+                    // Ordenar todos los bonos por fecha de vencimiento (más antigua primero)
+                    bonos.sort((b1, b2) -> b1.getPaymentDate().compareTo(b2.getPaymentDate()));
 
 //                new LoanDetailsDao().updateLoanStateByLoandetailId(loanDetailsTb.getId(), loanDetailsTb.getMonthlyFeeValue(), monto);
 //                new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), montoFinal);
@@ -1223,7 +1228,7 @@ public class ModelMain {
                     List<AbonoDetailsTb> bonos2 = new ArrayList<>();
 
                     for (LoanDetailsTb prestamo : prestamos) {
-                        if (cantidad == 0.0) {
+                        if (cantidad <= 0.0) {
                             break;
                         }
                         double monotp = prestamo.getPayment();
@@ -1234,16 +1239,18 @@ public class ModelMain {
                             prestamo.setMonto(monotoPayme);
                             prestamos2.add(prestamo);
                             cantidad -= monotoPayme;
+                            System.out.println("Préstamo pagado completamente: " + monotoPayme + " - Restante: " + cantidad);
                         } else {
                             new LoanDetailsDao().updateLoanStateByLoandetailId(prestamo.getId(), prestamo.getMonthlyFeeValue(), cantidad);
                             prestamo.setMonto(cantidad);
                             prestamos2.add(prestamo);
-                            cantidad -= cantidad;
+                            System.out.println("Préstamo pagado parcialmente: " + cantidad + " de " + monotoPayme);
+                            cantidad = 0.0;
                         }
                     }
 
                     for (AbonoDetailsTb bono : bonos) {
-                        if (cantidad == 0.0) {
+                        if (cantidad <= 0.0) {
                             break;
                         }
 
@@ -1255,12 +1262,13 @@ public class ModelMain {
                             bono.setMonto(monotoPayme);
                             bonos2.add(bono);
                             cantidad -= monotoPayme;
+                            System.out.println("Abono pagado completamente: " + monotoPayme + " - Restante: " + cantidad);
                         } else {
-
                             new AbonoDetailsDao().updateLoanStateByLoandetailId(bono.getId(), bono.getMonthly(), cantidad);
                             bono.setMonto(cantidad);
                             bonos2.add(bono);
-                            cantidad -= cantidad;
+                            System.out.println("Abono pagado parcialmente: " + cantidad + " de " + monotoPayme);
+                            cantidad = 0.0;
                         }
 
                     }
