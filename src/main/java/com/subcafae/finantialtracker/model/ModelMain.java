@@ -274,10 +274,9 @@ public class ModelMain {
         new Thread(() -> {
 
             try {
-                
-            EmployeeDao empleadoDao = new EmployeeDao();
-            centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE PAGOS", empleadoDao.findAll(), false , viewMain));
-          
+
+                EmployeeDao empleadoDao = new EmployeeDao();
+                centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE PAGOS", empleadoDao.findAll(), false, viewMain));
 
             } catch (Exception ex) {
 
@@ -537,8 +536,8 @@ public class ModelMain {
                 return;
             }
 
-            centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE DEUDAS", listEmployee, true , viewMain));
-          
+            centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE DEUDAS", listEmployee, true, viewMain));
+
         } catch (SQLException ex) {
             Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -794,7 +793,7 @@ public class ModelMain {
                             return;
                         }
 
-                        if (localDate.getYear() == LocalDate.now().getYear() && localDate.getMonth().equals(LocalDate.now().getMonth())) {
+                        //if (localDate.getYear() == LocalDate.now().getYear() && localDate.getMonth().equals(LocalDate.now().getMonth())) {
 
                             while ((linea = reader.readLine()) != null) { // Leer línea por línea
                                 count++;
@@ -825,10 +824,10 @@ public class ModelMain {
                                     break;
                             }
 
-                        } else {
-                            viewMain.jLabelCode.setText("");
-                            JOptionPane.showMessageDialog(null, "FECHA INCOPATIBLE CON EL ACTUAL");
-                        }
+//                        } else {
+//                            viewMain.jLabelCode.setText("");
+//                            JOptionPane.showMessageDialog(null, "FECHA INCOPATIBLE CON EL ACTUAL");
+//                        }
                         viewMain.jLabelCantidad.setText(String.valueOf(count)); // Actualizar etiqueta con el conteo
                         viewMain.loading.dispose();
                         viewMain.jInternalPagoPrestamosOtros.setEnabled(true);
@@ -847,6 +846,9 @@ public class ModelMain {
         }
     }
 
+    private String mes;
+    private String anio;
+
     private String extraerDatos(String linea, int count) {
         try {
             int posMonto = linea.indexOf("0604");
@@ -858,13 +860,17 @@ public class ModelMain {
                 return "4";
             }
             String code = linea.substring(0, 4).trim();
-            String mes = linea.substring(4, 6).trim();
-            String anio = linea.substring(6, 8).trim();
+            mes = linea.substring(4, 6).trim();
+            anio = linea.substring(6, 8).trim();
 
             String nombre = linea.substring(8, posMonto).replaceAll("[0-9]", "").trim();
             String montoStr = linea.substring(8, posMonto).trim().replaceAll("[^0-9]", "");
 
             double monto = Double.parseDouble(montoStr) / 100;
+
+            if (nombre.contains("\uFFFD")) {
+                nombre = nombre.replaceAll("\uFFFD", "Ñ");
+            }
 
             List<EmployeeTb> empleadoFind = new EmployeeDao().findEmployeesByFullName(nombre);
 
@@ -909,10 +915,26 @@ public class ModelMain {
             return;
         }
 
+        if (JOptionPane.NO_OPTION == JOptionPane.showConfirmDialog(
+                null,
+                "Atención:\n\n"
+                + "El archivo cargado pertenece al mes y año: " + mes + "/" + anio + ".\n"
+                + "Verifica que esta fecha coincida con el mes y año actual. Si no corresponde, el proceso no continuará.\n\n"
+                + "El descuento se aplicará al monto obtenido del archivo y también a cualquier pendiente que exista hacia atrás o este mes en el historial.\n\n"
+                + "¿Deseas continuar con el proceso?",
+                "Confirmación requerida",
+                JOptionPane.YES_NO_OPTION
+        )) {
+            return;
+        }
+
         ViewMain.loading.setVisible(true);
         viewMain.setEnabled(false);
 
         new Thread(() -> {
+            boolean ver = false;
+            int cat = 0;
+
             for (Map.Entry<EmployeeTb, Double> entry : mapCom.entrySet()) {
 
                 try {
@@ -928,7 +950,13 @@ public class ModelMain {
                         for (LoanDetailsTb loanDetailsTb : new LoanDetailsDao().findLoanDetailsByLoanId(loanTb.getId())) {
                             if (loanDetailsTb.getState().equalsIgnoreCase("Pendiente") || loanDetailsTb.getState().equalsIgnoreCase("Parcial")) {
                                 LocalDate fechaVencimiento = loanDetailsTb.getPaymentDate().toLocalDate();
-                                if (LocalDate.now().isAfter(fechaVencimiento)) {
+                                // el documento que cargo la señora esta en NOMBRADOS / Solo afecto a empleados nombrados 
+                                // los CAS 
+                                // el pago que resive del txt  / puede ser mayor o menor   990  /  1300 / 400 / 3004
+
+                                // 11 ocutbre(1000) - 11 noviembre (1000)  -   11 diciembre (1000) / 2000 o 1895  / 2001
+                                // el pago descueto hoy  noviembre 1000 
+                                if (/* Noviembre*/LocalDate.now().isAfter(fechaVencimiento /*12 diciemnr */)) {  // la fecha es mayor entra
                                     System.out.println("Se encuentra un prestamo pendiente");
                                     prestamos.add(loanDetailsTb);
                                 } else if (LocalDate.now().getMonth().equals(fechaVencimiento.getMonth()) && LocalDate.now().getYear() == fechaVencimiento.getYear()) {
@@ -1037,9 +1065,13 @@ public class ModelMain {
 
                     }
 
-                    new RegistroDao().insertarRegistroCompleto(registroTb, prestamos2, bonos2);
+                    cat = new RegistroDao().insertarRegistroCompleto(registroTb, prestamos2, bonos2);
 
+                    if (cat == 1) {
+                        ver = true;
+                    }
                 } catch (Exception ex) {
+
                     viewMain.setEnabled(true);
                     ViewMain.loading.setVisible(false);
                     JOptionPane.showMessageDialog(null, "Ocurrio un error", "MENSAJE", JOptionPane.WARNING_MESSAGE);
@@ -1049,12 +1081,19 @@ public class ModelMain {
                 }
 
             }
+
+            if (!ver) {
+                JOptionPane.showMessageDialog(null, "No hubo nada que descontar", "MENSAJE", JOptionPane.WARNING_MESSAGE);
+            }
+            if (ver) {
+                JOptionPane.showMessageDialog(null, "Se registro", "MENSAJE", JOptionPane.WARNING_MESSAGE);
+            }
             viewMain.setEnabled(true);
             ViewMain.loading.setVisible(false);
-            JOptionPane.showMessageDialog(null, "Se registro", "MENSAJE", JOptionPane.WARNING_MESSAGE);
 
         }).start();
 
         //   viewMain.loading.dispose();
     }
+
 }
