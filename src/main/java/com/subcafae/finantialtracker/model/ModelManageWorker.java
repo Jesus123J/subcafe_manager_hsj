@@ -81,18 +81,21 @@ public class ModelManageWorker extends EmployeeDao {
     }
 
     public void tableList(Date date, Date date2) {
-
-        DefaultTableModel model = (DefaultTableModel) componentManageWorker.jTableListEmployee.getModel();
-        model.setRowCount(0);
-        List<EmployeeTb> listEmployee = new EmployeeDao().getEmployeesByDateRange(date, date2);
-        for (EmployeeTb employeeTb : listEmployee) {
-            model.addRow(new Object[]{
-                employeeTb.getFullName(),
-                employeeTb.getNationalId(),
-                employeeTb.getEmploymentStatus()
-            });
+        try {
+            DefaultTableModel model = (DefaultTableModel) componentManageWorker.jTableListEmployee.getModel();
+            model.setRowCount(0);
+            List<EmployeeTb> listEmployee = new EmployeeDao().getEmployeesByDateRange(date, date2);
+            for (EmployeeTb employeeTb : listEmployee) {
+                model.addRow(new Object[]{
+                    employeeTb.getFullName(),
+                    employeeTb.getNationalId(),
+                    employeeTb.getEmploymentStatus()
+                });
+            }
+        } catch (Exception e) {
+            System.out.println("Error -> " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrió un problema al cargar la lista de empleados", "GESTIÓN TRABAJADOR", JOptionPane.ERROR_MESSAGE);
         }
-
     }
 
 }

@@ -145,10 +145,17 @@ public class ControllerManageWorker extends ModelManageWorker implements ActionL
 
                     if (option == JOptionPane.OK_OPTION) {
                         String newStatus = (String) comboBox.getSelectedItem();
-
-                        new EmployeeDao().updateEmploymentStatusByDNI(dni, newStatus);
-                        JOptionPane.showMessageDialog(null, "Se cambio el estado ");
-
+                        try {
+                            boolean result = new EmployeeDao().updateEmploymentStatusByDNI(dni, newStatus);
+                            if (result) {
+                                JOptionPane.showMessageDialog(null, "Se cambio el estado ");
+                            } else {
+                                JOptionPane.showMessageDialog(null, "No se pudo cambiar el estado", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);
+                            }
+                        } catch (Exception ex) {
+                            System.out.println("Error -> " + ex.getMessage());
+                            JOptionPane.showMessageDialog(null, "Ocurrió un problema al cambiar el estado", "GESTIÓN TRABAJADOR", JOptionPane.ERROR_MESSAGE);
+                        }
                     }
 
                 }
