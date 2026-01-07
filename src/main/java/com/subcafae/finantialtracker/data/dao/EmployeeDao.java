@@ -21,11 +21,22 @@ public class EmployeeDao {
     }
 
     public boolean updateEmploymentStatusByDNI(String dni, String newStatus) {
-        String sql = "UPDATE employees SET employment_status = ?, updated_at = CURRENT_TIMESTAMP WHERE national_id = ?";
+        String sql = "UPDATE employees SET employment_status = ?, employment_status_code = ?, updated_at = CURRENT_TIMESTAMP WHERE national_id = ?";
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            // Determinar el código según el estado
+            String statusCode;
+            if (newStatus.equalsIgnoreCase("CAS")) {
+                statusCode = "2028";
+            } else if (newStatus.equalsIgnoreCase("NOMBRADO") || newStatus.equalsIgnoreCase("Nombrado")) {
+                statusCode = "2154";
+            } else {
+                statusCode = "2028"; // Valor por defecto
+            }
+
             preparedStatement.setString(1, newStatus);
-            preparedStatement.setString(2, dni);
+            preparedStatement.setString(2, statusCode);
+            preparedStatement.setString(3, dni);
 
             int affectedRows = preparedStatement.executeUpdate();
             return affectedRows > 0;
@@ -217,5 +228,35 @@ public class EmployeeDao {
         }
 
         return employees;
+    }
+
+    public boolean updateEmployee(String dni, String fullName, String gender, String employmentStatus, Date startDate) {
+        String sql = "UPDATE employees SET fullName = ?, gender = ?, employment_status = ?, employment_status_code = ?, start_date = ?, updated_at = CURRENT_TIMESTAMP WHERE national_id = ?";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            // Determinar el código según el estado
+            String statusCode;
+            if (employmentStatus.equalsIgnoreCase("CAS")) {
+                statusCode = "2028";
+            } else if (employmentStatus.equalsIgnoreCase("NOMBRADO") || employmentStatus.equalsIgnoreCase("Nombrado")) {
+                statusCode = "2154";
+            } else {
+                statusCode = "2028"; // Valor por defecto
+            }
+
+            preparedStatement.setString(1, fullName.toUpperCase());
+            preparedStatement.setString(2, gender);
+            preparedStatement.setString(3, employmentStatus.toUpperCase());
+            preparedStatement.setString(4, statusCode);
+            preparedStatement.setDate(5, startDate);
+            preparedStatement.setString(6, dni);
+
+            int affectedRows = preparedStatement.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al actualizar el empleado", "GESTIÓN TRABAJADOR", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
     }
 }

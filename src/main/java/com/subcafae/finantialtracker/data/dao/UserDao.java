@@ -185,4 +185,69 @@ public class UserDao {
         return users;
     }
 
+    public boolean updateUserPassword(String username, String newPassword) {
+        // Verificar que no sea el super administrador
+        String sqlCheckState = "SELECT state FROM user WHERE username = ?";
+
+        try (PreparedStatement checkStmt = connection.prepareStatement(sqlCheckState)) {
+            checkStmt.setString(1, username);
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (rs.next() && rs.getInt("state") == 9) {
+                JOptionPane.showMessageDialog(null, "No se puede modificar la contraseña del super administrador", "GESTIÓN DE USUARIOS", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+        } catch (SQLException e) {
+            System.out.println("Error -> " + e.getMessage());
+            return false;
+        }
+
+        String hashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt(12));
+        String sql = "UPDATE user SET password = ? WHERE username = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, hashedPassword);
+            stmt.setString(2, username);
+
+            int rowsUpdated = stmt.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException e) {
+            System.out.println("Error -> " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al actualizar la contraseña", "GESTIÓN DE USUARIOS", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
+    public boolean updateUserRole(String username, String newRole) {
+        // Verificar que no sea el super administrador
+        String sqlCheckState = "SELECT state FROM user WHERE username = ?";
+
+        try (PreparedStatement checkStmt = connection.prepareStatement(sqlCheckState)) {
+            checkStmt.setString(1, username);
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (rs.next() && rs.getInt("state") == 9) {
+                JOptionPane.showMessageDialog(null, "No se puede modificar el rol del super administrador", "GESTIÓN DE USUARIOS", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+        } catch (SQLException e) {
+            System.out.println("Error -> " + e.getMessage());
+            return false;
+        }
+
+        String sql = "UPDATE user SET rol = ? WHERE username = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, newRole);
+            stmt.setString(2, username);
+
+            int rowsUpdated = stmt.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException e) {
+            System.out.println("Error -> " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al actualizar el rol", "GESTIÓN DE USUARIOS", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
 }
