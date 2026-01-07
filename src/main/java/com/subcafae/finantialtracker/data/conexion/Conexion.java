@@ -1,33 +1,49 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.subcafae.finantialtracker.data.conexion;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 import javax.swing.JOptionPane;
 
-/**
- *
- * @author Jesus Gutierrez
- */
 public class Conexion {
 
-    private static final String URL = "jdbc:mariadb://localhost:3306/FinancialTracker1?useUnicode=true&characterEncoding=UTF-8&collation=utf8mb4_0900_ai_ci&useSSL=false";
-    private static final String USER = "root";
-    private static final String PASSWORD = "123456";
+    private static String URL;
+    private static String USER;
+    private static String PASSWORD;
     private static Connection connection = null;
 
     static {
         try {
+            Properties props = new Properties();
+
+            File externalFile = new File("database.properties");
+            if (externalFile.exists()) {
+                props.load(new FileInputStream(externalFile));
+            } else {
+                InputStream input = Conexion.class.getClassLoader().getResourceAsStream("database.properties");
+                if (input != null) {
+                    props.load(input);
+                } else {
+                    throw new RuntimeException("No se encontró database.properties");
+                }
+            }
+
+            URL = props.getProperty("db.url");
+            USER = props.getProperty("db.user");
+            PASSWORD = props.getProperty("db.password");
+
             connection = DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "Error -> " + e.getMessage());
             JOptionPane.showMessageDialog(null, "No hay conexion , comuniquese con el administrador");
             System.exit(0);
-            //  throw new RuntimeException("Error al conectar a la base de datos", e);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error cargando configuración: " + e.getMessage());
+            System.exit(0);
         }
     }
 
