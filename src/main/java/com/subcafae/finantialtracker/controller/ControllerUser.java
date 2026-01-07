@@ -87,19 +87,22 @@ public class ControllerUser implements ActionListener {
     }
 
     public void listTable() {
+        try {
+            List<User> list = new UserDao().getAllUsers();
+            DefaultTableModel model = (DefaultTableModel) componentUser.jTableListUse.getModel();
+            model.setRowCount(0);
 
-        List<User> list = new UserDao().getAllUsers();
-        DefaultTableModel model = (DefaultTableModel) componentUser.jTableListUse.getModel();
-        model.setRowCount(0);
-
-        for (User user1 : list) {
-
-            model.addRow(new Object[]{
-                user1.getUsername(),
-                user1.getEmployeeName(),
-                user1.getRol(),
-                user1.getState().equalsIgnoreCase("1") ? "ACTIVADO" :   user1.getState().equalsIgnoreCase("9") ? "ADMIN" : "BLOQUIADO"
-            });
+            for (User user1 : list) {
+                model.addRow(new Object[]{
+                    user1.getUsername(),
+                    user1.getEmployeeName(),
+                    user1.getRol(),
+                    user1.getState().equalsIgnoreCase("1") ? "ACTIVADO" : user1.getState().equalsIgnoreCase("9") ? "ADMIN" : "BLOQUIADO"
+                });
+            }
+        } catch (Exception e) {
+            System.out.println("Error -> " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrió un problema al cargar la lista de usuarios", "GESTIÓN USUARIO", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -138,13 +141,17 @@ public class ControllerUser implements ActionListener {
                 JOptionPane.showMessageDialog(null, "LLENE CON EL NOMBRE DE USUARIO", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            boolean ver = new UserDao().toggleUserState(componentUser.jTextFieldUserBlock.getText());
-
-            if (ver) {
-                JOptionPane.showMessageDialog(null, "SE CAMBIO DE ESTADO", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
+            try {
+                boolean ver = new UserDao().toggleUserState(componentUser.jTextFieldUserBlock.getText());
+                if (ver) {
+                    JOptionPane.showMessageDialog(null, "SE CAMBIO DE ESTADO", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
+                }
+                componentUser.jTextFieldUserBlock.setText("");
+                listTable();
+            } catch (Exception ex) {
+                System.out.println("Error -> " + ex.getMessage());
+                JOptionPane.showMessageDialog(null, "Ocurrió un problema al cambiar el estado", "GESTIÓN USUARIO", JOptionPane.ERROR_MESSAGE);
             }
-            componentUser.jTextFieldUserBlock.setText("");
-            listTable();
         }
 
         if (e.getSource().equals(componentUser.jButtonRegisterUser)) {
@@ -162,13 +169,17 @@ public class ControllerUser implements ActionListener {
                 JOptionPane.showMessageDialog(null, "BUSQUE EMPLEADO", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            boolean userr = new UserDao().createUser(componentUser.jTextFieldUser.getText(), new String(componentUser.jPasswordFieldEscribaContrase.getPassword()), emplo.getEmployeeId(), componentUser.jComboBoxState.getSelectedItem().toString());
-
-            if (userr) {
-                JOptionPane.showMessageDialog(null, "SE REGISTRO EL USURIO", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
+            try {
+                boolean userr = new UserDao().createUser(componentUser.jTextFieldUser.getText(), new String(componentUser.jPasswordFieldEscribaContrase.getPassword()), emplo.getEmployeeId(), componentUser.jComboBoxState.getSelectedItem().toString());
+                if (userr) {
+                    JOptionPane.showMessageDialog(null, "SE REGISTRO EL USURIO", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
+                }
+                listTable();
+                clear();
+            } catch (Exception ex) {
+                System.out.println("Error -> " + ex.getMessage());
+                JOptionPane.showMessageDialog(null, "Ocurrió un problema al registrar el usuario", "GESTIÓN USUARIO", JOptionPane.ERROR_MESSAGE);
             }
-            listTable();
-            clear();
         }
     }
 

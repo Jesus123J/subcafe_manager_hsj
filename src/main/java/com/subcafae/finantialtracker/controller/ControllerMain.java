@@ -59,116 +59,125 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
 
     @Override
     public void actionPerformed(ActionEvent e) {
-
-        if (e.getSource().equals(viewMain.jButtonProcesoDescuent)) {
-            procedRegistroDesc();
-        }
-        if (e.getSource().equals(viewMain.jButtonSearchDocument)) {
-
-            procesarArchivo();
-
-        }
-        if (e.getSource().equals(viewMain.jButton2)) {
-            if (!viewMain.jTextFieldNumeroVoucher.getText().isBlank()) {
-                PaymentVoucher.cleanUnusedVouchers();
-                viewMain.jTextFieldNumeroVoucher.setText("");
-                viewMain.jButton3.setEnabled(true);
+        try {
+            if (e.getSource().equals(viewMain.jButtonProcesoDescuent)) {
+                procedRegistroDesc();
             }
-        }
-        if (e.getSource().equals(viewMain.jButton1)) {
-            if (validarCamposVoucher()) {
-                viewMain.jButton2.setEnabled(false);
-                viewMain.jButton3.setEnabled(true);
-                if (viewMain.jButton1.getText().equalsIgnoreCase("EDITAR")) {
-                    String documentDni = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[1];
-                    String nameLastName = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[0];
+            if (e.getSource().equals(viewMain.jButtonSearchDocument)) {
 
-                    PaymentVoucher paymentVoucher = new PaymentVoucher(
-                            viewMain.jTextFieldNumeroVoucher.getText(), viewMain.jTextFieldCuentaVoucher.getText(),
-                            viewMain.jTextFieldChequeVoucher.getText(), viewMain.jLabel82.getText(),
-                            Double.valueOf(viewMain.jTextFieldMountVoucher.getText()),
-                            viewMain.jTextAreaDetalleVoucher.getText(), documentDni, nameLastName, viewMain.cbConRegDateStartVoucher.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
-                            usser.getId()
-                    );
+                procesarArchivo();
 
-                    boolean satus = paymentVoucher.updateVoucher();
-                    if (satus) {
-                        JOptionPane.showMessageDialog(null, "Se actualizó el voucher");
-                    }
-
-                    paymentVoucher.imprintVoucher();
-
-                    cleanVoucher();
-
-                } else {
-                    String documentDni = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[1];
-                    String nameLastName = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[0];
-
-                    PaymentVoucher paymentVoucher = new PaymentVoucher(
-                            viewMain.jTextFieldNumeroVoucher.getText(), viewMain.jTextFieldCuentaVoucher.getText(),
-                            viewMain.jTextFieldChequeVoucher.getText(), viewMain.jLabel82.getText(),
-                            Double.valueOf(viewMain.jTextFieldMountVoucher.getText()),
-                            viewMain.jTextAreaDetalleVoucher.getText(), documentDni, nameLastName, viewMain.cbConRegDateStartVoucher.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
-                            usser.getId()
-                    );
-
-                    paymentVoucher.generateVoucher();
-
-                    cleanVoucher();
+            }
+            if (e.getSource().equals(viewMain.jButton2)) {
+                if (!viewMain.jTextFieldNumeroVoucher.getText().isBlank()) {
+                    PaymentVoucher.cleanUnusedVouchers();
+                    viewMain.jTextFieldNumeroVoucher.setText("");
+                    viewMain.jButton3.setEnabled(true);
                 }
-            } else {
-                JOptionPane.showMessageDialog(null, "LLene todos los campos");
             }
-        }
-        if (e.getSource().equals(viewMain.jButton4)) {
-            viewMain.jButton4.setEnabled(false);
-            viewMain.jButton3.setEnabled(true);
-            viewMain.jComboBox1.removeAllItems();
-            cleanVoucher();
-        }
-        if (e.getSource().equals(viewMain.jButton3)) {
-            viewMain.jButton1.setText("IMPRIMIR");
-            cleanVoucher();
-            viewMain.jButton3.setEnabled(false);
-            viewMain.jButton2.setEnabled(true);
-            viewMain.cbConRegDateStartVoucher.setDate(new Date());
-            viewMain.jTextFieldNumeroVoucher.setText(PaymentVoucher.generateAndReserveVoucher());
+            if (e.getSource().equals(viewMain.jButton1)) {
+                if (validarCamposVoucher()) {
+                    viewMain.jButton2.setEnabled(false);
+                    viewMain.jButton3.setEnabled(true);
+                    if (viewMain.jButton1.getText().equalsIgnoreCase("EDITAR")) {
+                        String documentDni = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[1];
+                        String nameLastName = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[0];
+
+                        PaymentVoucher paymentVoucher = new PaymentVoucher(
+                                viewMain.jTextFieldNumeroVoucher.getText(), viewMain.jTextFieldCuentaVoucher.getText(),
+                                viewMain.jTextFieldChequeVoucher.getText(), viewMain.jLabel82.getText(),
+                                Double.valueOf(viewMain.jTextFieldMountVoucher.getText()),
+                                viewMain.jTextAreaDetalleVoucher.getText(), documentDni, nameLastName, viewMain.cbConRegDateStartVoucher.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                                usser.getId()
+                        );
+
+                        boolean satus = paymentVoucher.updateVoucher();
+                        if (satus) {
+                            JOptionPane.showMessageDialog(null, "Se actualizó el voucher");
+                        }
+
+                        paymentVoucher.imprintVoucher();
+
+                        cleanVoucher();
+
+                    } else {
+                        String documentDni = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[1];
+                        String nameLastName = viewMain.jComboBoxSearchClient.getSelectedItem().toString().split(" - ")[0];
+
+                        PaymentVoucher paymentVoucher = new PaymentVoucher(
+                                viewMain.jTextFieldNumeroVoucher.getText(), viewMain.jTextFieldCuentaVoucher.getText(),
+                                viewMain.jTextFieldChequeVoucher.getText(), viewMain.jLabel82.getText(),
+                                Double.valueOf(viewMain.jTextFieldMountVoucher.getText()),
+                                viewMain.jTextAreaDetalleVoucher.getText(), documentDni, nameLastName, viewMain.cbConRegDateStartVoucher.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                                usser.getId()
+                        );
+
+                        paymentVoucher.generateVoucher();
+
+                        cleanVoucher();
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(null, "LLene todos los campos");
+                }
+            }
+            if (e.getSource().equals(viewMain.jButton4)) {
+                viewMain.jButton4.setEnabled(false);
+                viewMain.jButton3.setEnabled(true);
+                viewMain.jComboBox1.removeAllItems();
+                cleanVoucher();
+            }
+            if (e.getSource().equals(viewMain.jButton3)) {
+                viewMain.jButton1.setText("IMPRIMIR");
+                cleanVoucher();
+                viewMain.jButton3.setEnabled(false);
+                viewMain.jButton2.setEnabled(true);
+                viewMain.cbConRegDateStartVoucher.setDate(new Date());
+                viewMain.jTextFieldNumeroVoucher.setText(PaymentVoucher.generateAndReserveVoucher());
+            }
+        } catch (Exception ex) {
+            System.out.println("Error -> " + ex.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrió un problema al procesar la acción", "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        if (e.getSource().equals(viewMain.jMenu2)) {
-            componentLogin.jPasswordPassword.setText("");
-            componentLogin.jTextFieldUser.setText("");
-            eliminarCOmponent();
-            showLogin();
-        }
+        try {
+            if (e.getSource().equals(viewMain.jMenu2)) {
+                componentLogin.jPasswordPassword.setText("");
+                componentLogin.jTextFieldUser.setText("");
+                eliminarCOmponent();
+                showLogin();
+            }
 
-        if (e.getSource().equals(viewMain.jMenuManageUser)) {
-            if (usser.getRol().equalsIgnoreCase("ADMINISTRADOR")) {
-                centerInternalComponent(componentManageUser);
+            if (e.getSource().equals(viewMain.jMenuManageUser)) {
+                if (usser.getRol().equalsIgnoreCase("ADMINISTRADOR")) {
+                    centerInternalComponent(componentManageUser);
+                }
+                if (usser.getRol().equalsIgnoreCase("SUPER ADMINISTRADOR")) {
+                    centerInternalComponent(componentManageUser);
+                }
             }
-            if (usser.getRol().equalsIgnoreCase("SUPER ADMINISTRADOR")) {
-                centerInternalComponent(componentManageUser);
+            if (e.getSource().equals(viewMain.jMenuPago)) {
+                viewMain.jLabelCode.setText("");
+                viewMain.jLabelCantidad.setText("");
+                model.setRowCount(0);
+                modelFindNot.setRowCount(0);
+                mapCom.clear();
+                centerInternalComponent(viewMain.jInternalPagoPrestamosOtros);
             }
-        }
-        if (e.getSource().equals(viewMain.jMenuPago)) {
-            viewMain.jLabelCode.setText("");
-            viewMain.jLabelCantidad.setText("");
-            model.setRowCount(0);
-            modelFindNot.setRowCount(0);
-            mapCom.clear();
-            centerInternalComponent(viewMain.jInternalPagoPrestamosOtros);
-        }
-        if (e.getSource().equals(viewMain.jMenuMangeBond)) {
-            centerInternalComponent(componentManageBond);
-        }
-        if (e.getSource().equals(viewMain.jMenuMangeLoan)) {
-            centerInternalComponent(componentManageLoan);
-        }
-        if (e.getSource().equals(viewMain.jMenuManageWorker)) {
-            centerInternalComponent(componentManageWorker);
+            if (e.getSource().equals(viewMain.jMenuMangeBond)) {
+                centerInternalComponent(componentManageBond);
+            }
+            if (e.getSource().equals(viewMain.jMenuMangeLoan)) {
+                centerInternalComponent(componentManageLoan);
+            }
+            if (e.getSource().equals(viewMain.jMenuManageWorker)) {
+                centerInternalComponent(componentManageWorker);
+            }
+        } catch (Exception ex) {
+            System.out.println("Error -> " + ex.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrió un problema al abrir el componente", "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -179,20 +188,24 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
 
     @Override
     public void mouseReleased(MouseEvent e) {
+        try {
+            if (e.getSource().equals(viewMain.jLabelConstanciaEntrega)) {
+                viewMain.cbConRegDateStartVoucher.setDate(new Date());
+                centerInternalComponent(viewMain.jInternalFrame1);
+            }
 
-        if (e.getSource().equals(viewMain.jLabelConstanciaEntrega)) {
-            viewMain.cbConRegDateStartVoucher.setDate(new Date());
-            centerInternalComponent(viewMain.jInternalFrame1);
-        }
-
-        if (e.getSource().equals(viewMain.jLabelHistoryPayment)) {
-            historyPayment();
-        }
-        if (e.getSource().equals(viewMain.jLabelReportDesc)) {
-            generateExcel();
-        }
-        if (e.getSource().equals(viewMain.jLabelReportDeuda)) {
-            reportDeuda();
+            if (e.getSource().equals(viewMain.jLabelHistoryPayment)) {
+                historyPayment();
+            }
+            if (e.getSource().equals(viewMain.jLabelReportDesc)) {
+                generateExcel();
+            }
+            if (e.getSource().equals(viewMain.jLabelReportDeuda)) {
+                reportDeuda();
+            }
+        } catch (Exception ex) {
+            System.out.println("Error -> " + ex.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrió un problema al procesar la acción", "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }
 

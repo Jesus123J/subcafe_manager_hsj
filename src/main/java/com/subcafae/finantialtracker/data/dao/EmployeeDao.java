@@ -41,7 +41,8 @@ public class EmployeeDao {
             int affectedRows = preparedStatement.executeUpdate();
             return affectedRows > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println("Error -> " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrió un problema al actualizar el estado del empleado", "GESTIÓN TRABAJADOR", JOptionPane.ERROR_MESSAGE);
             return false;
         }
     }

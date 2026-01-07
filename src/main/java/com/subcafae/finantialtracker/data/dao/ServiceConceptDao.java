@@ -112,6 +112,7 @@ public class ServiceConceptDao {
             }
         } catch (SQLException e) {
             System.out.println("Error -> " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrió un problema al buscar el concepto", "GESTIÓN DE CONCEPTO", JOptionPane.ERROR_MESSAGE);
         }
         return null;
     }

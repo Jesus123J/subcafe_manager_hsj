@@ -178,41 +178,45 @@ public class ModelMain {
     }
 
     public void logIn() {
-
-        if (new String(componentLogin.jPasswordPassword.getPassword()).isBlank()
-                || componentLogin.jTextFieldUser.getText().isBlank()) {
-            JOptionPane.showMessageDialog(null, "Llene los datos", "MENSAJE", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-//
-        usser = new UserDao().getUserByUsername(componentLogin.jTextFieldUser.getText(), new String(componentLogin.jPasswordPassword.getPassword()));
-
-        if (usser != null) {
-            componentLogin.jLabel1.setText("");
-            if (usser.getState().equalsIgnoreCase("0")) {
-                JOptionPane.showMessageDialog(null, "CUENTA BLOQUIADA", "MENSAJE", JOptionPane.WARNING_MESSAGE);
+        try {
+            if (new String(componentLogin.jPasswordPassword.getPassword()).isBlank()
+                    || componentLogin.jTextFieldUser.getText().isBlank()) {
+                JOptionPane.showMessageDialog(null, "Llene los datos", "MENSAJE", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            if (!usser.getRol().equals("ADMINISTRADOR")) {
-                viewMain.jMenuManageUser.setEnabled(false);
-            } else {
-                viewMain.jMenuManageUser.setEnabled(true);
-            }
-            if (!usser.getRol().equals("SUPER ADMINISTRADOR")) {
-                viewMain.jMenuManageUser.setEnabled(false);
-            } else {
-                viewMain.jMenuManageUser.setEnabled(true);
-            }
-            new ControllerManageLoan(componentManageLoan, usser);
-            new ControllerManageBond(componentManageBond, usser, viewMain);
-            new ControllerManageWorker(componentManageWorker, usser);
-            new ControllerUser(componentManageUser, usser);
+//
+            usser = new UserDao().getUserByUsername(componentLogin.jTextFieldUser.getText(), new String(componentLogin.jPasswordPassword.getPassword()));
 
-            viewMain.jMenuBar1.setVisible(true);
-            jpanelDarkUtil.setVisible(false);
+            if (usser != null) {
+                componentLogin.jLabel1.setText("");
+                if (usser.getState().equalsIgnoreCase("0")) {
+                    JOptionPane.showMessageDialog(null, "CUENTA BLOQUIADA", "MENSAJE", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                if (!usser.getRol().equals("ADMINISTRADOR")) {
+                    viewMain.jMenuManageUser.setEnabled(false);
+                } else {
+                    viewMain.jMenuManageUser.setEnabled(true);
+                }
+                if (!usser.getRol().equals("SUPER ADMINISTRADOR")) {
+                    viewMain.jMenuManageUser.setEnabled(false);
+                } else {
+                    viewMain.jMenuManageUser.setEnabled(true);
+                }
+                new ControllerManageLoan(componentManageLoan, usser);
+                new ControllerManageBond(componentManageBond, usser, viewMain);
+                new ControllerManageWorker(componentManageWorker, usser);
+                new ControllerUser(componentManageUser, usser);
 
-        } else {
-            componentLogin.jLabel1.setText("ERROR REVISE EL USUARIO O CONTRASEÑA");
+                viewMain.jMenuBar1.setVisible(true);
+                jpanelDarkUtil.setVisible(false);
+
+            } else {
+                componentLogin.jLabel1.setText("ERROR REVISE EL USUARIO O CONTRASEÑA");
+            }
+        } catch (Exception ex) {
+            System.out.println("Error -> " + ex.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrió un problema al iniciar sesión. Verifique la conexión.", "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -540,7 +544,8 @@ public class ModelMain {
             centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE DEUDAS", listEmployee, true, viewMain));
 
         } catch (SQLException ex) {
-            Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error -> " + ex.getMessage());
+            JOptionPane.showMessageDialog(null, "Ocurrió un problema al cargar la lista de empleados", "GESTIÓN DE DEUDAS", JOptionPane.ERROR_MESSAGE);
         }
 
         // viewMain.loading.setVisible(true);
