@@ -147,18 +147,18 @@ public class ReporteDeuda {
 
             double totalAbonos = 0.0;
 
-            document.add(new Paragraph("CONCEPTO : " + entry.getValue().getFirst().getConceptBono())
+            document.add(new Paragraph("CONCEPTO : " + entry.getValue().get(0).getConceptBono())
                     .setBold()
                     .setFontColor(new DeviceRgb(255, 255, 255))
                     .setBackgroundColor(new DeviceRgb(0, 0, 0))
                     .setTextAlignment(TextAlignment.CENTER));
 
             // Detalles del abono
-            document.add(new Paragraph("Num. Solicitud : " + entry.getValue().getFirst().getNumSoli()));
+            document.add(new Paragraph("Num. Solicitud : " + entry.getValue().get(0).getNumSoli()));
 
             document.add(new Paragraph("Num. Cuotas Pendientes : " + entry.getValue().size()));
 
-            document.add(new Paragraph("Vencimiento : " + entry.getValue().getLast().getFechaVencimiento()))
+            document.add(new Paragraph("Vencimiento : " + entry.getValue().get(entry.getValue().size() - 1).getFechaVencimiento()))
                     .setTextAlignment(TextAlignment.RIGHT);
 
             // Tabla de detalles del abono
@@ -203,15 +203,15 @@ public class ReporteDeuda {
         for (Map.Entry<LoanTb, List<ReporteDeuda>> entry : listComLoan.entrySet()) {
 
             // Detalles del préstamo
-            document.add(new Paragraph("CONCEPTO : PRÉSTAMO " + entry.getValue().getFirst().getNumSoli())
+            document.add(new Paragraph("CONCEPTO : PRÉSTAMO " + entry.getValue().get(0).getNumSoli())
                     .setBold()
                     .setFontColor(new DeviceRgb(255, 255, 255))
                     .setBackgroundColor(new DeviceRgb(0, 0, 0))
                     .setTextAlignment(TextAlignment.CENTER));
 
-            document.add(new Paragraph("Num. Solicitud : " + entry.getValue().getFirst().getNumSoli()));
+            document.add(new Paragraph("Num. Solicitud : " + entry.getValue().get(0).getNumSoli()));
             document.add(new Paragraph("Num. Cuotas Pendientes : " + entry.getValue().size()));
-            document.add(new Paragraph("Vencimiento : " + entry.getValue().getLast().getFechaVencimiento()).setTextAlignment(TextAlignment.RIGHT));
+            document.add(new Paragraph("Vencimiento : " + entry.getValue().get(entry.getValue().size() - 1).getFechaVencimiento()).setTextAlignment(TextAlignment.RIGHT));
 
             // Tabla de detalles del préstamo
             Table table = new Table(UnitValue.createPercentArray(new float[]{4, 4, 4}));
@@ -246,9 +246,9 @@ public class ReporteDeuda {
                     .setFontColor(new DeviceRgb(255, 255, 255))
                     .setBackgroundColor(new DeviceRgb(0, 0, 0))
                     .setTextAlignment(TextAlignment.CENTER));
-            document.add(new Paragraph("Num. Solicitud : " + entry.getValue().getFirst().getNumSoli()));
+            document.add(new Paragraph("Num. Solicitud : " + entry.getValue().get(0).getNumSoli()));
             document.add(new Paragraph("Num. Cuotas Pendientes : " + entry.getValue().size()));
-            document.add(new Paragraph("Vencimiento : " + entry.getValue().getLast().getFechaVencimiento()).setTextAlignment(TextAlignment.RIGHT));
+            document.add(new Paragraph("Vencimiento : " + entry.getValue().get(entry.getValue().size() - 1).getFechaVencimiento()).setTextAlignment(TextAlignment.RIGHT));
 
             // Tabla de detalles del fondo intangible
             Table table2 = new Table(UnitValue.createPercentArray(new float[]{4, 4, 4}));

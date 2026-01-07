@@ -740,7 +740,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                         } else if (loan.get().getState().equalsIgnoreCase("Aceptado") || loan.get().getState().equalsIgnoreCase("Refinanciado")) {
 
                             try {
-                                Loan loann = new LoanDao().searchLoan(loan.get().getSoliNum()).getFirst();
+                                Loan loann = new LoanDao().searchLoan(loan.get().getSoliNum()).get(0);
 
                                 Optional<LoanTb> showRe = new LoanDao().findLoan(soliNum);
                                 if (showRe.isPresent()) {
@@ -781,13 +781,13 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                                 List<Loan> listTableFind = new LoanDao().searchLoan(soliNum);
 
                                 model.addRow(new Object[]{
-                                    listTableFind.getFirst().getSoliNum(),
-                                    listTableFind.getFirst().getSolicitorName(),
-                                    listTableFind.getFirst().getGuarantorName(),
-                                    listTableFind.getFirst().getRequestedAmount(),
-                                    listTableFind.getFirst().getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? listTableFind.getFirst().getRequestedAmount() : listTableFind.getFirst().getAmountWithdrawn(),
-                                    listTableFind.getFirst().getState(),
-                                    listTableFind.getFirst().getPaymentResponsibility()
+                                    listTableFind.get(0).getSoliNum(),
+                                    listTableFind.get(0).getSolicitorName(),
+                                    listTableFind.get(0).getGuarantorName(),
+                                    listTableFind.get(0).getRequestedAmount(),
+                                    listTableFind.get(0).getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? listTableFind.get(0).getRequestedAmount() : listTableFind.get(0).getAmountWithdrawn(),
+                                    listTableFind.get(0).getState(),
+                                    listTableFind.get(0).getPaymentResponsibility()
                                 });
 
                                 methodListDeta(soliNum);
@@ -918,13 +918,13 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                                     model.setRowCount(0);
 
                                     model.addRow(new Object[]{
-                                        listTableFind.getFirst().getSoliNum(),
-                                        listTableFind.getFirst().getSolicitorName(),
-                                        listTableFind.getFirst().getGuarantorName(),
-                                        listTableFind.getFirst().getRequestedAmount(),
-                                        listTableFind.getFirst().getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? listTableFind.getFirst().getRequestedAmount() : listTableFind.getFirst().getAmountWithdrawn(),
-                                        listTableFind.getFirst().getState(),
-                                        listTableFind.getFirst().getPaymentResponsibility()
+                                        listTableFind.get(0).getSoliNum(),
+                                        listTableFind.get(0).getSolicitorName(),
+                                        listTableFind.get(0).getGuarantorName(),
+                                        listTableFind.get(0).getRequestedAmount(),
+                                        listTableFind.get(0).getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? listTableFind.get(0).getRequestedAmount() : listTableFind.get(0).getAmountWithdrawn(),
+                                        listTableFind.get(0).getState(),
+                                        listTableFind.get(0).getPaymentResponsibility()
                                     });
                                 }
 

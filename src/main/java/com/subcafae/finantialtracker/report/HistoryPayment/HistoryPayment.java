@@ -118,10 +118,10 @@ public class HistoryPayment {
             ModelPayment modePayment = new ModelPayment();
             //getMapAndPaymeny
             modePayment.setCodeDocument(entry.getKey());
-            modePayment.setFecha(entry.getValue().getFirst().getFechaRegistro());
+            modePayment.setFecha(entry.getValue().get(0).getFechaRegistro());
             modePayment.setAmountPaymentAndLoan(date);
             modePayment.setMapAndPaymeny(mapAndPaymeny);
-            modePayment.setAmountDocument(String.format("%.2f", entry.getValue().getFirst().getAmount()));
+            modePayment.setAmountDocument(String.format("%.2f", entry.getValue().get(0).getAmount()));
 
             moPayments.add(modePayment);
         }

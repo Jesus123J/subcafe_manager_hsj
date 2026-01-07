@@ -465,12 +465,12 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                                             List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
 
                                             modelFirts.addRow(new Object[]{
-                                                listFind.getFirst().getSoliNum(),
-                                                listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(listFind.getFirst().getServiceConceptId())).findFirst().get().getDescription(),
-                                                new EmployeeDao().findById(Integer.valueOf(listFind.getFirst().getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
-                                                listFind.getFirst().getDues(),
-                                                listFind.getFirst().getMonthly(),
-                                                listFind.getFirst().getStatus()
+                                                listFind.get(0).getSoliNum(),
+                                                listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(listFind.get(0).getServiceConceptId())).findFirst().get().getDescription(),
+                                                new EmployeeDao().findById(Integer.valueOf(listFind.get(0).getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
+                                                listFind.get(0).getDues(),
+                                                listFind.get(0).getMonthly(),
+                                                listFind.get(0).getStatus()
                                             });
 
                                             //

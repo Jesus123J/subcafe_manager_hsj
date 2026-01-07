@@ -881,12 +881,12 @@ public class ModelMain {
 
             if (empleadoFind.size() == 1) {
 
-                mapCom.put(empleadoFind.getFirst(), monto);
+                mapCom.put(empleadoFind.get(0), monto);
                 model.addRow(new Object[]{
                     count,
-                    empleadoFind.getFirst().getEmploymentStatusCode(),
+                    empleadoFind.get(0).getEmploymentStatusCode(),
                     mes + "/" + anio,
-                    empleadoFind.getFirst().getFullName(),
+                    empleadoFind.get(0).getFullName(),
                     monto
                 });
             }
