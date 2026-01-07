@@ -55,7 +55,7 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
 
     public ComponentSearchEmpl(String string_conditional_option, List<EmployeeTb> empleados, boolean opcion_main, ViewMain view) {
         super("GESTIÓN DE INFORMES", false, true, false);
-        this.viewMain = viewMain;
+        this.viewMain = view;
         initComponents();
         jLabelTitle.setText(string_conditional_option);
         this.opcion_main = opcion_main;
@@ -72,13 +72,27 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
 
     private void metodoPagos() {
 
+        viewMain.loading.setModal(true);
+        viewMain.loading.setLocationRelativeTo(viewMain);
+
+        new Thread(() -> {
+            try {
+                HistoryPayment historyPayment = new HistoryPayment();
+                historyPayment.HistoryPatment(empleadoSeleccionado.getNationalId());
+
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                });
+            } catch (Exception ex) {
+                System.out.println("Error -> " + ex.getMessage());
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(null, "Ocurrió un problema al generar el reporte de pagos", "ERROR", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
+
         viewMain.loading.setVisible(true);
-
-        HistoryPayment historyPayment = new HistoryPayment();
-
-        historyPayment.HistoryPatment(empleadoSeleccionado.getNationalId());
-
-        viewMain.loading.dispose();
     }
 
     private void combo_box(JComboBox<String> jComboBox1, List<EmployeeTb> empleados, String filtroStatus) {

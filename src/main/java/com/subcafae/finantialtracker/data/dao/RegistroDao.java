@@ -53,7 +53,7 @@ public class RegistroDao {
     }
 
     public List<RegistroDetailsModel> findRegisterDetailsByEmployeeId(String employeeId) {
-        String sql = "SELECT rs.fecha_registro, rs.codigo, rs.amount, "
+        String sql = "SELECT DATE_FORMAT(rs.fecha_registro, '%Y-%m-%d') AS fecha_registro, rs.codigo, rs.amount, "
                 + "CONCAT('Préstamo', '-', loan.SoliNum, ' ', loan.Dues, '/', ld.Dues) AS conceptLoan, "
                 + "CONCAT(ser.description, '-', bon.SoliNum, ' ', bon.dues, '/', abDe.dues) AS conceptBond, "
                 + "ld.PaymentDate AS fechaVLoan, abDe.paymentDate AS fechaVBond, "
@@ -65,7 +65,7 @@ public class RegistroDao {
                 + "LEFT JOIN financialtracker1.abonodetail abDe ON abDe.id = rsDe.idBondDetails "
                 + "LEFT JOIN financialtracker1.abono bon ON bon.id = abDe.AbonoID "
                 + "LEFT JOIN financialtracker1.service_concept ser ON ser.id = bon.service_concept_id "
-                + "WHERE rs.empleado_id = ?";
+                + "WHERE rs.empleado_id = ? ORDER BY rs.fecha_registro DESC";
 
         List<RegistroDetailsModel> registros = new ArrayList<>();
 

@@ -96,7 +96,11 @@ public class EmployeeDao {
 
     public List<EmployeeTb> getEmployeesByDateRange(Date fechaInicio, Date fechaFin) {
         List<EmployeeTb> listaEmpleados = new ArrayList<>();
-        String sql = "SELECT * FROM employees WHERE start_date BETWEEN ? AND ? ORDER BY start_date ASC";
+        String sql = "SELECT e.* FROM employees e "
+                + "WHERE e.start_date BETWEEN ? AND ? "
+                + "AND e.employee_id NOT IN ("
+                + "SELECT u.idEmployee FROM user u WHERE u.state = '9'"
+                + ") ORDER BY e.start_date ASC";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setDate(1, fechaInicio);
@@ -107,10 +111,10 @@ public class EmployeeDao {
             while (resultSet.next()) {
                 listaEmpleados.add(mapResultSetToEmployee(resultSet));
             }
-            
+
         } catch (SQLException e) {
             System.out.println("Error -> " + e.getMessage());
-            JOptionPane.showMessageDialog(null  , "❌ ERROR: No se pudo recuperar la lista de empleados.");
+            JOptionPane.showMessageDialog(null, "ERROR: No se pudo recuperar la lista de empleados.");
         }
         return listaEmpleados;
     }
@@ -171,10 +175,13 @@ public class EmployeeDao {
         }
     }
 
-    // Obtener todos
+    // Obtener todos (excluyendo empleados que son usuarios admin/super admin)
     public List<EmployeeTb> findAll() throws SQLException {
         List<EmployeeTb> employees = new ArrayList<>();
-        String sql = "SELECT * FROM employees";
+        String sql = "SELECT e.* FROM employees e "
+                + "WHERE e.employee_id NOT IN ("
+                + "SELECT u.idEmployee FROM user u WHERE u.state = '9'"
+                + ") ORDER BY e.fullName ASC";
 
         try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -201,7 +208,11 @@ public class EmployeeDao {
     }
 
     public List<EmployeeTb> findEmployeesByFullName(String fullName) throws SQLException {
-        String sql = "SELECT * FROM employees WHERE fullName LIKE ?";
+        String sql = "SELECT e.* FROM employees e "
+                + "WHERE e.fullName LIKE ? "
+                + "AND e.employee_id NOT IN ("
+                + "SELECT u.idEmployee FROM user u WHERE u.state = '9'"
+                + ") ORDER BY e.fullName ASC";
 
         List<EmployeeTb> employees = new ArrayList<>();
 
@@ -211,19 +222,7 @@ public class EmployeeDao {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    // Mapear el resultado al objeto EmployeeTb
-                    EmployeeTb employee = new EmployeeTb();
-                    employee.setEmployeeId(rs.getInt("employee_id"));
-                    employee.setFullName(rs.getString("fullName"));
-                    employee.setNationalId(rs.getString("national_id"));
-                    employee.setGender(rs.getString("gender"));
-                    employee.setEmploymentStatus(rs.getString("employment_status"));
-                    employee.setEmploymentStatusCode(rs.getString("employment_status_code"));
-                    employee.setStartDate(rs.getDate("start_date").toLocalDate());
-                    employee.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
-                    employee.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
-
-                    employees.add(employee);
+                    employees.add(mapResultSetToEmployee(rs));
                 }
             }
         }

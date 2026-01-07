@@ -38,6 +38,8 @@ public class ModelManageLoan extends LoanDao {
     protected List<EmployeeTb> listEmployeeAval;
     protected EmployeeTb employeeApplicant;
     protected EmployeeTb employeeAval;
+    protected List<String> listSoliNums;
+    protected javax.swing.JPopupMenu popupSoliNum;
 
     public ModelManageLoan(ComponentManageLoan componentManageLoan) {
 
@@ -55,6 +57,51 @@ public class ModelManageLoan extends LoanDao {
 
         desingJDialog();
 
+        // Inicializar popup para autocompletado de números de solicitud
+        popupSoliNum = new javax.swing.JPopupMenu();
+
+    }
+
+    // Método para mostrar autocompletado de números de solicitud
+    public void showSoliNumAutocomplete() {
+        String textSearch = componentManageLoan.jTextFieldSearchLoanNum.getText().trim();
+
+        if (textSearch.isEmpty()) {
+            popupSoliNum.setVisible(false);
+            return;
+        }
+
+        // Cargar lista de números si no está cargada
+        if (listSoliNums == null || listSoliNums.isEmpty()) {
+            listSoliNums = getAllSoliNums();
+        }
+
+        popupSoliNum.removeAll();
+
+        int count = 0;
+        for (String soliNumItem : listSoliNums) {
+            if (soliNumItem.toLowerCase().contains(textSearch.toLowerCase())) {
+                javax.swing.JMenuItem item = new javax.swing.JMenuItem(soliNumItem);
+                item.addActionListener(e -> {
+                    componentManageLoan.jTextFieldSearchLoanNum.setText(soliNumItem);
+                    popupSoliNum.setVisible(false);
+                });
+                popupSoliNum.add(item);
+                count++;
+                if (count >= 10) break; // Limitar a 10 resultados
+            }
+        }
+
+        if (count > 0) {
+            popupSoliNum.show(componentManageLoan.jTextFieldSearchLoanNum, 0, componentManageLoan.jTextFieldSearchLoanNum.getHeight());
+        } else {
+            popupSoliNum.setVisible(false);
+        }
+    }
+
+    // Método para recargar la lista de números de solicitud
+    public void reloadSoliNums() {
+        listSoliNums = getAllSoliNums();
     }
 
     public void insertListEmployeeAvalComboBox() {
@@ -285,48 +332,58 @@ public class ModelManageLoan extends LoanDao {
 
     public void insertTablet(java.util.Date dateStart, java.util.Date dateFinaly) {
 
-        ViewMain.loading.setVisible(true);
-        componentManageLoan.setEnabled(false);
-        
-        new Thread(() -> {
+        ViewMain.loading.setModal(true);
+        ViewMain.loading.setLocationRelativeTo(componentManageLoan);
 
-            List<Loan> list = getAllLoanss(new java.sql.Date(dateStart.getTime()), new java.sql.Date(dateFinaly.getTime()));
-            DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
-            model.setRowCount(0);
-            for (Loan loan : list) {
-                System.out.print(" ff " + loan.getAmountWithdrawn());
-                if (loan.getRequestedAmount() != loan.getAmountWithdrawn()) {
-                    if (loan.getRefinanciado() == null) {
-                        if (!loan.getAmountWithdrawn().toString().equals("0.00")) {
-                            Double daod = Double.parseDouble(loan.getRequestedAmount().toString()) - Double.parseDouble(loan.getAmountWithdrawn().toString());
-                            loan.setRefinanciado(BigDecimal.valueOf(daod));
+        new Thread(() -> {
+            try {
+                List<Loan> list = getAllLoanss(new java.sql.Date(dateStart.getTime()), new java.sql.Date(dateFinaly.getTime()));
+
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    ViewMain.loading.dispose();
+
+                    DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
+                    model.setRowCount(0);
+                    for (Loan loan : list) {
+                        System.out.print(" ff " + loan.getAmountWithdrawn());
+                        if (loan.getRequestedAmount() != loan.getAmountWithdrawn()) {
+                            if (loan.getRefinanciado() == null) {
+                                if (!loan.getAmountWithdrawn().toString().equals("0.00")) {
+                                    Double daod = Double.parseDouble(loan.getRequestedAmount().toString()) - Double.parseDouble(loan.getAmountWithdrawn().toString());
+                                    loan.setRefinanciado(BigDecimal.valueOf(daod));
+                                }
+                            }
                         }
+                        model.addRow(new Object[]{
+                            loan.getModificado() == null ? "" : loan.getModificado(),
+                            loan.getSoliNum(),
+                            loan.getSolicitorName(),
+                            loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
+                            loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
+                            loan.getRequestedAmount(),
+                            loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
+                            loan.getCantCuota(),
+                            loan.getInterTo() == null ? "" : loan.getInterTo(),
+                            loan.getFondoTo() == null ? "" : loan.getFondoTo(),
+                            loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
+                            loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
+                            loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
+                            loan.getValor() == null ? "" : loan.getValor(),
+                            loan.getState(),
+                            loan.getPaymentResponsibility()
+                        });
                     }
-                }
-                model.addRow(new Object[]{
-                    loan.getModificado() == null ? "" : loan.getModificado(),
-                    loan.getSoliNum(),
-                    loan.getSolicitorName(),
-                    loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
-                    loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
-                    loan.getRequestedAmount(),
-                    loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
-                    loan.getCantCuota(),
-                    loan.getInterTo() == null ? "" : loan.getInterTo(),
-                    loan.getFondoTo() == null ? "" : loan.getFondoTo(),
-                    loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
-                    loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
-                    loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
-                    loan.getValor() == null ? "" : loan.getValor(),
-                    loan.getState(),
-                    loan.getPaymentResponsibility()
+                });
+            } catch (Exception ex) {
+                System.out.println("Error -> " + ex.getMessage());
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    ViewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(null, "Ocurrió un problema al cargar la lista", "GESTIÓN PRESTAMOS", JOptionPane.ERROR_MESSAGE);
                 });
             }
-            ViewMain.loading.setVisible(false);
-            componentManageLoan.setEnabled(true);
-
         }).start();
 
+        ViewMain.loading.setVisible(true);
     }
 
     public void desingJDialog() {

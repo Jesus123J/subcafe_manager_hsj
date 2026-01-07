@@ -66,6 +66,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
         componentManageLoan.dateStart1.setDate(new Date());
         ((JTextField) componentManageLoan.comboBoxApplicant.getEditor().getEditorComponent()).addKeyListener(this);
         ((JTextField) componentManageLoan.comboBoxAval.getEditor().getEditorComponent()).addKeyListener(this);
+        componentManageLoan.jTextFieldSearchLoanNum.addKeyListener(this);
 
         componentManageLoan.buttonRegisterLoan.addActionListener(this);
         componentManageLoan.buttonCleanApplicant.addActionListener(this);
@@ -199,63 +200,63 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                 return;
             }
 
-            try {
+            ViewMain.loading.setModal(true);
+            ViewMain.loading.setLocationRelativeTo(componentManageLoan);
 
-                ViewMain.loading.setVisible(true);
-                componentManageLoan.setEnabled(false);
-                new Thread(() -> {
-
+            new Thread(() -> {
+                try {
                     List<Loan> listTable = new LoanDao().searchLoan(componentManageLoan.jTextFieldSearchLoanNum.getText());
 
-                    if (!listTable.isEmpty()) {
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
 
-                        DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
-                        model.setRowCount(0);
+                        if (!listTable.isEmpty()) {
+                            DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
+                            model.setRowCount(0);
 
-                        for (Loan loan : listTable) {
+                            for (Loan loan : listTable) {
 
-                            if (loan.getRequestedAmount() != loan.getAmountWithdrawn()) {
-                                if (loan.getRefinanciado() == null) {
-                                    if (!loan.getAmountWithdrawn().toString().equals("0.00")) {
-                                        Double daod = Double.parseDouble(loan.getRequestedAmount().toString()) - Double.parseDouble(loan.getAmountWithdrawn().toString());
-                                        loan.setRefinanciado(BigDecimal.valueOf(daod));
+                                if (loan.getRequestedAmount() != loan.getAmountWithdrawn()) {
+                                    if (loan.getRefinanciado() == null) {
+                                        if (!loan.getAmountWithdrawn().toString().equals("0.00")) {
+                                            Double daod = Double.parseDouble(loan.getRequestedAmount().toString()) - Double.parseDouble(loan.getAmountWithdrawn().toString());
+                                            loan.setRefinanciado(BigDecimal.valueOf(daod));
+                                        }
                                     }
                                 }
+                                model.addRow(new Object[]{
+                                    loan.getModificado() == null ? "" : loan.getModificado(),
+                                    loan.getSoliNum(),
+                                    loan.getSolicitorName(),
+                                    loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
+                                    loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
+                                    loan.getRequestedAmount(),
+                                    loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
+                                    loan.getCantCuota(),
+                                    loan.getInterTo() == null ? "" : loan.getInterTo(),
+                                    loan.getFondoTo() == null ? "" : loan.getFondoTo(),
+                                    loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
+                                    loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
+                                    loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
+                                    loan.getValor() == null ? "" : loan.getValor(),
+                                    loan.getState(),
+                                    loan.getPaymentResponsibility()
+                                });
                             }
-                            model.addRow(new Object[]{
-                                loan.getModificado() == null ? "" : loan.getModificado(),
-                                loan.getSoliNum(),
-                                loan.getSolicitorName(),
-                                loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
-                                loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
-                                loan.getRequestedAmount(),
-                                loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
-                                loan.getCantCuota(),
-                                loan.getInterTo() == null ? "" : loan.getInterTo(),
-                                loan.getFondoTo() == null ? "" : loan.getFondoTo(),
-                                loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
-                                loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
-                                loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
-                                loan.getValor() == null ? "" : loan.getValor(),
-                                loan.getState(),
-                                loan.getPaymentResponsibility()
-                            });
+                        } else {
+                            JOptionPane.showMessageDialog(null, "No se encontro numero de solicitud");
                         }
+                    });
+                } catch (Exception ex) {
+                    System.out.println("Error /| " + ex.getMessage());
+                    javax.swing.SwingUtilities.invokeLater(() -> {
                         ViewMain.loading.dispose();
-                        componentManageLoan.setEnabled(true);
-                    } else {
-                        ViewMain.loading.dispose();
-                        componentManageLoan.setEnabled(true);
-                        JOptionPane.showMessageDialog(null, "No se encontro numero de solicitud");
-                    }
-                }).start();
-            } catch (Exception ex) {
-                ViewMain.loading.dispose();
-                System.out.println("Error /| " + ex.getMessage());
-                JOptionPane.showMessageDialog(null, "Ocurrio un problema");
-                // Logger.getLogger(ControllerManageLoan.class.getName()).log(Level.SEVERE, null, ex);
-            }
+                        JOptionPane.showMessageDialog(null, "Ocurrio un problema", "ERROR", JOptionPane.ERROR_MESSAGE);
+                    });
+                }
+            }).start();
 
+            ViewMain.loading.setVisible(true);
         }
         if (e.getSource().equals(componentManageLoan.jButtonExcelList)) {
             try {
@@ -283,33 +284,33 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
         }
         if (e.getSource().equals(componentManageLoan.jButtonSolicitudLoan)) {
 
-            ViewMain.loading.setVisible(true);
-            componentManageLoan.setEnabled(false);
+            if (componentManageLoan.textSearchLoanSoli.getText().isBlank()) {
+                JOptionPane.showMessageDialog(null, "Escriba un numero de solicitud");
+                return;
+            }
+
+            ViewMain.loading.setModal(true);
+            ViewMain.loading.setLocationRelativeTo(componentManageLoan);
 
             new Thread(() -> {
                 try {
-
-                    if (componentManageLoan.textSearchLoanSoli.getText().isBlank()) {
-                        ViewMain.loading.dispose();
-
-                        JOptionPane.showMessageDialog(null, "Escriba un numero de solicitud");
-
-                        return;
-                    }
-
                     Optional<LoanTb> loanSearch;
                     try {
                         loanSearch = findLoan(componentManageLoan.textSearchLoanSoli.getText());
                     } catch (SQLException ex) {
-                        ViewMain.loading.dispose();
                         System.out.println("Error /| " + ex.getMessage());
-                        JOptionPane.showMessageDialog(null, "Ocurrio un problema");
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            ViewMain.loading.dispose();
+                            JOptionPane.showMessageDialog(null, "Ocurrio un problema");
+                        });
                         return;
                     }
 
                     if (!loanSearch.isPresent()) {
-                        ViewMain.loading.dispose();
-                        JOptionPane.showMessageDialog(null, "No se encontró número de solicitud");
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            ViewMain.loading.dispose();
+                            JOptionPane.showMessageDialog(null, "No se encontró número de solicitud");
+                        });
                         return;
                     }
 
@@ -320,9 +321,8 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                     Optional<EmployeeTb> employeeA = null;
                     try {
                         employeeA = new EmployeeDao().findById(loanSearch.get().getGuarantorIds());
-
                     } catch (Exception eee) {
-                        ViewMain.loading.dispose();
+                        // Aval no encontrado, continuar
                     }
 
                     String avalName = ".....................................................................";
@@ -381,14 +381,19 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
                     // double totalPagar = (loanDet.getMonthlyIntableFundFee() + loanDet.getMonthlyCapitalInstallment()) * loanR.getDues();
                     // cuotaMensualConFondoIntangible * meses
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
+                    });
                 } catch (SQLException ex) {
-
-                } finally {
-                    componentManageLoan.setEnabled(true);
-                    ViewMain.loading.dispose();
+                    System.out.println("Error -> " + ex.getMessage());
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
+                        JOptionPane.showMessageDialog(null, "Ocurrió un problema al generar la solicitud", "ERROR", JOptionPane.ERROR_MESSAGE);
+                    });
                 }
             }).start();
 
+            ViewMain.loading.setVisible(true);
         }
 
         if (e.getSource().equals(componentManageLoan.jButtonReporteCompromisoPago)) {
@@ -415,30 +420,30 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                 return;
             }
 
-            ViewMain.loading.setVisible(true);
-            componentManageLoan.setEnabled(false);
+            ViewMain.loading.setModal(true);
+            ViewMain.loading.setLocationRelativeTo(componentManageLoan);
 
             new Thread(() -> {
                 try {
-
-                    Optional<EmployeeTb> employeeR = null;
-                    try {
-                        employeeR = new EmployeeDao().findById(loanSearch.get().getEmployeeId());
-                    } catch (SQLException ex) {
-                        ViewMain.loading.dispose();
-                        //  Logger.getLogger(ControllerManageLoan.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                    Optional<EmployeeTb> employeeR = new EmployeeDao().findById(loanSearch.get().getEmployeeId());
 
                     compromisoPago.compromisoPago(loanSearch.get().getSoliNum(),
                             employeeR.get().getFullName(),
                             employeeR.get().getNationalId());
 
-                } finally {
-                    componentManageLoan.setEnabled(true);
-                    ViewMain.loading.dispose();
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
+                    });
+                } catch (Exception ex) {
+                    System.out.println("Error -> " + ex.getMessage());
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
+                        JOptionPane.showMessageDialog(null, "Ocurrió un problema al generar el compromiso de pago", "ERROR", JOptionPane.ERROR_MESSAGE);
+                    });
                 }
             }).start();
 
+            ViewMain.loading.setVisible(true);
         }
 
         if (e.getSource().equals(componentManageLoan.jButtonReporteCompromisoAval)) {
@@ -463,38 +468,40 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                 JOptionPane.showMessageDialog(null, "No se encontró número de solicitud");
                 return;
             }
-            ViewMain.loading.setVisible(true);
-            componentManageLoan.setEnabled(false);
+
+            ViewMain.loading.setModal(true);
+            ViewMain.loading.setLocationRelativeTo(componentManageLoan);
+
             new Thread(() -> {
                 try {
-                    Optional<EmployeeTb> employeeR = null;
+                    Optional<EmployeeTb> employeeR = new EmployeeDao().findById(loanSearch.get().getEmployeeId());
                     Optional<EmployeeTb> guarantorR = null;
 
                     try {
-                        employeeR = new EmployeeDao().findById(loanSearch.get().getEmployeeId());
-                        try {
-
-                            guarantorR = new EmployeeDao().findById(loanSearch.get().getGuarantorIds());
-                        } catch (Exception eee) {
-
-                        }
-                    } catch (SQLException ex) {
-
+                        guarantorR = new EmployeeDao().findById(loanSearch.get().getGuarantorIds());
+                    } catch (Exception eee) {
+                        // Aval no encontrado
                     }
-                    if (!guarantorR.isPresent()) {
+
+                    if (guarantorR == null || !guarantorR.isPresent()) {
                         compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), employeeR.get().getFullName(), employeeR.get().getNationalId(), "              ", "             ");
-                        // JOptionPane.showMessageDialog(null, "Este préstamo no contiene AVAL");
-                        return;
+                    } else {
+                        compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), employeeR.get().getFullName(), employeeR.get().getNationalId(), guarantorR.get().getFullName(), guarantorR.get().getNationalId());
                     }
 
-                    compromisoAval.compromisoPagoAval(loanSearch.get().getSoliNum(), employeeR.get().getFullName(), employeeR.get().getNationalId(), guarantorR.get().getFullName(), guarantorR.get().getNationalId());
-                } finally {
-                    ViewMain.loading.dispose();
-                    componentManageLoan.setEnabled(true);
-
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
+                    });
+                } catch (Exception ex) {
+                    System.out.println("Error -> " + ex.getMessage());
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
+                        JOptionPane.showMessageDialog(null, "Ocurrió un problema al generar el compromiso de pago aval", "ERROR", JOptionPane.ERROR_MESSAGE);
+                    });
                 }
             }).start();
 
+            ViewMain.loading.setVisible(true);
         }
 
         if (e.getSource().equals(componentManageLoan.buttonCleanApplicant)) {
@@ -624,6 +631,18 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
             }
 
+        }
+
+        // Autocompletado para campo de búsqueda de número de solicitud
+        if (e.getSource().equals(componentManageLoan.jTextFieldSearchLoanNum)) {
+            if ((e.getKeyCode() >= KeyEvent.VK_0 && e.getKeyCode() <= KeyEvent.VK_9) // Números
+                    || (e.getKeyCode() >= KeyEvent.VK_NUMPAD0 && e.getKeyCode() <= KeyEvent.VK_NUMPAD9) // Teclado numérico
+                    || e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // Borrar
+                showSoliNumAutocomplete();
+            }
+            if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                popupSoliNum.setVisible(false);
+            }
         }
 
     }

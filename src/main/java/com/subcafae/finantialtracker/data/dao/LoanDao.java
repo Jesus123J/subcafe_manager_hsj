@@ -37,6 +37,26 @@ public class LoanDao extends LoanDetailsDao {
     public LoanDao() {
         this.connection = Conexion.getConnection();
     }
+
+    // Método para obtener todos los números de solicitud para autocompletado
+    public List<String> getAllSoliNums() {
+        List<String> soliNums = new ArrayList<>();
+        String sql = "SELECT SoliNum FROM loan ORDER BY SoliNum DESC";
+
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                String num = rs.getString("SoliNum");
+                if (num != null && !num.isEmpty()) {
+                    soliNums.add(num);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al obtener números de solicitud: " + e.getMessage());
+        }
+
+        return soliNums;
+    }
+
     // Método para buscar préstamos por EmployeeID excluyendo aquellos con PaymentResponsibility = 'GUARANTOR'
 
     public boolean updatePaymentResponsibility(String soliNum) {

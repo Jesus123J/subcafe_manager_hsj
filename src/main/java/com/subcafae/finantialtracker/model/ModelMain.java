@@ -276,50 +276,53 @@ public class ModelMain {
 
     public void historyPayment() {
 
+        viewMain.loading.setModal(true);
+        viewMain.loading.setLocationRelativeTo(viewMain);
+
         new Thread(() -> {
-
             try {
-
                 EmployeeDao empleadoDao = new EmployeeDao();
-                centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE PAGOS", empleadoDao.findAll(), false, viewMain));
+                List<EmployeeTb> employees = empleadoDao.findAll();
+
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                    centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE PAGOS", employees, false, viewMain));
+                });
 
             } catch (Exception ex) {
-
                 System.out.println("Error -> " + ex.getMessage());
-                JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DESCUENTO", JOptionPane.WARNING_MESSAGE);
-                viewMain.loading.dispose();
-                //Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE PAGOS", JOptionPane.WARNING_MESSAGE);
+                });
             }
         }).start();
 
+        viewMain.loading.setVisible(true);
     }
 
     public void generateExcel() {
 
+        String[] contractTypeOptions = {"CAS", "Nombrado"};
+
+        String contractType = (String) JOptionPane.showInputDialog(
+                null,
+                "Selecciona el tipo de trabajador:",
+                "Tipo de Trabajador",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                contractTypeOptions,
+                contractTypeOptions[0]
+        );
+        if (contractType == null) {
+            return;
+        }
+
+        viewMain.loading.setModal(true);
+        viewMain.loading.setLocationRelativeTo(viewMain);
+
         new Thread(() -> {
             try {
-
-                String[] contractTypeOptions = {"CAS", "Nombrado"};
-//                    String[] monthsOptions = {
-//                        "Enero", "Febrero", "Marzo", "Abril", "Mayo",
-//                        "Junio", "Julio", "Agosto", "Septiembre",
-//                        "Octubre", "Noviembre", "Diciembre"
-//                    };
-
-                String contractType = (String) JOptionPane.showInputDialog(
-                        null,
-                        "Selecciona el tipo de trabajador:",
-                        "Tipo de Trabajador",
-                        JOptionPane.QUESTION_MESSAGE,
-                        null,
-                        contractTypeOptions,
-                        contractTypeOptions[0]
-                );
-                if (contractType == null) {
-                    return;
-                }
-
-                viewMain.loading.setVisible(true);
 
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd"); // Formato que coincide con el texto
                 //
@@ -338,9 +341,10 @@ public class ModelMain {
                 loan = new LoanDao().getAllLoans().stream().filter(predicate -> predicate.getState().equalsIgnoreCase("Aceptado") && predicate.getStateLoan().equalsIgnoreCase("Pendiente")).collect(Collectors.toList());
 
                 if (employees.isEmpty()) {
-
-                    JOptionPane.showMessageDialog(null, "No hay Trabajador tipo ".concat(contractType));
-                    viewMain.loading.dispose();
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        viewMain.loading.dispose();
+                        JOptionPane.showMessageDialog(null, "No hay Trabajador tipo ".concat(contractType));
+                    });
                     return;
                 }
 
@@ -497,6 +501,9 @@ public class ModelMain {
 
                 List<DatosPersona> datosLista = new ArrayList<>(mapaDniDatos.values());
 
+                // Ordenar alfabéticamente por nombre
+                datosLista.sort((a, b) -> a.getNombre().compareToIgnoreCase(b.getNombre()));
+
                 for (int i = 0; i < datosLista.size(); i++) {
 
                     ExcelExporter model = new ExcelExporter();
@@ -518,37 +525,52 @@ public class ModelMain {
                 ExcelExporter exporter = new ExcelExporter();
                 exporter.generateExcel(listExecel);
 
-                viewMain.loading.dispose();
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                });
 
               } catch (SQLException ex) {
                 System.out.println("Error -> " + ex.getMessage());
-                JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                viewMain.loading.dispose();
-                //  Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                });
             }
-    }
-        ).start();
+        }).start();
 
-                }
+        viewMain.loading.setVisible(true);
+    }
 
     public void reportDeuda() {
 
-        List<EmployeeTb> listEmployee;
-        try {
-            listEmployee = new EmployeeDao().findAll();
-            if (listEmployee.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "No hay ningún empleado.", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                return;
+        viewMain.loading.setModal(true);
+        viewMain.loading.setLocationRelativeTo(viewMain);
+
+        new Thread(() -> {
+            try {
+                List<EmployeeTb> listEmployee = new EmployeeDao().findAll();
+
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+
+                    if (listEmployee.isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "No hay ningún empleado.", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+
+                    centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE DEUDAS", listEmployee, true, viewMain));
+                });
+
+            } catch (SQLException ex) {
+                System.out.println("Error -> " + ex.getMessage());
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(null, "Ocurrió un problema al cargar la lista de empleados", "GESTIÓN DE DEUDAS", JOptionPane.ERROR_MESSAGE);
+                });
             }
+        }).start();
 
-            centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE DEUDAS", listEmployee, true, viewMain));
-
-        } catch (SQLException ex) {
-            System.out.println("Error -> " + ex.getMessage());
-            JOptionPane.showMessageDialog(null, "Ocurrió un problema al cargar la lista de empleados", "GESTIÓN DE DEUDAS", JOptionPane.ERROR_MESSAGE);
-        }
-
-        // viewMain.loading.setVisible(true);
+        viewMain.loading.setVisible(true);
     }
 
     public void cleanVoucher() {

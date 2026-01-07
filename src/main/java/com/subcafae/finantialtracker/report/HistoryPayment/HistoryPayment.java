@@ -58,11 +58,11 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
-import net.sf.jasperreports.engine.util.JRLoader;
 import net.sf.jasperreports.view.JasperViewer;
 
 /**
@@ -89,7 +89,13 @@ public class HistoryPayment {
         }
 
         List<RegistroDetailsModel> listRegister = registroDAO.findRegisterDetailsByEmployeeId(firstEmployee.getEmployeeId().toString());
-        Map<String, List<RegistroDetailsModel>> listFilte = listRegister.stream().collect(Collectors.groupingBy(RegistroDetailsModel::getCodigo));
+        // Usar LinkedHashMap para mantener el orden de inserción (que viene ordenado por fecha DESC desde la query)
+        Map<String, List<RegistroDetailsModel>> listFilte = listRegister.stream()
+                .collect(Collectors.groupingBy(
+                        RegistroDetailsModel::getCodigo,
+                        java.util.LinkedHashMap::new,
+                        Collectors.toList()
+                ));
         System.out.println(listFilte.toString());
         for (Map.Entry<String, List<RegistroDetailsModel>> entry : listFilte.entrySet()) {
 
@@ -174,10 +180,10 @@ public class HistoryPayment {
             
             System.out.println("Salio");
 
-            InputStream reporteStream = getClass().getResourceAsStream("/reports/report_payment.jasper");
+            InputStream reporteStream = getClass().getResourceAsStream("/reports/report_payment.jrxml");
 
-            // Cargar el reporte
-            JasperReport jasperReport = (JasperReport) JRLoader.loadObject(reporteStream);
+            // Compilar el reporte desde el archivo .jrxml
+            JasperReport jasperReport = JasperCompileManager.compileReport(reporteStream);
 
             System.out.println("Model -> " + detalles.toString());
             JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(detalles_var);
@@ -198,8 +204,12 @@ public class HistoryPayment {
 
             frame.setIconImage(icon.getImage());
 
-            // Mostrar el visor
+            // Mostrar el visor al frente
             jasperViewer.setVisible(true);
+            frame.toFront();
+            frame.requestFocus();
+            frame.setAlwaysOnTop(true);
+            frame.setAlwaysOnTop(false);
         } catch (JRException ex) {
             Logger.getLogger(HistoryPayment.class.getName()).log(Level.SEVERE, null, ex);
         }
