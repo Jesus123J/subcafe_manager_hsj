@@ -285,7 +285,6 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jPanel6.setBackground(new java.awt.Color(255, 255, 255));
         jPanel6.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DETALLE DEL PRESTAMO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        textAmountLoan.setBackground(new java.awt.Color(255, 255, 255));
         textAmountLoan.setForeground(new java.awt.Color(0, 0, 0));
         textAmountLoan.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
         textAmountLoan.setCaretColor(new java.awt.Color(0, 0, 0));
@@ -302,17 +301,14 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         buttonCleanAval.setBackground(new java.awt.Color(0, 153, 204));
         buttonCleanAval.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/clean_component.png"))); // NOI18N
 
-        comboBoxApplicant.setBackground(new java.awt.Color(255, 255, 255));
         comboBoxApplicant.setEditable(true);
         comboBoxApplicant.setForeground(new java.awt.Color(0, 0, 0));
         comboBoxApplicant.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DNI  U NOMBRE A BUSCAR DEL SOLICITANTE", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        comboBoxAval.setBackground(new java.awt.Color(255, 255, 255));
         comboBoxAval.setEditable(true);
         comboBoxAval.setForeground(new java.awt.Color(0, 0, 0));
         comboBoxAval.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DNI  U NOMBRE A BUSCAR DEL AVAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jComboBoxCuotas.setBackground(new java.awt.Color(255, 255, 255));
         jComboBoxCuotas.setForeground(new java.awt.Color(0, 0, 0));
         jComboBoxCuotas.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24" }));
         jComboBoxCuotas.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CUOTAS", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
@@ -321,7 +317,6 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         buttonRegisterLoan.setForeground(new java.awt.Color(255, 255, 255));
         buttonRegisterLoan.setText("REGISTRAR PRESTAMO");
 
-        textAmountLoan1.setBackground(new java.awt.Color(255, 255, 255));
         textAmountLoan1.setForeground(new java.awt.Color(0, 0, 0));
         textAmountLoan1.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO REFINANCIADO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
         textAmountLoan1.setCaretColor(new java.awt.Color(0, 0, 0));
@@ -392,16 +387,13 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jPanel14.setBackground(new java.awt.Color(255, 255, 255));
         jPanel14.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "GENERAR DEMOSTRACIÓN", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jComboBoxCuotasDemonstration.setBackground(new java.awt.Color(255, 255, 255));
         jComboBoxCuotasDemonstration.setForeground(new java.awt.Color(0, 0, 0));
         jComboBoxCuotasDemonstration.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24" }));
         jComboBoxCuotasDemonstration.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CUOTAS", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jTextFieldMontoDemostration.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldMontoDemostration.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldMontoDemostration.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        textRefinanciamientoDemostration.setBackground(new java.awt.Color(255, 255, 255));
         textRefinanciamientoDemostration.setForeground(new java.awt.Color(0, 0, 0));
         textRefinanciamientoDemostration.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "REFINANCIAMIENTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
@@ -618,8 +610,6 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 .addContainerGap(117, Short.MAX_VALUE))
         );
 
-        textSearchLoanSoli.setBackground(new java.awt.Color(255, 255, 255));
-
         jLabel7.setText("INGRESAR EL NÚMERO DE SOLICITUD");
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
@@ -694,7 +684,6 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jButtonExcelList.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/excel.png"))); // NOI18N
         jButtonExcelList.setText("EXPORTAR A EXCEL");
 
-        jTextFieldSearchLoanNum.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldSearchLoanNum.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "ESCRIBA NUMERO DE SOLICITUD", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jButtonBuscar.setIcon(new javax.swing.ImageIcon(getClass().getResource("/iconVoucher/search.png"))); // NOI18N

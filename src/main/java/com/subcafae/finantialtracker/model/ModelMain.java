@@ -38,6 +38,7 @@ import com.subcafae.finantialtracker.view.component.ComponentManageBond;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
 import com.subcafae.finantialtracker.view.component.ComponentManageUser;
 import com.subcafae.finantialtracker.view.component.ComponentManageWorker;
+import com.subcafae.finantialtracker.view.component.ComponentSearchEmpl;
 import com.sun.jna.platform.win32.WinBase;
 import java.awt.Color;
 import java.awt.Image;
@@ -52,7 +53,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Array;
@@ -61,10 +61,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -77,7 +77,6 @@ import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
-import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
 import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
@@ -85,16 +84,6 @@ import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.JTextComponent;
 import net.miginfocom.swing.MigLayout;
-import net.sf.jasperreports.engine.JREmptyDataSource;
-import net.sf.jasperreports.engine.JRException;
-import net.sf.jasperreports.engine.JasperExportManager;
-import net.sf.jasperreports.engine.JasperFillManager;
-import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.JasperReport;
-import net.sf.jasperreports.engine.data.JRBeanArrayDataSource;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
-import net.sf.jasperreports.engine.util.JRLoader;
-import net.sf.jasperreports.view.JasperViewer;
 
 /**
  *
@@ -117,33 +106,17 @@ public class ModelMain {
     protected UserTb usser;
 
     public ModelMain(ViewMain viewMain) {
-        System.out.println("Entrando al constructor");
+
         try {
-            System.out.println("1");
             model = (DefaultTableModel) viewMain.jTableDataEncontradaFile.getModel();
-
-            System.out.println("2");
             modelFindNot = (DefaultTableModel) viewMain.jTableNoEncontrado.getModel();
-
-            System.out.println("3");
             this.componentManageBond = new ComponentManageBond();
-
-            System.out.println("4");
             this.componentManageLoan = new ComponentManageLoan();
-
-            System.out.println("5");
             this.componentManageUser = new ComponentManageUser();
-
-            System.out.println("6");
             this.componentManageWorker = new ComponentManageWorker();
 
-            System.out.println("7");
             TextFieldValidator.applyIntegerFilter(viewMain.jTextFieldChequeVoucher);
-
-            System.out.println("8");
             TextFieldValidator.applyDecimalFilter(viewMain.jTextFieldMountVoucher);
-
-            System.out.println("9");
             TextFieldValidator.applyIntegerFilter(viewMain.jTextFieldCuentaVoucher);
 
 //        new ControllerManageLoan(componentManageLoan, user);
@@ -153,7 +126,6 @@ public class ModelMain {
             init();
             combo();
         } catch (Exception e) {
-            System.out.println("Error /| " + e.getMessage());
         }
 
     }
@@ -194,7 +166,6 @@ public class ModelMain {
         viewMain.toFront();
         viewMain.setLocationRelativeTo(null);
         viewMain.setVisible(true);
-        System.out.println("Se muestra el frame");
     }
 
     public void eliminarCOmponent() {
@@ -303,54 +274,10 @@ public class ModelMain {
 
         new Thread(() -> {
 
-            EmployeeDao empleadoDao = new EmployeeDao();
-
-            String[] workerOptions = {"CAS", "Nombrado"};
-
-            String nombresBuscar = (String) JOptionPane.showInputDialog(
-                    null,
-                    "Selecciona el tipo de trabajador:",
-                    "Tipo de Trabajador",
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    workerOptions,
-                    workerOptions[0]
-            );
-            if (nombresBuscar == null) {
-                return;
-            }
-
             try {
 
-                String[] employee = empleadoDao.findAll()
-                        .stream().filter(predicate -> predicate.getEmploymentStatus().equalsIgnoreCase(nombresBuscar)
-                        ).map(
-                                map -> map.getNationalId().concat(" - ".concat(map.getFullName()))
-                        ).toArray(String[]::new);
-
-                String nombre = (String) JOptionPane.showInputDialog(
-                        null,
-                        "Selecciona el tipo de trabajador:",
-                        "Listado de Trabajador",
-                        JOptionPane.QUESTION_MESSAGE,
-                        null,
-                        employee,
-                        employee[0]
-                );
-
-                if (nombre == null) {
-                    return;
-                }
-
-                viewMain.loading.setVisible(true);
-
-                String dniSeleccionado = nombre.split(" - ")[0].trim();
-
-                HistoryPayment historyPayment = new HistoryPayment();
-
-                historyPayment.HistoryPatment(dniSeleccionado);
-
-                viewMain.loading.dispose();
+                EmployeeDao empleadoDao = new EmployeeDao();
+                centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE PAGOS", empleadoDao.findAll(), false, viewMain));
 
             } catch (Exception ex) {
 
@@ -517,6 +444,7 @@ public class ModelMain {
                             }
 
                         } else {
+
                             if (employee1.getNationalId().equalsIgnoreCase(loan1.getGuarantorIds())) {
 
                                 for (LoanDetailsTb loanDetail1 : new LoanDetailsDao().findLoanDetailsByLoanId(loan1.getId())) {
@@ -588,190 +516,34 @@ public class ModelMain {
 
                 viewMain.loading.dispose();
 
-            } catch (SQLException ex) {
+              } catch (SQLException ex) {
                 System.out.println("Error -> " + ex.getMessage());
                 JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
                 viewMain.loading.dispose();
                 //  Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
             }
-        }
+    }
         ).start();
 
-    }
+                }
 
     public void reportDeuda() {
 
-        new Thread(() -> {
-
-            try {
-
-                List<EmployeeTb> listEmployee = new EmployeeDao().findAll();
-
-                if (listEmployee.isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "No hay ningún empleado.", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                String[] namee = listEmployee.stream().map(name -> name.getNationalId().concat(" - " + name.getFullName())).toArray(String[]::new);
-
-                String nombresBuscar = (String) JOptionPane.showInputDialog(
-                        null,
-                        "Listado de trabajadores",
-                        "GESTIÓN DE DEUDAS",
-                        JOptionPane.QUESTION_MESSAGE,
-                        null,
-                        namee,
-                        namee[0]
-                );
-
-                if (nombresBuscar == null) {
-                    JOptionPane.showMessageDialog(null, "No seleccionaste ningún empleado.", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                viewMain.loading.setVisible(true);
-
-                List<ServiceConceptTb> listService = new ServiceConceptDao().getAllServiceConcepts();
-                System.out.println("Entrando -------- ");
-                EmployeeTb employeeFind = listEmployee.stream().filter(predicate -> predicate.getNationalId().equalsIgnoreCase(nombresBuscar.split("-")[0].trim())).findFirst().get();
-                System.out.println("Entrando ");
-                List<AbonoTb> listAbond = new AbonoDao().findAllAbonos().stream().filter(
-                        predicate
-                        -> predicate.getEmployeeId().equalsIgnoreCase(employeeFind.getEmployeeId().toString())
-                        && predicate.getStatus().equalsIgnoreCase("Pendiente")
-                ).collect(Collectors.toList());
-                System.out.println("Entrando ");
-
-                List<LoanTb> listLoan = new ArrayList<>();
-
-                for (LoanTb allLoan : new LoanDao().getAllLoans()) {
-
-                    if (allLoan.getPaymentResponsibility().equalsIgnoreCase("EMPLOYEE") && allLoan.getState().equalsIgnoreCase("Aceptado") && allLoan.getStateLoan().equalsIgnoreCase("Pendiente")) {
-                        if (employeeFind.getNationalId().equalsIgnoreCase(allLoan.getEmployeeId())) {
-                            listLoan.add(new LoanTb(
-                                    allLoan.getId(),
-                                    allLoan.getSoliNum(),
-                                    allLoan.getEmployeeId(),
-                                    allLoan.getGuarantorIds(),
-                                    allLoan.getAmountWithdrawn(),
-                                    allLoan.getRequestedAmount(),
-                                    allLoan.getDues(),
-                                    allLoan.getPaymentDate(),
-                                    allLoan.getState(),
-                                    allLoan.getRefinanceParentId(),
-                                    allLoan.getCreatedBy(),
-                                    allLoan.getCreatedAt(),
-                                    allLoan.getModifiedAt(),
-                                    allLoan.getModifiedBy(),
-                                    allLoan.getType(),
-                                    allLoan.getPaymentResponsibility()));
-                        }
-                    } else if (allLoan.getPaymentResponsibility().equalsIgnoreCase("GUARANTOR") && allLoan.getState().equalsIgnoreCase("Aceptado") && allLoan.getStateLoan().equalsIgnoreCase("Pendiente")) {
-                        if (employeeFind.getNationalId().equalsIgnoreCase(allLoan.getGuarantorIds())) {
-
-                            listLoan.add(new LoanTb(
-                                    allLoan.getId(),
-                                    allLoan.getSoliNum(),
-                                    allLoan.getEmployeeId(),
-                                    allLoan.getGuarantorIds(),
-                                    allLoan.getAmountWithdrawn(),
-                                    allLoan.getRequestedAmount(),
-                                    allLoan.getDues(),
-                                    allLoan.getPaymentDate(),
-                                    allLoan.getState(),
-                                    allLoan.getRefinanceParentId(),
-                                    allLoan.getCreatedBy(),
-                                    allLoan.getCreatedAt(),
-                                    allLoan.getModifiedAt(),
-                                    allLoan.getModifiedBy(),
-                                    allLoan.getType(),
-                                    allLoan.getPaymentResponsibility()));
-                        }
-                    }
-
-                }
-                System.out.println("Entrando ");
-
-                Map<AbonoTb, List<ReporteDeuda>> lisComAbono = new HashMap<>();
-                Map<LoanTb, List<ReporteDeuda>> listComLoan = new HashMap<>();
-
-                for (AbonoTb abonoTb : listAbond) {
-
-                    ServiceConceptTb service = listService.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get();
-                    //
-                    List<ReporteDeuda> listBonoo = new ArrayList<>();
-
-                    for (AbonoDetailsTb allAbonoDetail : new AbonoDetailsDao().getAllAbonoDetails()) {
-
-                        if (allAbonoDetail.getAbonoID() == abonoTb.getId() && (allAbonoDetail.getState().equalsIgnoreCase("Parcial") || allAbonoDetail.getState().equalsIgnoreCase("Pendiente"))) {
-
-                            ReporteDeuda modelBono = new ReporteDeuda();
-                            modelBono.setConceptBono(service.getDescription());
-                            modelBono.setDetalleCouta(String.valueOf(allAbonoDetail.getDues()));
-                            modelBono.setFechaVencimiento(allAbonoDetail.getPaymentDate());
-                            modelBono.setMonto(String.format("%.2f", allAbonoDetail.getMonthly() - allAbonoDetail.getPayment()));
-                            modelBono.setNumSoli(abonoTb.getSoliNum());
-
-                            listBonoo.add(modelBono);
-
-                        }
-                    }
-
-                    lisComAbono.put(abonoTb, listBonoo);
-
-                }
-
-                for (LoanTb loanTb : listLoan) {
-
-                    List<ReporteDeuda> listPrestamo = new ArrayList<>();
-
-                    for (LoanDetailsTb allLoanDetail : new LoanDetailsDao().getAllLoanDetails()) {
-
-                        if (allLoanDetail.getLoanId() == loanTb.getId() && (allLoanDetail.getState().equalsIgnoreCase("Parcial") || allLoanDetail.getState().equalsIgnoreCase("Pendiente"))) {
-
-                            ReporteDeuda modelPrestamo = new ReporteDeuda();
-                            System.out.println("SOli -> " + loanTb.getSoliNum());
-                            modelPrestamo.setNumSoli(loanTb.getSoliNum());
-                            modelPrestamo.setDetalleCouta(String.valueOf(allLoanDetail.getDues()));
-                            modelPrestamo.setFechaVencimiento(allLoanDetail.getPaymentDate().toString());
-                            modelPrestamo.setMonto(String.format("%.2f", allLoanDetail.getMonthlyFeeValue() - allLoanDetail.getPayment()));
-                            //
-                            Double montoSinFondo = allLoanDetail.getMonthlyFeeValue() - allLoanDetail.getMonthlyIntangibleFundFee();
-
-                            if (montoSinFondo <= Double.valueOf(modelPrestamo.getMonto())) {
-                                modelPrestamo.setFondo(String.valueOf(allLoanDetail.getMonthlyIntangibleFundFee()));
-                            }
-
-                            listPrestamo.add(modelPrestamo);
-
-                        }
-                        listComLoan.put(loanTb, listPrestamo);
-                    }
-                }
-
-                if (listComLoan.isEmpty() && lisComAbono.isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "No hay bonos y préstamos con el trabajador", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                    viewMain.loading.dispose();
-                    return;
-                }
-
-                new ReporteDeuda().reporteDeuda(
-                        employeeFind.getFullName(), employeeFind.getNationalId(),
-                        lisComAbono, listComLoan);
-
-                document_report(employeeFind, listComLoan, lisComAbono);
-
-                viewMain.loading.dispose();
-
-            } catch (SQLException ex) {
-                System.out.println("Error -> " + ex.getMessage());
-                JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                viewMain.loading.dispose();
-                // Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+        List<EmployeeTb> listEmployee;
+        try {
+            listEmployee = new EmployeeDao().findAll();
+            if (listEmployee.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "No hay ningún empleado.", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                return;
             }
 
-        }).start();
+            centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE DEUDAS", listEmployee, true, viewMain));
 
+        } catch (SQLException ex) {
+            Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        // viewMain.loading.setVisible(true);
     }
 
     public void cleanVoucher() {
@@ -1022,41 +794,40 @@ public class ModelMain {
                             return;
                         }
 
-                        if (localDate.getYear() == LocalDate.now().getYear() && localDate.getMonth().equals(LocalDate.now().getMonth())) {
+                        //if (localDate.getYear() == LocalDate.now().getYear() && localDate.getMonth().equals(LocalDate.now().getMonth())) {
+                        while ((linea = reader.readLine()) != null) { // Leer línea por línea
+                            count++;
+                            System.out.println("Línea completa: " + linea); // Imprimir línea para depuración
 
-                            while ((linea = reader.readLine()) != null) { // Leer línea por línea
-                                count++;
-                                System.out.println("Línea completa: " + linea); // Imprimir línea para depuración
-
-                                ver = extraerDatos(linea, count); // Procesar cada línea
-                                if (ver == null || ver.equalsIgnoreCase("2") || ver.equalsIgnoreCase("4")) {
-                                    break; // Detener si es necesario
-                                }
-
+                            ver = extraerDatos(linea, count); // Procesar cada línea
+                            if (ver == null || ver.equalsIgnoreCase("2") || ver.equalsIgnoreCase("4")) {
+                                break; // Detener si es necesario
                             }
 
-                            switch (ver) {
-                                case "2":
-                                    viewMain.jLabelCode.setText("");
-                                    viewMain.jLabelCantidad.setText("");
-                                    model.setRowCount(0);
-                                    modelFindNot.setRowCount(0);
-                                    JOptionPane.showMessageDialog(null, "Ocurrió un problema", "ERROR GENERAL", JOptionPane.WARNING_MESSAGE);
-                                    break;
-
-                                case "4":
-                                    viewMain.jLabelCode.setText("");
-                                    viewMain.jLabelCantidad.setText("");
-                                    model.setRowCount(0);
-                                    modelFindNot.setRowCount(0);
-                                    JOptionPane.showMessageDialog(null, "ERROR DE PROCESO DE UNA LÍNEA DOCUMENTO CORRUPTO", "ERROR DE DOCUMENTO", JOptionPane.WARNING_MESSAGE);
-                                    break;
-                            }
-
-                        } else {
-                            viewMain.jLabelCode.setText("");
-                            JOptionPane.showMessageDialog(null, "FECHA INCOPATIBLE CON EL ACTUAL");
                         }
+
+                        switch (ver) {
+                            case "2":
+                                viewMain.jLabelCode.setText("");
+                                viewMain.jLabelCantidad.setText("");
+                                model.setRowCount(0);
+                                modelFindNot.setRowCount(0);
+                                JOptionPane.showMessageDialog(null, "Ocurrió un problema", "ERROR GENERAL", JOptionPane.WARNING_MESSAGE);
+                                break;
+
+                            case "4":
+                                viewMain.jLabelCode.setText("");
+                                viewMain.jLabelCantidad.setText("");
+                                model.setRowCount(0);
+                                modelFindNot.setRowCount(0);
+                                JOptionPane.showMessageDialog(null, "ERROR DE PROCESO DE UNA LÍNEA DOCUMENTO CORRUPTO", "ERROR DE DOCUMENTO", JOptionPane.WARNING_MESSAGE);
+                                break;
+                        }
+
+//                        } else {
+//                            viewMain.jLabelCode.setText("");
+//                            JOptionPane.showMessageDialog(null, "FECHA INCOPATIBLE CON EL ACTUAL");
+//                        }
                         viewMain.jLabelCantidad.setText(String.valueOf(count)); // Actualizar etiqueta con el conteo
                         viewMain.loading.dispose();
                         viewMain.jInternalPagoPrestamosOtros.setEnabled(true);
@@ -1075,6 +846,9 @@ public class ModelMain {
         }
     }
 
+    private String mes;
+    private String anio;
+
     private String extraerDatos(String linea, int count) {
         try {
             int posMonto = linea.indexOf("0604");
@@ -1086,13 +860,17 @@ public class ModelMain {
                 return "4";
             }
             String code = linea.substring(0, 4).trim();
-            String mes = linea.substring(4, 6).trim();
-            String anio = linea.substring(6, 8).trim();
+            mes = linea.substring(4, 6).trim();
+            anio = linea.substring(6, 8).trim();
 
             String nombre = linea.substring(8, posMonto).replaceAll("[0-9]", "").trim();
             String montoStr = linea.substring(8, posMonto).trim().replaceAll("[^0-9]", "");
 
             double monto = Double.parseDouble(montoStr) / 100;
+
+            if (nombre.contains("\uFFFD")) {
+                nombre = nombre.replaceAll("\uFFFD", "Ñ");
+            }
 
             List<EmployeeTb> empleadoFind = new EmployeeDao().findEmployeesByFullName(nombre);
 
@@ -1131,9 +909,20 @@ public class ModelMain {
     }
 
     public void procedRegistroDesc() {
-
         if (mapCom.isEmpty()) {
             JOptionPane.showMessageDialog(null, "ERROR NO HAY USUARIOS A CUAL DESCONTAR", "ERROR DE DOCUMENTO", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (JOptionPane.NO_OPTION == JOptionPane.showConfirmDialog(
+                null,
+                "Atención:\n\n"
+                + "El archivo cargado pertenece al mes y año: " + mes + "/" + anio + ".\n"
+                + "Los descuentos se aplicarán únicamente a cuotas vencidas hasta este mes inclusive.\n\n"
+                + "¿Deseas continuar con el proceso?",
+                "Confirmación requerida",
+                JOptionPane.YES_NO_OPTION
+        )) {
             return;
         }
 
@@ -1141,317 +930,219 @@ public class ModelMain {
         viewMain.setEnabled(false);
 
         new Thread(() -> {
+            boolean ver = false;
+            int cat = 0;
+
+            // Corregir la creación de la fecha de referencia
+            int añoCompleto = Integer.parseInt(anio);
+            if (Integer.parseInt(anio) < 100) {
+                // Asumir que son años 2000+
+                añoCompleto = 2000 + Integer.parseInt(anio);
+            }
+
+            LocalDate fechaReferencia = LocalDate.of(añoCompleto, Integer.parseInt(mes), 1).withDayOfMonth(1).plusMonths(1).minusDays(1);
+
             for (Map.Entry<EmployeeTb, Double> entry : mapCom.entrySet()) {
-
                 try {
+                    double cantidad = entry.getValue(); // monto pagado desde archivo
 
-                    RegistroTb registroTb = new RegistroTb(entry.getKey().getEmployeeId(), entry.getValue());
-                    List<LoanDetailsTb> prestamos = new ArrayList<>();
-                    List<AbonoDetailsTb> bonos = new ArrayList<>();
+                    // Validar si el monto es cero o negativo
+                    if (cantidad <= 0.0) {
+                        continue;
+                    }
 
-                    List<AbonoTb> abonoList = new AbonoDao().findAbonosByEmployeeAndCurrentYear(entry.getKey().getEmployeeId().toString());
+                    RegistroTb registroTb = new RegistroTb(entry.getKey().getEmployeeId(), cantidad);
+
+                    List<LoanDetailsTb> prestamosPendientes = new ArrayList<>();
+                    List<AbonoDetailsTb> bonosPendientes = new ArrayList<>();
+
+                    // ======================= OBTENER PRÉSTAMOS ============================
                     List<LoanTb> prestamoList = new LoanDao().findLoansByEmployeeId(entry.getKey().getNationalId());
 
                     for (LoanTb loanTb : prestamoList) {
-                        for (LoanDetailsTb loanDetailsTb : new LoanDetailsDao().findLoanDetailsByLoanId(loanTb.getId())) {
-                            if (loanDetailsTb.getState().equalsIgnoreCase("Pendiente") || loanDetailsTb.getState().equalsIgnoreCase("Parcial")) {
-                                LocalDate fechaVencimiento = loanDetailsTb.getPaymentDate().toLocalDate();
-                                if (LocalDate.now().isAfter(fechaVencimiento)) {
-                                    System.out.println("Se encuentra un prestamo pendiente");
-                                    prestamos.add(loanDetailsTb);
-                                } else if (LocalDate.now().getMonth().equals(fechaVencimiento.getMonth()) && LocalDate.now().getYear() == fechaVencimiento.getYear()) {
-                                    prestamos.add(loanDetailsTb);
+                        List<LoanDetailsTb> detalles = new LoanDetailsDao().findLoanDetailsByLoanId(loanTb.getId());
+
+                        for (LoanDetailsTb d : detalles) {
+                            if (d.getState().equalsIgnoreCase("Pendiente") || d.getState().equalsIgnoreCase("Parcial")) {
+                                // Solo incluir préstamos con fecha hasta el mes del archivo
+                                LocalDate fechaPago = d.getPaymentDate().toLocalDate();
+                                if (!fechaPago.isAfter(fechaReferencia)) {
+                                    prestamosPendientes.add(d);
                                 }
                             }
                         }
                     }
 
-                    List<AbonoDetailsTb> firtsServ = new ArrayList<>();
+                    // ORDENAR PRÉSTAMOS: vencidos → del mes del archivo
+                    prestamosPendientes.sort((p1, p2) -> {
+                        LocalDate f1 = p1.getPaymentDate().toLocalDate();
+                        LocalDate f2 = p2.getPaymentDate().toLocalDate();
+
+                        boolean v1 = f1.isBefore(fechaReferencia.withDayOfMonth(1));
+                        boolean v2 = f2.isBefore(fechaReferencia.withDayOfMonth(1));
+
+                        if (v1 != v2) {
+                            return v1 ? -1 : 1;
+                        }
+                        return f1.compareTo(f2);
+                    });
+
+                    // ======================= OBTENER BONOS ============================
+                    List<AbonoTb> abonoList = new AbonoDao().findAbonosByEmployeeAndCurrentYear(entry.getKey().getEmployeeId().toString());
+
+                    List<AbonoDetailsTb> firstServ = new ArrayList<>();
                     List<AbonoDetailsTb> secondServ = new ArrayList<>();
 
                     for (AbonoTb abonoTb : abonoList) {
+                        ServiceConceptTb serve = new ServiceConceptDao().getAllServiceConcepts()
+                                .stream()
+                                .filter(s -> s.getId() == Integer.parseInt(abonoTb.getServiceConceptId()))
+                                .findFirst().orElse(null);
 
-                        ServiceConceptTb serve = new ServiceConceptDao().getAllServiceConcepts().stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get();
-                        if (!serve.getPriorityConcept().equalsIgnoreCase("Segundo")) {
-                            for (AbonoDetailsTb abonoDetailsTb : new AbonoDetailsDao().findAbonoDetailsByAbonoId(abonoTb.getId())) {
-                                firtsServ.add(abonoDetailsTb);
-                            }
+                        if (serve != null) {
+                            List<AbonoDetailsTb> detalles = new AbonoDetailsDao().findAbonoDetailsByAbonoId(abonoTb.getId());
 
-                        } else {
-                            for (AbonoDetailsTb abonoDetailsTb : new AbonoDetailsDao().findAbonoDetailsByAbonoId(abonoTb.getId())) {
-                                secondServ.add(abonoDetailsTb);
-                            }
-                        }
-                    }
-
-                    //
-                    for (AbonoDetailsTb abonoDetailsTb : firtsServ) {
-
-                        if (abonoDetailsTb.getState().equalsIgnoreCase("Pendiente") || abonoDetailsTb.getState().equalsIgnoreCase("Parcial")) {
-
-                            LocalDate payment = LocalDate.parse(abonoDetailsTb.getPaymentDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-                            if (LocalDate.now().isAfter(payment)) {
-                                System.out.println("Se encontro una deuda de abono primer");
-                                bonos.add(abonoDetailsTb);
-                            } else if (LocalDate.now().getMonth().equals(payment.getMonth()) && LocalDate.now().getYear() == payment.getYear()) {
-                                bonos.add(abonoDetailsTb);
+                            if (!serve.getPriorityConcept().equalsIgnoreCase("Segundo")) {
+                                firstServ.addAll(detalles);
+                            } else {
+                                secondServ.addAll(detalles);
                             }
                         }
                     }
 
-                    for (AbonoDetailsTb abonoDetailsTb : secondServ) {
+                    // FILTRAR BONOS hasta el mes del archivo
+                    List<AbonoDetailsTb> bonosOrdenados = new ArrayList<>();
 
-                        if (abonoDetailsTb.getState().equalsIgnoreCase("Pendiente") || abonoDetailsTb.getState().equalsIgnoreCase("Parcial")) {
+                    bonosOrdenados.addAll(
+                            ordenarBonosPorVencimiento(firstServ, fechaReferencia)
+                    );
+                    bonosOrdenados.addAll(
+                            ordenarBonosPorVencimiento(secondServ, fechaReferencia)
+                    );
 
-                            LocalDate payment = LocalDate.parse(abonoDetailsTb.getPaymentDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                    bonosPendientes.addAll(bonosOrdenados);
 
-                            if (LocalDate.now().isAfter(payment)) {
-                                System.out.println("Se encontro una deuda de abono primer");
-                                bonos.add(abonoDetailsTb);
-                            } else if (LocalDate.now().getMonth().equals(payment.getMonth()) && LocalDate.now().getYear() == payment.getYear()) {
-                                bonos.add(abonoDetailsTb);
-                            }
-                        }
-                    }
+                    // ======================= DESCONTAR MONTO ============================
+                    List<LoanDetailsTb> prestamosPagados = new ArrayList<>();
+                    List<AbonoDetailsTb> bonosPagados = new ArrayList<>();
 
-//                new LoanDetailsDao().updateLoanStateByLoandetailId(loanDetailsTb.getId(), loanDetailsTb.getMonthlyFeeValue(), monto);
-//                new AbonoDetailsDao().updateLoanStateByLoandetailId(abonoDetailsTb.getId(), abonoDetailsTb.getMonthly(), montoFinal);
-                    double cantidad = entry.getValue();
-
-                    List<LoanDetailsTb> prestamos2 = new ArrayList<>();
-                    List<AbonoDetailsTb> bonos2 = new ArrayList<>();
-
-                    for (LoanDetailsTb prestamo : prestamos) {
-                        if (cantidad == 0.0) {
-                            break;
-                        }
-                        double monotp = prestamo.getPayment();
-                        double monotoPayme = prestamo.getMonthlyFeeValue() - monotp;
-
-                        if (cantidad >= monotoPayme) {
-                            new LoanDetailsDao().updateLoanStateByLoandetailId(prestamo.getId(), prestamo.getMonthlyFeeValue(), monotoPayme);
-                            prestamo.setMonto(monotoPayme);
-                            prestamos2.add(prestamo);
-                            cantidad -= monotoPayme;
-                        } else {
-                            new LoanDetailsDao().updateLoanStateByLoandetailId(prestamo.getId(), prestamo.getMonthlyFeeValue(), cantidad);
-                            prestamo.setMonto(cantidad);
-                            prestamos2.add(prestamo);
-                            cantidad -= cantidad;
-                        }
-                    }
-
-                    for (AbonoDetailsTb bono : bonos) {
-                        if (cantidad == 0.0) {
+                    // ---- PAGAR PRÉSTAMOS ----
+                    for (LoanDetailsTb prestamo : prestamosPendientes) {
+                        if (cantidad <= 0) {
                             break;
                         }
 
-                        double monotp = bono.getPayment();
-                        double monotoPayme = bono.getMonthly() - monotp;
+                        double pagadoActual = prestamo.getPayment();
+                        double faltante = prestamo.getMonthlyFeeValue() - pagadoActual;
 
-                        if (cantidad >= monotoPayme) {
-                            new AbonoDetailsDao().updateLoanStateByLoandetailId(bono.getId(), bono.getMonthly(), monotoPayme);
-                            bono.setMonto(monotoPayme);
-                            bonos2.add(bono);
-                            cantidad -= monotoPayme;
-                        } else {
-
-                            new AbonoDetailsDao().updateLoanStateByLoandetailId(bono.getId(), bono.getMonthly(), cantidad);
-                            bono.setMonto(cantidad);
-                            bonos2.add(bono);
-                            cantidad -= cantidad;
+                        // Validar que haya un monto faltante real para pagar
+                        if (faltante > 0) {
+                            if (cantidad >= faltante) {
+                                new LoanDetailsDao().updateLoanStateByLoandetailId(prestamo.getId(), prestamo.getMonthlyFeeValue(), faltante);
+                                prestamo.setMonto(faltante);
+                                prestamosPagados.add(prestamo);
+                                cantidad -= faltante;
+                            } else {
+                                new LoanDetailsDao().updateLoanStateByLoandetailId(prestamo.getId(), prestamo.getMonthlyFeeValue(), cantidad);
+                                prestamo.setMonto(cantidad);
+                                prestamosPagados.add(prestamo);
+                                cantidad = 0;
+                            }
                         }
-
                     }
 
-                    new RegistroDao().insertarRegistroCompleto(registroTb, prestamos2, bonos2);
+                    // ---- PAGAR BONOS ----
+                    for (AbonoDetailsTb bono : bonosPendientes) {
+                        if (cantidad <= 0) {
+                            break;
+                        }
+
+                        double pagadoActual = bono.getPayment();
+                        double faltante = bono.getMonthly() - pagadoActual;
+
+                        // Validar que haya un monto faltante real para pagar
+                        if (faltante > 0) {
+                            if (cantidad >= faltante) {
+                                new AbonoDetailsDao().updateLoanStateByLoandetailId(bono.getId(), bono.getMonthly(), faltante);
+                                bono.setMonto(faltante);
+                                bonosPagados.add(bono);
+                                cantidad -= faltante;
+                            } else {
+                                new AbonoDetailsDao().updateLoanStateByLoandetailId(bono.getId(), bono.getMonthly(), cantidad);
+                                bono.setMonto(cantidad);
+                                bonosPagados.add(bono);
+                                cantidad = 0;
+                            }
+                        }
+                    }
+
+                    // ======================= INSERT DEL REGISTRO ============================
+                    // Solo insertar registro si realmente se procesó algún pago
+                    if (!prestamosPagados.isEmpty() || !bonosPagados.isEmpty()) {
+                        cat = new RegistroDao().insertarRegistroCompleto(registroTb, prestamosPagados, bonosPagados);
+                        if (cat == 1) {
+                            ver = true;
+                        }
+                    }
 
                 } catch (Exception ex) {
                     viewMain.setEnabled(true);
                     ViewMain.loading.setVisible(false);
-                    JOptionPane.showMessageDialog(null, "Ocurrio un error", "MENSAJE", JOptionPane.WARNING_MESSAGE);
-                    Logger
-                            .getLogger(ModelMain.class
-                                    .getName()).log(Level.SEVERE, null, ex);
+                    JOptionPane.showMessageDialog(null, "Ocurrió un error", "MENSAJE", JOptionPane.WARNING_MESSAGE);
+                    Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
                 }
-
             }
+
+            if (!ver) {
+                JOptionPane.showMessageDialog(null, "No hubo nada que descontar", "MENSAJE", JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "Se registró correctamente", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
+            }
+
             viewMain.setEnabled(true);
             ViewMain.loading.setVisible(false);
-            JOptionPane.showMessageDialog(null, "Se registro", "MENSAJE", JOptionPane.WARNING_MESSAGE);
 
         }).start();
-
-        //   viewMain.loading.dispose();
     }
 
-    //Leer el documento
-    public void document() {
-        try {
+    private List<AbonoDetailsTb> ordenarBonosPorVencimiento(List<AbonoDetailsTb> lista, LocalDate fechaReferencia) {
 
-            List<ReporteAbonoData> listaAbonos = new ArrayList<>();
+        List<AbonoDetailsTb> pendientes = lista.stream()
+                .filter(b -> {
+                    String state = b.getState();
+                    boolean estadoValido = state.equalsIgnoreCase("Pendiente") || state.equalsIgnoreCase("Parcial");
 
-            ReporteAbonoData abono1 = new ReporteAbonoData();
-            abono1.setSection_var("Secundaria A");
-            abono1.setNum_solicitud_var("SOL-2025-001");
-            abono1.setNum_cuotas_pendiente_var("2");
-            abono1.setVencimiento_information_var("30 de septiembre de 2025");
-            abono1.setConcepto_var("Pensión mensual");
-            abono1.setTotal_var("350.00");
+                    if (!estadoValido) {
+                        return false;
+                    }
 
-// Cambia List.of(...) por ArrayList<Map<String, ?>> si necesitas mutabilidad
-            List<Map<String, ?>> detalles1 = new ArrayList<>();
-            detalles1.add(Map.of("details_var", "Cuota 1", "vencimiento_var", "2025-08-01", "amount_var", "150.00"));
-            detalles1.add(Map.of("details_var", "Cuota 2", "vencimiento_var", "2025-09-01", "amount_var", "200.00"));
+                    // Filtrar por fecha
+                    try {
+                        LocalDate fechaPago = LocalDate.parse(b.getPaymentDate());
+                        return !fechaPago.isAfter(fechaReferencia);
+                    } catch (Exception e) {
+                        return false;
+                    }
+                })
+                .collect(Collectors.toList());
 
-            abono1.setDetalles(detalles1);
+        return pendientes.stream()
+                .sorted((b1, b2) -> {
+                    try {
+                        LocalDate f1 = LocalDate.parse(b1.getPaymentDate());
+                        LocalDate f2 = LocalDate.parse(b2.getPaymentDate());
 
-            ReporteAbonoData abono2 = new ReporteAbonoData();
-            // abono2.setSection_var("Secundaria B");
-            abono2.setNum_solicitud_var("SOL-2025-002");
-            abono2.setNum_cuotas_pendiente_var("1");
-            abono2.setVencimiento_information_var("30 de octubre de 2025");
-            abono2.setConcepto_var("Pensión mensual");
-            abono2.setTotal_var("200.00");
+                        boolean v1 = f1.isBefore(fechaReferencia.withDayOfMonth(1));
+                        boolean v2 = f2.isBefore(fechaReferencia.withDayOfMonth(1));
 
-            List<Map<String, ?>> detalles2 = new ArrayList<>();
-            detalles2.add(Map.of("details_var", "Cuota 1", "vencimiento_var", "2025-10-01", "amount_var", "200.00"));
-            abono2.setDetalles(detalles2);
-
-            listaAbonos.add(abono1);
-            listaAbonos.add(abono2);
-
-// Parámetros del encabezado principal
-            Map<String, Object> parameters = new HashMap<>();
-            parameters.put("name_lastname_var", "Thiago Jesus");
-            parameters.put("dni_var", "73321206");
-
-// Carga el .jasper (NO el .jrxml si estás usando JRLoader)
-            InputStream reporteStream = getClass().getResourceAsStream("/reports/ReporteAbono.jasper");
-            JasperReport jasperReport = (JasperReport) JRLoader.loadObject(reporteStream);
-
-// Fuente de datos del reporte principal
-            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(listaAbonos);
-
-// Genera el reporte
-            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
-            JasperViewer.viewReport(jasperPrint, false);
-
-        } catch (JRException ex) {
-            Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-        // 7. Exportar a PDF (ejemplo)
-    }
-
-    private void document_report(EmployeeTb employeeFind, Map<LoanTb, List<ReporteDeuda>> listComLoan, Map<AbonoTb, List<ReporteDeuda>> listAbond) {
-        try {
-            Integer sectionLoan = 0, sectionBond = 0;
-            // Initial
-            List<ReporteAbonoData> listReport = new ArrayList<>();
-
-//       
-            for (Map.Entry<AbonoTb, List<ReporteDeuda>> entry : listAbond.entrySet()) {
-
-                ReporteAbonoData abono1 = new ReporteAbonoData();
-                abono1.setSection_var("");
-                if (sectionBond == 0) {
-                    abono1.setSection_var("SECCIÓN DE ABONOS");
-                }
-                abono1.setConcepto_var(entry.getValue().getFirst().getConceptBono());
-                abono1.setNum_solicitud_var(entry.getValue().getFirst().getNumSoli());
-                abono1.setNum_cuotas_pendiente_var(String.valueOf(entry.getValue().size()));
-                abono1.setVencimiento_information_var(entry.getValue().getLast().getFechaVencimiento());
-
-                List<Map<String, ?>> detalles2 = new ArrayList<>();
-                Double amountTotal = 0.0;
-
-                for (int i = 0; i < entry.getValue().size(); i++) {
-
-                    detalles2.add(Map.of(
-                            "details_var", entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size(),
-                            "vencimiento_var", entry.getValue().get(i).getFechaVencimiento(),
-                            "amount_var", entry.getValue().get(i).getMonto()));
-                    amountTotal += Double.parseDouble(entry.getValue().get(i).getMonto());
-                    //  totalAbonos += Double.parseDouble(entry.getValue().get(i).getMonto());  // Acumulando la deuda
-                }
-                abono1.setTotal_var("TOTAL DE DEUDA DEL ABONO: " + amountTotal.toString());
-                abono1.setDetalles(detalles2);
-
-                listReport.add(abono1);
-                sectionBond = 1;
-            }
-
-            for (Map.Entry<LoanTb, List<ReporteDeuda>> entry : listComLoan.entrySet()) {
-
-                ReporteAbonoData abono1 = new ReporteAbonoData();
-                abono1.setSection_var("");
-                if (sectionLoan == 0) {
-                    abono1.setSection_var("SECCIÓN DE PRÉSTAMOS");
-                }
-                abono1.setConcepto_var("PRÉSTAMO " + entry.getValue().getFirst().getNumSoli());
-                abono1.setNum_solicitud_var(entry.getValue().getFirst().getNumSoli());
-                abono1.setNum_cuotas_pendiente_var(String.valueOf(entry.getValue().size()));
-                abono1.setVencimiento_information_var(entry.getValue().getLast().getFechaVencimiento());
-
-                List<Map<String, ?>> detalles2 = new ArrayList<>();
-                Double amountTotal = 0.0;
-
-                for (int i = 0; i < entry.getValue().size(); i++) {
-
-                    detalles2.add(Map.of(
-                            "details_var", entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size(),
-                            "vencimiento_var", entry.getValue().get(i).getFechaVencimiento(),
-                            "amount_var", entry.getValue().get(i).getMonto()));
-                    amountTotal += Double.parseDouble(entry.getValue().get(i).getMonto());
-                    //  totalAbonos += Double.parseDouble(entry.getValue().get(i).getMonto());  // Acumulando la deuda
-                }
-                abono1.setTotal_var("TOTAL DE DEUDA DEL PRÉSTAMO: " + amountTotal.toString());
-                abono1.setDetalles(detalles2);
-
-                listReport.add(abono1);
-                sectionLoan = 1;
-
-            }
-
-            Map<String, Object> parameters = new HashMap<>();
-            parameters.put("name_lastname_var", employeeFind.getFullName());
-            parameters.put("dni_var", employeeFind.getNationalId());
-
-// Carga el .jasper (NO el .jrxml si estás usando JRLoader)
-            InputStream reporteStream = getClass().getResourceAsStream("/reports/report_history_debt.jasper");
-
-            // Cargar el reporte
-            JasperReport jasperReport = (JasperReport) JRLoader.loadObject(reporteStream);
-
-            // Crear fuente de datos desde la lista
-            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(listReport);
-
-            // Llenar el reporte con los datos
-            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
-
-            // Crear una instancia personalizada del visor
-            JasperViewer jasperViewer = new JasperViewer(jasperPrint, false);
-
-            // Obtener el JFrame interno del visor
-            JFrame frame = (JFrame) jasperViewer.getContentPane().getParent().getParent().getParent();
-
-            // Cambiar el título de la ventana
-            frame.setTitle("REPORTE DE DEUDA");
-
-            // Cambiar el ícono de la ventana
-            ImageIcon icon = new ImageIcon(viewMain.getIconImage()); // asegúrate de que este recurso exista
-
-            frame.setIconImage(icon.getImage());
-
-            // Mostrar el visor
-            jasperViewer.setVisible(true);
-        } catch (Exception e) {
-
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Error al mostrar el reporte: " + e.getMessage());
-
-        }
+                        if (v1 != v2) {
+                            return v1 ? -1 : 1;
+                        }
+                        return f1.compareTo(f2);
+                    } catch (Exception e) {
+                        return 0;
+                    }
+                })
+                .collect(Collectors.toList());
     }
 }

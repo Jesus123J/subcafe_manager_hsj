@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-
-
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
@@ -12,20 +9,7 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
-        <final.name>FinantialTracker-dev</final.name> <!-- valor por defecto -->
-    </properties>
-
     <dependencies>
-        <!-- Maven -->
-        <dependency>
-          <groupId>net.sf.jasperreports</groupId>
-          <artifactId>jasperreports</artifactId>
-          <version>6.21.5</version> <!-- Usa la versión que compile tu reporte -->
-        </dependency>
         <!-- Encriptación de contraseñas -->
         <dependency>
             <groupId>org.mindrot</groupId>
@@ -93,10 +77,13 @@
         </dependency>
     </dependencies>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
     <build>
-        <finalName>${final.name}</finalName>
         <plugins>
+            <!-- Plugin para generar JAR ejecutable con todas las dependencias -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -121,6 +108,7 @@
                 </executions>
             </plugin>
 
+            <!-- Plugin para compilar correctamente el código -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -132,25 +120,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>prod</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <final.name>FinantialTracker-prod</final.name>
-            </properties>
-        </profile>
-        <profile>
-            <id>dev</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <final.name>FinantialTracker-dev</final.name>
-            </properties>
-        </profile>
-    </profiles>
 </project>

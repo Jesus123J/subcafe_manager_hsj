@@ -160,7 +160,12 @@ public class RegistroDao {
     }
 
     //  Método para insertar un nuevo registro y sus detalles de préstamo y bono
-    public boolean insertarRegistroCompleto(RegistroTb registro, List<LoanDetailsTb> prestamos, List<AbonoDetailsTb> bonos) {
+    public int insertarRegistroCompleto(RegistroTb registro, List<LoanDetailsTb> prestamos, List<AbonoDetailsTb> bonos) {
+        
+        if (prestamos.isEmpty() && bonos.isEmpty()) {
+            return 4;
+        }
+        
         System.out.println("Prestamoms " + prestamos.toString());
         System.out.println("Prestamoms " + bonos.toString());
         
@@ -182,6 +187,8 @@ public class RegistroDao {
                     idRegistro = rs.getInt(1);
                 }
             }
+            
+            // duplicando el pedido en la tabla registro  se envia doble o triple 
 
             System.out.println("ID de registro generado: " + idRegistro);
             // 3. Insertar en la tabla prestamo si existen préstamos
@@ -214,7 +221,7 @@ public class RegistroDao {
             // 5. Confirmar la transacción
             conn.commit();
             //JOptionPane.showMessageDialog(null, "Se registro correctamente");
-            return true;
+            return 1;
 
         } catch (SQLException e) {
             try {
@@ -224,7 +231,7 @@ public class RegistroDao {
             }
             System.out.println("error  -> " + e.getMessage());
             JOptionPane.showMessageDialog(null, "Error al registrar pago: ");
-            return false;
+            return 3;
         } finally {
             try {
                 conn.setAutoCommit(true); // Reactivar auto-commit
