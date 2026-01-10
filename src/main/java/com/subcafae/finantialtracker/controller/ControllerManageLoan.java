@@ -866,6 +866,12 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                                 return;
                             }
 
+                            // VALIDACIÓN: Si el préstamo ya está PAGADO, no permitir más pagos
+                            if (loan.get().getStateLoan() != null && loan.get().getStateLoan().equalsIgnoreCase("Pagado")) {
+                                JOptionPane.showMessageDialog(null, "Este préstamo ya está completamente PAGADO", "GÉSTION PRESTAMOS", JOptionPane.WARNING_MESSAGE);
+                                return;
+                            }
+
                             List<LoanDetailsTb> listDetails = new LoanDetailsDao().findLoanDetailsByLoanId(loan.get().getId());
                             int couta = Integer.parseInt(componentManageLoan.jTableListLoanDetails.getValueAt(index, 2).toString());
 

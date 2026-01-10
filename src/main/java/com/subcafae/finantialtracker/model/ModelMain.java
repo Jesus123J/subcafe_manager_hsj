@@ -1128,6 +1128,12 @@ public class ModelMain {
                     List<LoanTb> prestamoList = new LoanDao().findLoansByEmployeeId(entry.getKey().getNationalId());
 
                     for (LoanTb loanTb : prestamoList) {
+                        // VALIDACIÓN: Si el préstamo ya está PAGADO, no procesar sus cuotas
+                        if (loanTb.getStateLoan() != null && loanTb.getStateLoan().equalsIgnoreCase("Pagado")) {
+                            System.out.println("⚠ Préstamo #" + loanTb.getSoliNum() + " ya está PAGADO. Omitiendo cuotas.");
+                            continue; // Saltar este préstamo completamente
+                        }
+
                         List<LoanDetailsTb> detalles = new LoanDetailsDao().findLoanDetailsByLoanId(loanTb.getId());
 
                         for (LoanDetailsTb d : detalles) {
@@ -1162,6 +1168,12 @@ public class ModelMain {
                     List<AbonoDetailsTb> secondServ = new ArrayList<>();
 
                     for (AbonoTb abonoTb : abonoList) {
+                        // VALIDACIÓN: Si el abono ya está PAGADO, no procesar sus cuotas
+                        if (abonoTb.getStatus() != null && abonoTb.getStatus().equalsIgnoreCase("Pagado")) {
+                            System.out.println("⚠ Abono #" + abonoTb.getSoliNum() + " ya está PAGADO. Omitiendo cuotas.");
+                            continue; // Saltar este abono completamente
+                        }
+
                         ServiceConceptTb serve = new ServiceConceptDao().getAllServiceConcepts()
                                 .stream()
                                 .filter(s -> s.getId() == Integer.parseInt(abonoTb.getServiceConceptId()))
@@ -1797,6 +1809,212 @@ public class ModelMain {
                 }
             }
         }.execute();
+
+        viewMain.loading.setVisible(true);
+    }
+
+    /**
+     * Método para detectar y corregir pagos duplicados
+     * Busca préstamos y abonos marcados como "Pagado" que tienen pagos adicionales indebidos
+     */
+    public void corregirPagosDuplicados() {
+        // Mostrar diálogo inicial
+        int opcionInicial = JOptionPane.showConfirmDialog(
+            viewMain,
+            "<html><body style='width: 400px;'>" +
+            "<h3 style='color:#D35400;'>CORRECCIÓN DE PAGOS DUPLICADOS</h3>" +
+            "<p>Esta herramienta detecta y corrige pagos duplicados en:</p>" +
+            "<ul>" +
+            "<li><b>Préstamos:</b> Cuotas con pagos superiores al monto mensual</li>" +
+            "<li><b>Abonos:</b> Cuotas con pagos superiores al monto mensual</li>" +
+            "</ul>" +
+            "<p style='color:#C0392B;'><b>⚠ Se recomienda hacer backup antes de continuar.</b></p>" +
+            "<p>¿Desea buscar pagos duplicados?</p>" +
+            "</body></html>",
+            "CORREGIR PAGOS DUPLICADOS",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+
+        if (opcionInicial != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        viewMain.loading.setModal(true);
+        viewMain.loading.setLocationRelativeTo(viewMain);
+
+        new Thread(() -> {
+            try {
+                com.subcafae.finantialtracker.data.dao.RegistroDao registroDao =
+                    new com.subcafae.finantialtracker.data.dao.RegistroDao();
+
+                // Buscar duplicados
+                java.util.List<Object[]> duplicadosPrestamos = registroDao.buscarPagosDuplicadosPrestamos();
+                java.util.List<Object[]> duplicadosAbonos = registroDao.buscarPagosDuplicadosAbonos();
+
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+
+                    if (duplicadosPrestamos.isEmpty() && duplicadosAbonos.isEmpty()) {
+                        JOptionPane.showMessageDialog(viewMain,
+                            "<html><body>" +
+                            "<h3 style='color:#27AE60;'>✓ NO SE ENCONTRARON DUPLICADOS</h3>" +
+                            "<p>No hay pagos duplicados en el sistema.</p>" +
+                            "</body></html>",
+                            "RESULTADO", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
+                    // Mostrar resumen de duplicados encontrados
+                    StringBuilder resumen = new StringBuilder();
+                    resumen.append("<html><body style='width: 600px;'>");
+                    resumen.append("<h3 style='color:#D35400;'>DUPLICADOS ENCONTRADOS</h3>");
+
+                    if (!duplicadosPrestamos.isEmpty()) {
+                        resumen.append("<h4 style='color:#2980B9;'>PRÉSTAMOS (" + duplicadosPrestamos.size() + " cuotas):</h4>");
+                        resumen.append("<table border='1' cellpadding='3'>");
+                        resumen.append("<tr><th>Solicitud</th><th>Cuota</th><th>Pagado</th><th>Mensual</th><th>Tipo</th><th>Registros</th></tr>");
+
+                        int maxShow = Math.min(duplicadosPrestamos.size(), 15);
+                        for (int i = 0; i < maxShow; i++) {
+                            Object[] dup = duplicadosPrestamos.get(i);
+                            String tipoDup = dup.length > 5 ? String.valueOf(dup[5]) : "EXCESO";
+                            int cantReg = dup.length > 6 ? ((Number)dup[6]).intValue() : 0;
+                            resumen.append("<tr>");
+                            resumen.append("<td>").append(dup[0]).append("</td>"); // SoliNum
+                            resumen.append("<td>").append(dup[1]).append("</td>"); // Cuota
+                            resumen.append("<td>S/ ").append(String.format("%.2f", dup[2])).append("</td>"); // Payment
+                            resumen.append("<td>S/ ").append(String.format("%.2f", dup[3])).append("</td>"); // MonthlyFeeValue
+                            if ("REGISTRO_MULTIPLE".equals(tipoDup)) {
+                                resumen.append("<td style='color:orange;'>").append(cantReg).append(" pagos</td>");
+                                resumen.append("<td style='color:red;'>").append(cantReg).append("</td>");
+                            } else {
+                                double exceso = ((Number)dup[2]).doubleValue() - ((Number)dup[3]).doubleValue();
+                                resumen.append("<td style='color:blue;'>Exceso</td>");
+                                resumen.append("<td style='color:red;'>S/ ").append(String.format("%.2f", exceso)).append("</td>");
+                            }
+                            resumen.append("</tr>");
+                        }
+                        if (duplicadosPrestamos.size() > 15) {
+                            resumen.append("<tr><td colspan='6'>... y ").append(duplicadosPrestamos.size() - 15).append(" más</td></tr>");
+                        }
+                        resumen.append("</table><br/>");
+                    }
+
+                    if (!duplicadosAbonos.isEmpty()) {
+                        resumen.append("<h4 style='color:#8E44AD;'>ABONOS (" + duplicadosAbonos.size() + " cuotas):</h4>");
+                        resumen.append("<table border='1' cellpadding='3'>");
+                        resumen.append("<tr><th>Solicitud</th><th>Cuota</th><th>Pagado</th><th>Mensual</th><th>Tipo</th><th>Registros</th></tr>");
+
+                        int maxShow = Math.min(duplicadosAbonos.size(), 15);
+                        for (int i = 0; i < maxShow; i++) {
+                            Object[] dup = duplicadosAbonos.get(i);
+                            String tipoDup = dup.length > 5 ? String.valueOf(dup[5]) : "EXCESO";
+                            int cantReg = dup.length > 6 ? ((Number)dup[6]).intValue() : 0;
+                            resumen.append("<tr>");
+                            resumen.append("<td>").append(dup[0]).append("</td>"); // SoliNum
+                            resumen.append("<td>").append(dup[1]).append("</td>"); // Cuota
+                            resumen.append("<td>S/ ").append(String.format("%.2f", dup[2])).append("</td>"); // Payment
+                            resumen.append("<td>S/ ").append(String.format("%.2f", dup[3])).append("</td>"); // Monthly
+                            if ("REGISTRO_MULTIPLE".equals(tipoDup)) {
+                                resumen.append("<td style='color:orange;'>").append(cantReg).append(" pagos</td>");
+                                resumen.append("<td style='color:red;'>").append(cantReg).append("</td>");
+                            } else {
+                                double exceso = ((Number)dup[2]).doubleValue() - ((Number)dup[3]).doubleValue();
+                                resumen.append("<td style='color:blue;'>Exceso</td>");
+                                resumen.append("<td style='color:red;'>S/ ").append(String.format("%.2f", exceso)).append("</td>");
+                            }
+                            resumen.append("</tr>");
+                        }
+                        if (duplicadosAbonos.size() > 15) {
+                            resumen.append("<tr><td colspan='6'>... y ").append(duplicadosAbonos.size() - 15).append(" más</td></tr>");
+                        }
+                        resumen.append("</table>");
+                    }
+
+                    resumen.append("<br/><p style='color:#C0392B;'><b>¿Desea corregir estos pagos duplicados?</b></p>");
+                    resumen.append("<p><i>Los pagos con EXCESO serán ajustados al valor mensual.</i></p>");
+                    resumen.append("<p><i>Los pagos con REGISTROS MÚLTIPLES serán eliminados (se mantiene 1).</i></p>");
+                    resumen.append("</body></html>");
+
+                    int confirmar = JOptionPane.showConfirmDialog(
+                        viewMain,
+                        resumen.toString(),
+                        "CONFIRMAR CORRECCIÓN",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE
+                    );
+
+                    if (confirmar != JOptionPane.YES_OPTION) {
+                        return;
+                    }
+
+                    // Solicitar motivo
+                    String motivo = JOptionPane.showInputDialog(
+                        viewMain,
+                        "Ingrese el motivo de la corrección:",
+                        "MOTIVO DE CORRECCIÓN",
+                        JOptionPane.QUESTION_MESSAGE
+                    );
+
+                    if (motivo == null || motivo.trim().isEmpty()) {
+                        JOptionPane.showMessageDialog(viewMain,
+                            "Debe ingresar un motivo para la corrección.",
+                            "MOTIVO REQUERIDO", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+
+                    // Ejecutar corrección
+                    viewMain.loading.setModal(true);
+                    viewMain.loading.setLocationRelativeTo(viewMain);
+
+                    String usuarioActual = (usser != null && usser.getUsername() != null) ? usser.getUsername() : "SISTEMA";
+                    final String usuarioFinal = usuarioActual;
+                    final String motivoFinal = motivo.trim();
+
+                    new javax.swing.SwingWorker<int[], Void>() {
+                        @Override
+                        protected int[] doInBackground() throws Exception {
+                            int prestamosCorregidos = registroDao.corregirPagosDuplicadosPrestamos(usuarioFinal, motivoFinal);
+                            int abonosCorregidos = registroDao.corregirPagosDuplicadosAbonos(usuarioFinal, motivoFinal);
+                            return new int[]{prestamosCorregidos, abonosCorregidos};
+                        }
+
+                        @Override
+                        protected void done() {
+                            viewMain.loading.dispose();
+                            try {
+                                int[] resultados = get();
+                                JOptionPane.showMessageDialog(viewMain,
+                                    "<html><body>" +
+                                    "<h3 style='color:#27AE60;'>✓ CORRECCIÓN COMPLETADA</h3>" +
+                                    "<p><b>Cuotas de préstamos corregidas:</b> " + resultados[0] + "</p>" +
+                                    "<p><b>Cuotas de abonos corregidas:</b> " + resultados[1] + "</p>" +
+                                    "<p><i>Los pagos excedentes han sido ajustados.</i></p>" +
+                                    "</body></html>",
+                                    "OPERACIÓN EXITOSA", JOptionPane.INFORMATION_MESSAGE);
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                                JOptionPane.showMessageDialog(viewMain,
+                                    "Error al corregir duplicados: " + ex.getMessage(),
+                                    "ERROR", JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
+                    }.execute();
+
+                    viewMain.loading.setVisible(true);
+                });
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(viewMain,
+                        "Error al buscar duplicados: " + ex.getMessage(),
+                        "ERROR", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
 
         viewMain.loading.setVisible(true);
     }

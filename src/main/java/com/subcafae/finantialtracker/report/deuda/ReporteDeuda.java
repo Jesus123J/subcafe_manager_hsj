@@ -225,10 +225,16 @@ public class ReporteDeuda {
             double totalPrestamo = 0.0;
 
             for (int i = 0; i < entry.getValue().size(); i++) {
-                
+
                 table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size())).setTextAlignment(TextAlignment.CENTER));
                 table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getFechaVencimiento())).setTextAlignment(TextAlignment.CENTER));
-                table.addCell(new Cell().add(new Paragraph(String.valueOf(Double.parseDouble(entry.getValue().get(i).getMonto()) - Double.parseDouble(entry.getValue().get(i).getFondo())))));
+
+                // Verificar si fondo es null antes de restar
+                double montoMenosFondo = Double.parseDouble(entry.getValue().get(i).getMonto());
+                if (entry.getValue().get(i).getFondo() != null) {
+                    montoMenosFondo -= Double.parseDouble(entry.getValue().get(i).getFondo());
+                }
+                table.addCell(new Cell().add(new Paragraph(String.valueOf(montoMenosFondo))));
 
                 totalPrestamo += Double.parseDouble(entry.getValue().get(i).getMonto());
             }

@@ -579,6 +579,20 @@ public class ViewMain extends javax.swing.JFrame {
             javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
         ));
 
+        // Botón para corregir pagos duplicados - diseño moderno
+        jLabelCorregirDuplicados = new javax.swing.JLabel();
+        jLabelCorregirDuplicados.setFont(new java.awt.Font("Segoe UI", 1, 11));
+        jLabelCorregirDuplicados.setForeground(new java.awt.Color(255, 255, 255));
+        jLabelCorregirDuplicados.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelCorregirDuplicados.setText("CORREGIR DUPLICADOS");
+        jLabelCorregirDuplicados.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        jLabelCorregirDuplicados.setOpaque(true);
+        jLabelCorregirDuplicados.setBackground(new java.awt.Color(211, 84, 0)); // Naranja oscuro
+        jLabelCorregirDuplicados.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(230, 126, 34), 2),
+            javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+
         jDesktopPane1.setLayer(jLabel1, javax.swing.JLayeredPane.DEFAULT_LAYER);
         jDesktopPane1.setLayer(jLabel2, javax.swing.JLayeredPane.DEFAULT_LAYER);
         jDesktopPane1.setLayer(jLabelReportDesc, javax.swing.JLayeredPane.DEFAULT_LAYER);
@@ -586,6 +600,7 @@ public class ViewMain extends javax.swing.JFrame {
         jDesktopPane1.setLayer(jLabelHistoryPayment, javax.swing.JLayeredPane.DEFAULT_LAYER);
         jDesktopPane1.setLayer(jLabelConstanciaEntrega, javax.swing.JLayeredPane.DEFAULT_LAYER);
         jDesktopPane1.setLayer(jLabelRevertirPago, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jDesktopPane1.setLayer(jLabelCorregirDuplicados, javax.swing.JLayeredPane.DEFAULT_LAYER);
 
         javax.swing.GroupLayout jDesktopPane1Layout = new javax.swing.GroupLayout(jDesktopPane1);
         jDesktopPane1.setLayout(jDesktopPane1Layout);
@@ -600,7 +615,8 @@ public class ViewMain extends javax.swing.JFrame {
                     .addComponent(jLabelHistoryPayment, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jLabelConstanciaEntrega, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jLabelReportDesc, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabelRevertirPago, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jLabelRevertirPago, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabelCorregirDuplicados, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
         jDesktopPane1Layout.setVerticalGroup(
@@ -616,7 +632,9 @@ public class ViewMain extends javax.swing.JFrame {
                 .addComponent(jLabelConstanciaEntrega, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jLabelRevertirPago, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 113, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabelCorregirDuplicados, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 57, Short.MAX_VALUE)
                 .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jLabel2)
@@ -749,6 +767,7 @@ public class ViewMain extends javax.swing.JFrame {
     public javax.swing.JLabel jLabelReportDesc;
     public javax.swing.JLabel jLabelReportDeuda;
     public javax.swing.JLabel jLabelRevertirPago;
+    public javax.swing.JLabel jLabelCorregirDuplicados;
     public javax.swing.JLayeredPane jLayeredPane1;
     public javax.swing.JMenu jMenu2;
     public javax.swing.JMenuBar jMenuBar1;

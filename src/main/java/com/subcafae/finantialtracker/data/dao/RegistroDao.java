@@ -1110,4 +1110,313 @@ public class RegistroDao {
             }
         }
     }
+
+    // ============================================
+    // MÉTODOS PARA CORRECCIÓN DE PAGOS DUPLICADOS
+    // ============================================
+
+    /**
+     * Busca cuotas de préstamos con pagos duplicados:
+     * 1. Cuotas con payment > MonthlyFeeValue (exceso de pago)
+     * 2. Cuotas con múltiples registros en registerdetails (pagos duplicados)
+     * @return Lista de Object[] con: SoliNum, Dues, Payment, MonthlyFeeValue, ID, TipoDuplicado, CantidadRegistros
+     */
+    public List<Object[]> buscarPagosDuplicadosPrestamos() {
+        List<Object[]> duplicados = new ArrayList<>();
+
+        // 1. Buscar cuotas con payment > MonthlyFeeValue
+        String sql1 = "SELECT l.SoliNum, ld.Dues, ld.payment, ld.MonthlyFeeValue, ld.ID, " +
+                "'EXCESO' as TipoDuplicado, 0 as CantRegistros " +
+                "FROM loandetail ld " +
+                "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                "WHERE ld.payment > ld.MonthlyFeeValue " +
+                "AND ld.State = 'Pagado' " +
+                "ORDER BY l.SoliNum, ld.Dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql1);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Object[] row = new Object[7];
+                row[0] = rs.getString("SoliNum");
+                row[1] = rs.getInt("Dues");
+                row[2] = rs.getDouble("payment");
+                row[3] = rs.getDouble("MonthlyFeeValue");
+                row[4] = rs.getLong("ID");
+                row[5] = rs.getString("TipoDuplicado");
+                row[6] = rs.getInt("CantRegistros");
+                duplicados.add(row);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando excesos de préstamos: " + e.getMessage());
+        }
+
+        // 2. Buscar cuotas con múltiples registros de pago
+        String sql2 = "SELECT l.SoliNum, ld.Dues, ld.payment, ld.MonthlyFeeValue, ld.ID, " +
+                "'REGISTRO_MULTIPLE' as TipoDuplicado, COUNT(rd.id) as CantRegistros, " +
+                "SUM(rd.amountPar) as TotalPagado " +
+                "FROM loandetail ld " +
+                "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                "INNER JOIN registerdetails rd ON rd.idLoanDetails = ld.ID " +
+                "GROUP BY ld.ID, l.SoliNum, ld.Dues, ld.payment, ld.MonthlyFeeValue " +
+                "HAVING COUNT(rd.id) > 1 " +
+                "ORDER BY l.SoliNum, ld.Dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql2);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Object[] row = new Object[7];
+                row[0] = rs.getString("SoliNum");
+                row[1] = rs.getInt("Dues");
+                row[2] = rs.getDouble("TotalPagado"); // Total pagado (suma de todos los registros)
+                row[3] = rs.getDouble("MonthlyFeeValue");
+                row[4] = rs.getLong("ID");
+                row[5] = rs.getString("TipoDuplicado");
+                row[6] = rs.getInt("CantRegistros");
+                duplicados.add(row);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando registros múltiples de préstamos: " + e.getMessage());
+        }
+
+        return duplicados;
+    }
+
+    /**
+     * Busca cuotas de abonos con pagos duplicados:
+     * 1. Cuotas con payment > monthly (exceso de pago)
+     * 2. Cuotas con múltiples registros en registerdetails (pagos duplicados)
+     * @return Lista de Object[] con: SoliNum, Dues, Payment, Monthly, ID, TipoDuplicado, CantidadRegistros
+     */
+    public List<Object[]> buscarPagosDuplicadosAbonos() {
+        List<Object[]> duplicados = new ArrayList<>();
+
+        // 1. Buscar cuotas con payment > monthly
+        String sql1 = "SELECT a.SoliNum, ad.dues, ad.payment, ad.monthly, ad.id, " +
+                "'EXCESO' as TipoDuplicado, 0 as CantRegistros " +
+                "FROM abonodetail ad " +
+                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                "WHERE ad.payment > ad.monthly " +
+                "AND ad.state = 'Pagado' " +
+                "ORDER BY a.SoliNum, ad.dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql1);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Object[] row = new Object[7];
+                row[0] = rs.getString("SoliNum");
+                row[1] = rs.getInt("dues");
+                row[2] = rs.getDouble("payment");
+                row[3] = rs.getDouble("monthly");
+                row[4] = rs.getLong("id");
+                row[5] = rs.getString("TipoDuplicado");
+                row[6] = rs.getInt("CantRegistros");
+                duplicados.add(row);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando excesos de abonos: " + e.getMessage());
+        }
+
+        // 2. Buscar cuotas con múltiples registros de pago
+        String sql2 = "SELECT a.SoliNum, ad.dues, ad.payment, ad.monthly, ad.id, " +
+                "'REGISTRO_MULTIPLE' as TipoDuplicado, COUNT(rd.id) as CantRegistros, " +
+                "SUM(rd.amountPar) as TotalPagado " +
+                "FROM abonodetail ad " +
+                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                "INNER JOIN registerdetails rd ON rd.idBondDetails = ad.id " +
+                "GROUP BY ad.id, a.SoliNum, ad.dues, ad.payment, ad.monthly " +
+                "HAVING COUNT(rd.id) > 1 " +
+                "ORDER BY a.SoliNum, ad.dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql2);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Object[] row = new Object[7];
+                row[0] = rs.getString("SoliNum");
+                row[1] = rs.getInt("dues");
+                row[2] = rs.getDouble("TotalPagado"); // Total pagado
+                row[3] = rs.getDouble("monthly");
+                row[4] = rs.getLong("id");
+                row[5] = rs.getString("TipoDuplicado");
+                row[6] = rs.getInt("CantRegistros");
+                duplicados.add(row);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando registros múltiples de abonos: " + e.getMessage());
+        }
+
+        return duplicados;
+    }
+
+    /**
+     * Corrige pagos duplicados en préstamos:
+     * 1. Ajusta payment = MonthlyFeeValue donde hay exceso
+     * 2. Elimina registros duplicados en registerdetails (mantiene el primero)
+     * @param usuario Usuario que realiza la corrección
+     * @param motivo Motivo de la corrección
+     * @return Cantidad de cuotas corregidas
+     */
+    public int corregirPagosDuplicadosPrestamos(String usuario, String motivo) {
+        int corregidos = 0;
+
+        try {
+            conn.setAutoCommit(false);
+
+            // Crear tabla historial si no existe
+            crearTablaHistorialCorrecciones();
+
+            // 1. Corregir excesos de pago
+            String sqlSelectExceso = "SELECT ld.ID, l.SoliNum, ld.Dues, ld.payment, ld.MonthlyFeeValue " +
+                    "FROM loandetail ld " +
+                    "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                    "WHERE ld.payment > ld.MonthlyFeeValue " +
+                    "AND ld.State = 'Pagado'";
+
+            String sqlUpdateExceso = "UPDATE loandetail SET payment = MonthlyFeeValue WHERE ID = ?";
+
+            try (PreparedStatement stmtSelect = conn.prepareStatement(sqlSelectExceso);
+                 ResultSet rs = stmtSelect.executeQuery()) {
+
+                while (rs.next()) {
+                    long id = rs.getLong("ID");
+                    String soliNum = rs.getString("SoliNum");
+                    int cuota = rs.getInt("Dues");
+                    double pagoAnterior = rs.getDouble("payment");
+                    double pagoNuevo = rs.getDouble("MonthlyFeeValue");
+
+                    try (PreparedStatement stmtUpdate = conn.prepareStatement(sqlUpdateExceso)) {
+                        stmtUpdate.setLong(1, id);
+                        stmtUpdate.executeUpdate();
+                    }
+
+                    guardarHistorialCorreccion("PRESTAMO_EXCESO", soliNum, cuota, pagoAnterior, pagoNuevo, usuario, motivo);
+                    corregidos++;
+                    System.out.println("✓ Corregido exceso préstamo " + soliNum + " cuota " + cuota);
+                }
+            }
+
+            // 2. Eliminar registros duplicados en registerdetails
+            String sqlSelectDuplicados = "SELECT ld.ID, l.SoliNum, ld.Dues, GROUP_CONCAT(rd.id ORDER BY rd.id) as registros " +
+                    "FROM loandetail ld " +
+                    "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                    "INNER JOIN registerdetails rd ON rd.idLoanDetails = ld.ID " +
+                    "GROUP BY ld.ID, l.SoliNum, ld.Dues " +
+                    "HAVING COUNT(rd.id) > 1";
+
+            try (PreparedStatement stmtSelect = conn.prepareStatement(sqlSelectDuplicados);
+                 ResultSet rs = stmtSelect.executeQuery()) {
+
+                while (rs.next()) {
+                    String soliNum = rs.getString("SoliNum");
+                    int cuota = rs.getInt("Dues");
+                    String registrosStr = rs.getString("registros");
+
+                    // Obtener IDs de registros, mantener solo el primero
+                    String[] ids = registrosStr.split(",");
+                    if (ids.length > 1) {
+                        for (int i = 1; i < ids.length; i++) {
+                            String sqlDelete = "DELETE FROM registerdetails WHERE id = ?";
+                            try (PreparedStatement stmtDelete = conn.prepareStatement(sqlDelete)) {
+                                stmtDelete.setInt(1, Integer.parseInt(ids[i].trim()));
+                                stmtDelete.executeUpdate();
+                            }
+                        }
+                        guardarHistorialCorreccion("PRESTAMO_REG_DUP", soliNum, cuota, ids.length, 1, usuario,
+                                motivo + " - Eliminados " + (ids.length - 1) + " registros duplicados");
+                        corregidos++;
+                        System.out.println("✓ Eliminados " + (ids.length - 1) + " registros duplicados de préstamo " + soliNum + " cuota " + cuota);
+                    }
+                }
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error corrigiendo duplicados de préstamos: " + e.getMessage());
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+        return corregidos;
+    }
+
+    /**
+     * Corrige pagos duplicados en abonos (ajusta payment = monthly)
+     * @param usuario Usuario que realiza la corrección
+     * @param motivo Motivo de la corrección
+     * @return Cantidad de cuotas corregidas
+     */
+    public int corregirPagosDuplicadosAbonos(String usuario, String motivo) {
+        int corregidos = 0;
+        String sqlSelect = "SELECT ad.id, a.SoliNum, ad.dues, ad.payment, ad.monthly " +
+                "FROM abonodetail ad " +
+                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                "WHERE ad.payment > ad.monthly " +
+                "AND ad.state = 'Pagado'";
+
+        String sqlUpdate = "UPDATE abonodetail SET payment = monthly WHERE id = ?";
+
+        String sqlHistorial = "INSERT INTO historial_correcciones " +
+                "(tipo, solicitud, cuota, pago_anterior, pago_nuevo, usuario, motivo) " +
+                "VALUES ('ABONO', ?, ?, ?, ?, ?, ?)";
+
+        try {
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement stmtSelect = conn.prepareStatement(sqlSelect);
+                 ResultSet rs = stmtSelect.executeQuery()) {
+
+                while (rs.next()) {
+                    long id = rs.getLong("id");
+                    String soliNum = rs.getString("SoliNum");
+                    int cuota = rs.getInt("dues");
+                    double pagoAnterior = rs.getDouble("payment");
+                    double pagoNuevo = rs.getDouble("monthly");
+
+                    // Actualizar el pago
+                    try (PreparedStatement stmtUpdate = conn.prepareStatement(sqlUpdate)) {
+                        stmtUpdate.setLong(1, id);
+                        stmtUpdate.executeUpdate();
+                    }
+
+                    // Guardar en historial
+                    try (PreparedStatement stmtHist = conn.prepareStatement(sqlHistorial)) {
+                        stmtHist.setString(1, soliNum);
+                        stmtHist.setInt(2, cuota);
+                        stmtHist.setDouble(3, pagoAnterior);
+                        stmtHist.setDouble(4, pagoNuevo);
+                        stmtHist.setString(5, usuario);
+                        stmtHist.setString(6, motivo);
+                        stmtHist.executeUpdate();
+                    }
+
+                    corregidos++;
+                    System.out.println("✓ Corregido abono " + soliNum + " cuota " + cuota +
+                            ": " + pagoAnterior + " -> " + pagoNuevo);
+                }
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error corrigiendo duplicados de abonos: " + e.getMessage());
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+        return corregidos;
+    }
 }

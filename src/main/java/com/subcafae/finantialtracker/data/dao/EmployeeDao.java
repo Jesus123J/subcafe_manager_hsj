@@ -260,4 +260,44 @@ public class EmployeeDao {
             return false;
         }
     }
+
+    // Método para obtener lista de empleados con formato "DNI - Nombre" para autocompletado
+    public List<String> getAllEmployeeDniNames() {
+        List<String> dniNames = new ArrayList<>();
+        String sql = "SELECT national_id, fullName FROM employees ORDER BY fullName ASC";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                String dni = rs.getString("national_id");
+                String name = rs.getString("fullName");
+                if (dni != null && !dni.isBlank() && name != null && !name.isBlank()) {
+                    dniNames.add(dni + " - " + name);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return dniNames;
+    }
+
+    // Método para obtener los últimos N empleados
+    public List<EmployeeTb> getLastEmployees(int limit) {
+        List<EmployeeTb> employees = new ArrayList<>();
+        String sql = "SELECT e.* FROM employees e "
+                + "WHERE e.employee_id NOT IN ("
+                + "SELECT u.idEmployee FROM user u WHERE u.state = '9'"
+                + ") ORDER BY e.employee_id DESC LIMIT ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, limit);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                employees.add(mapResultSetToEmployee(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return employees;
+    }
 }

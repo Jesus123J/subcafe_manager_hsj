@@ -17,7 +17,6 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -38,8 +37,8 @@ public class ControllerManageWorker extends ModelManageWorker implements ActionL
         componentManageWorker.jButtonEliminarPerson.addActionListener(this);
         componentManageWorker.jButtonBuscarforDate.addActionListener(this);
         componentManageWorker.jButtoBuscarDni.addActionListener(this);
+        componentManageWorker.jButtonCancelarEdicion.addActionListener(this);
         componentManageWorker.jTableListEmployee.getSelectionModel().addListSelectionListener(this);
-        //tableList();
     }
 
     @Override
@@ -73,18 +72,16 @@ public class ControllerManageWorker extends ModelManageWorker implements ActionL
         }
         if (e.getSource().equals(componentManageWorker.jButtonBuscarforDate)) {
             try {
-
-                if (componentManageWorker.combStart.getDate() != null || componentManageWorker.comboFinaly.getDate() != null) {
-
+                if (componentManageWorker.combStart.getDate() != null && componentManageWorker.comboFinaly.getDate() != null) {
+                    // Si hay fechas seleccionadas, filtrar por rango
                     tableList(new java.sql.Date(componentManageWorker.combStart.getDate().getTime()), new java.sql.Date(componentManageWorker.comboFinaly.getDate().getTime()));
-
                 } else {
-                    JOptionPane.showMessageDialog(null, "Rellene el campo con la fecha inicial y la fecha final", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);
-                    return;
+                    // Si no hay fechas, mostrar los últimos 100 registros
+                    tableListLast(100);
                 }
             } catch (Exception ee) {
-                JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
-                return;
+                // En caso de error, mostrar los últimos 100 registros
+                tableListLast(100);
             }
         }
         
@@ -93,19 +90,39 @@ public class ControllerManageWorker extends ModelManageWorker implements ActionL
                 JOptionPane.showMessageDialog(null, "Rellene el campo con un dni", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            try {
-                new EmployeeDao().deleteEmployeeIfNotUsed(componentManageWorker.textFieldNameDeleteUser.getText());
-                // tableList();
 
+            // Confirmación antes de eliminar
+            int confirm = JOptionPane.showConfirmDialog(
+                null,
+                "¿Está seguro que desea eliminar al empleado con DNI: " + componentManageWorker.textFieldNameDeleteUser.getText() + "?",
+                "CONFIRMAR ELIMINACIÓN",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+            );
+
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            try {
+                boolean deleted = new EmployeeDao().deleteEmployeeIfNotUsed(componentManageWorker.textFieldNameDeleteUser.getText());
+                if (deleted) {
+                    JOptionPane.showMessageDialog(null, "Empleado eliminado correctamente", "GESTIÓN TRABAJADOR", JOptionPane.INFORMATION_MESSAGE);
+                    componentManageWorker.textFieldNameDeleteUser.setText("");
+                    loadEmployeeList(); // Recargar lista de autocompletado
+                    tableListLast(100); // Refrescar tabla
+                }
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(null, "Ocurrio un problema", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);
-
-                //Logger.getLogger(ControllerManageWorker.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
 
         if (e.getSource().equals(componentManageWorker.jButtonRegisterWorker)) {
             insertEmployee();
+        }
+
+        if (e.getSource().equals(componentManageWorker.jButtonCancelarEdicion)) {
+            exitEditMode();
         }
     }
 
@@ -123,44 +140,46 @@ public class ControllerManageWorker extends ModelManageWorker implements ActionL
 
     @Override
     public void valueChanged(ListSelectionEvent e) {
-        if (e.getValueIsAdjusting()) {
+        if (!e.getValueIsAdjusting() && !isEditMode) { // No preguntar si ya está en modo edición
             if (e.getSource().equals(componentManageWorker.jTableListEmployee.getSelectionModel())) {
                 int index = componentManageWorker.jTableListEmployee.getSelectedRow();
                 if (index != -1) {
-
-                    componentManageWorker.jTableListEmployee.repaint();
-
+                    String fullName = componentManageWorker.jTableListEmployee.getValueAt(index, 0).toString();
                     String dni = componentManageWorker.jTableListEmployee.getValueAt(index, 1).toString();
-                    // Crear un ComboBox con las opciones
-                    JComboBox<String> comboBox = new JComboBox<>(new String[]{"CAS", "NOMBRADO"});
+                    String status = componentManageWorker.jTableListEmployee.getValueAt(index, 2).toString();
 
-                    // Mostrar un JOptionPane con el ComboBox
+                    // Preguntar si desea editar el empleado
                     int option = JOptionPane.showConfirmDialog(
                             null,
-                            comboBox,
-                            "CAMBIAR TIPO DE CONTRATO",
-                            JOptionPane.OK_CANCEL_OPTION,
-                            JOptionPane.INFORMATION_MESSAGE
+                            "¿Desea editar los datos del empleado: " + fullName + "?",
+                            "EDITAR TRABAJADOR",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.QUESTION_MESSAGE
                     );
 
-                    if (option == JOptionPane.OK_OPTION) {
-                        String newStatus = (String) comboBox.getSelectedItem();
+                    if (option == JOptionPane.YES_OPTION) {
                         try {
-                            boolean result = new EmployeeDao().updateEmploymentStatusByDNI(dni, newStatus);
-                            if (result) {
-                                JOptionPane.showMessageDialog(null, "Se cambio el estado ");
+                            // Obtener datos completos del empleado
+                            Optional<EmployeeTb> empleado = new EmployeeDao().findById(dni);
+                            if (empleado.isPresent()) {
+                                EmployeeTb emp = empleado.get();
+                                java.util.Date startDate = java.sql.Date.valueOf(emp.getStartDate());
+                                enterEditMode(dni, fullName, emp.getGender(), status, startDate, index);
                             } else {
-                                JOptionPane.showMessageDialog(null, "No se pudo cambiar el estado", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);
+                                // Si no se encuentra, usar datos de la tabla
+                                enterEditMode(dni, fullName, null, status, new Date(), index);
                             }
-                        } catch (Exception ex) {
+                        } catch (SQLException ex) {
                             System.out.println("Error -> " + ex.getMessage());
-                            JOptionPane.showMessageDialog(null, "Ocurrió un problema al cambiar el estado", "GESTIÓN TRABAJADOR", JOptionPane.ERROR_MESSAGE);
+                            // Usar datos de la tabla si hay error
+                            enterEditMode(dni, fullName, null, status, new Date(), index);
                         }
+                    } else {
+                        // Limpiar selección si no quiere editar
+                        componentManageWorker.jTableListEmployee.clearSelection();
                     }
-
                 }
             }
-
         }
     }
 }
