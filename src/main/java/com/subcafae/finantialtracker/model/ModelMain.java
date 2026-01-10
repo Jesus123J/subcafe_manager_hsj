@@ -46,6 +46,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.beans.PropertyVetoException;
 import java.io.BufferedReader;
 import java.io.File;
@@ -142,12 +144,20 @@ public class ModelMain {
             @Override
             public void keyPressed(KeyEvent e) {
                 componentLogin.jLabel1.setText("");
+                // ENTER en usuario -> mover foco a contraseña
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    componentLogin.jPasswordPassword.requestFocusInWindow();
+                }
             }
         });
         componentLogin.jPasswordPassword.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 componentLogin.jLabel1.setText("");
+                // ENTER en contraseña -> ejecutar login
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    logIn();
+                }
             }
         });
         viewMain.loading.setUndecorated(true);
@@ -235,7 +245,97 @@ public class ModelMain {
 
         viewMain.jLayeredPane1.add(jpanelDarkUtil, "pos 0 0 100% 100%");
         viewMain.jLayeredPane1.add(viewMain.jDesktopPane1, "pos 0 0 100% 100%");
-        //
+
+        // Configurar estilos modernos y comportamiento del JDesktopPane
+        setupModernDesktopPane();
+
+        // Listener para ajustar JInternalFrames cuando se redimensiona el JDesktopPane
+        viewMain.jDesktopPane1.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                adjustInternalFrames();
+            }
+        });
+    }
+
+    // Ajustar posicion de JInternalFrames para que siempre sean visibles
+    private void adjustInternalFrames() {
+        int desktopWidth = viewMain.jDesktopPane1.getWidth();
+        int desktopHeight = viewMain.jDesktopPane1.getHeight();
+
+        for (JInternalFrame frame : viewMain.jDesktopPane1.getAllFrames()) {
+            if (!frame.isVisible()) continue;
+
+            int frameX = frame.getX();
+            int frameY = frame.getY();
+            int frameWidth = frame.getWidth();
+            int frameHeight = frame.getHeight();
+
+            // Barra de titulo debe estar siempre visible (donde estan los botones cerrar, minimizar)
+            int titleBarHeight = 30;
+            int minVisibleWidth = 150; // Minimo visible para poder arrastrar y ver botones
+
+            // Asegurar que Y nunca sea negativo (barra de titulo siempre visible)
+            if (frameY < 0) {
+                frameY = 0;
+            }
+
+            // Asegurar que la barra de titulo no se salga por abajo
+            if (frameY > desktopHeight - titleBarHeight) {
+                frameY = Math.max(0, desktopHeight - titleBarHeight);
+            }
+
+            // Asegurar que al menos minVisibleWidth pixeles sean visibles horizontalmente
+            if (frameX + frameWidth < minVisibleWidth) {
+                frameX = minVisibleWidth - frameWidth;
+            }
+
+            // Si el frame se sale por la derecha, ajustar para que sea visible
+            if (frameX > desktopWidth - minVisibleWidth) {
+                frameX = desktopWidth - minVisibleWidth;
+            }
+
+            // Si el frame es mas grande que el desktop, redimensionarlo
+            if (frameWidth > desktopWidth && desktopWidth > 100) {
+                frame.setSize(desktopWidth - 20, frameHeight);
+                frameX = 10;
+            }
+            if (frameHeight > desktopHeight && desktopHeight > 100) {
+                frame.setSize(frameWidth, desktopHeight - 20);
+                frameY = 10;
+            }
+
+            // Aplicar nueva posicion si cambio
+            if (frameX != frame.getX() || frameY != frame.getY()) {
+                frame.setLocation(frameX, frameY);
+            }
+        }
+    }
+
+    // Configurar comportamiento del JDesktopPane
+    private void setupModernDesktopPane() {
+        // Configurar el DesktopManager personalizado para mejor comportamiento
+        viewMain.jDesktopPane1.setDesktopManager(new javax.swing.DefaultDesktopManager() {
+            @Override
+            public void dragFrame(javax.swing.JComponent f, int newX, int newY) {
+                // Limitar el arrastre para que la barra de titulo siempre sea visible
+                int desktopWidth = viewMain.jDesktopPane1.getWidth();
+                int desktopHeight = viewMain.jDesktopPane1.getHeight();
+                int frameWidth = f.getWidth();
+
+                // No permitir que Y sea negativo
+                if (newY < 0) newY = 0;
+
+                // No permitir que la barra de titulo se salga por abajo
+                if (newY > desktopHeight - 30) newY = desktopHeight - 30;
+
+                // Mantener al menos 100px visibles horizontalmente
+                if (newX + frameWidth < 100) newX = 100 - frameWidth;
+                if (newX > desktopWidth - 100) newX = desktopWidth - 100;
+
+                super.dragFrame(f, newX, newY);
+            }
+        });
     }
 
     public void centerInternalComponent(JInternalFrame jInternalFrame) {
@@ -816,6 +916,7 @@ public class ModelMain {
         if (seleccion == JFileChooser.APPROVE_OPTION) {
             if (esTxt(fileChooser.getSelectedFile().getAbsolutePath())) {
                 File archivo = fileChooser.getSelectedFile();
+                nombreArchivoCargado = archivo.getName(); // Guardar nombre del archivo
 
                 viewMain.loading.setModal(true);
                 viewMain.loading.setLocationRelativeTo(viewMain);
@@ -897,6 +998,7 @@ public class ModelMain {
 
     private String mes;
     private String anio;
+    private String nombreArchivoCargado;
 
     private String extraerDatos(String linea, int count) {
         try {
@@ -981,6 +1083,8 @@ public class ModelMain {
         new Thread(() -> {
             boolean ver = false;
             int cat = 0;
+            int registrosProcesados = 0;
+            double montoTotalLote = 0.0;
 
             // Corregir la creación de la fecha de referencia
             int añoCompleto = Integer.parseInt(anio);
@@ -990,6 +1094,21 @@ public class ModelMain {
             }
 
             LocalDate fechaReferencia = LocalDate.of(añoCompleto, Integer.parseInt(mes), 1).withDayOfMonth(1).plusMonths(1).minusDays(1);
+
+            // Crear el lote de carga masiva
+            RegistroDao registroDao = new RegistroDao();
+            String usuarioCarga = (usser != null && usser.getUsername() != null) ? usser.getUsername() : "SISTEMA";
+            int loteId = registroDao.crearLoteCarga(nombreArchivoCargado, mes, String.valueOf(añoCompleto), usuarioCarga);
+
+            if (loteId == -1) {
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    ViewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(null, "Error al crear el lote de carga", "ERROR", JOptionPane.ERROR_MESSAGE);
+                });
+                return;
+            }
+
+            System.out.println("Lote creado con ID: " + loteId);
 
             for (Map.Entry<EmployeeTb, Double> entry : mapCom.entrySet()) {
                 try {
@@ -1128,9 +1247,11 @@ public class ModelMain {
                     // ======================= INSERT DEL REGISTRO ============================
                     // Solo insertar registro si realmente se procesó algún pago
                     if (!prestamosPagados.isEmpty() || !bonosPagados.isEmpty()) {
-                        cat = new RegistroDao().insertarRegistroCompleto(registroTb, prestamosPagados, bonosPagados);
+                        cat = registroDao.insertarRegistroCompletoConLote(registroTb, prestamosPagados, bonosPagados, loteId);
                         if (cat == 1) {
                             ver = true;
+                            registrosProcesados++;
+                            montoTotalLote += entry.getValue();
                         }
                     }
 
@@ -1145,13 +1266,26 @@ public class ModelMain {
                 }
             }
 
+            // Actualizar estadísticas del lote
+            final int regProc = registrosProcesados;
+            final double montoTotal = montoTotalLote;
+            registroDao.actualizarEstadisticasLote(loteId, regProc, montoTotal);
+
             final boolean resultado = ver;
+            final int loteIdFinal = loteId;
             javax.swing.SwingUtilities.invokeLater(() -> {
                 ViewMain.loading.dispose();
                 if (!resultado) {
                     JOptionPane.showMessageDialog(null, "No hubo nada que descontar", "MENSAJE", JOptionPane.WARNING_MESSAGE);
                 } else {
-                    JOptionPane.showMessageDialog(null, "Se registró correctamente", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(null,
+                        "<html><body>" +
+                        "<h3 style='color:#27AE60;'>CARGA MASIVA COMPLETADA</h3>" +
+                        "<p><b>Lote ID:</b> " + loteIdFinal + "</p>" +
+                        "<p><b>Registros procesados:</b> " + regProc + "</p>" +
+                        "<p><b>Monto total:</b> S/ " + String.format("%.2f", montoTotal) + "</p>" +
+                        "</body></html>",
+                        "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
                 }
             });
 
@@ -1199,5 +1333,471 @@ public class ModelMain {
                     }
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Método para revertir un pago realizado
+     * Muestra un diálogo para elegir entre revertir pago individual o carga masiva
+     */
+    public void revertirPago() {
+        // Preguntar qué tipo de reversión desea hacer
+        String[] opciones = {"Pago Individual", "Carga Masiva (Lote)", "Cancelar"};
+        int tipoReversion = JOptionPane.showOptionDialog(
+            viewMain,
+            "<html><body style='width: 300px;'>" +
+            "<h3 style='color:#C0392B;'>SELECCIONE TIPO DE REVERSIÓN</h3>" +
+            "<p><b>Pago Individual:</b> Revertir un solo recibo por su código</p>" +
+            "<p><b>Carga Masiva:</b> Revertir todos los pagos de un lote de archivo</p>" +
+            "</body></html>",
+            "REVERTIR PAGO",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            opciones,
+            opciones[0]
+        );
+
+        if (tipoReversion == 1) {
+            // Carga masiva
+            revertirCargaMasiva();
+            return;
+        } else if (tipoReversion != 0) {
+            // Cancelar o cerrar
+            return;
+        }
+
+        // Continuar con pago individual
+        // Panel personalizado para el diálogo
+        javax.swing.JPanel panel = new javax.swing.JPanel();
+        panel.setLayout(new java.awt.GridLayout(3, 1, 5, 10));
+        panel.setPreferredSize(new java.awt.Dimension(400, 120));
+
+        javax.swing.JLabel lblInstrucciones = new javax.swing.JLabel(
+            "<html><b style='color:#C0392B;'>⚠ ADVERTENCIA: Esta acción es irreversible</b><br/>" +
+            "Ingrese el código del recibo a revertir:</html>"
+        );
+
+        javax.swing.JTextField txtCodigoRecibo = new javax.swing.JTextField();
+        txtCodigoRecibo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+        txtCodigoRecibo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(52, 73, 94), 2),
+            javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+
+        javax.swing.JLabel lblEjemplo = new javax.swing.JLabel(
+            "<html><i style='color:gray;'>Ejemplo: P/0001-00001273</i></html>"
+        );
+
+        panel.add(lblInstrucciones);
+        panel.add(txtCodigoRecibo);
+        panel.add(lblEjemplo);
+
+        // Mostrar diálogo de confirmación inicial
+        int opcion = JOptionPane.showConfirmDialog(
+            viewMain,
+            panel,
+            "REVERTIR PAGO INDIVIDUAL",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+
+        if (opcion != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String codigoRecibo = txtCodigoRecibo.getText().trim();
+        if (codigoRecibo.isEmpty()) {
+            JOptionPane.showMessageDialog(viewMain,
+                "Debe ingresar un código de recibo válido",
+                "ERROR", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Mostrar loading y procesar en hilo separado
+        viewMain.loading.setModal(true);
+        viewMain.loading.setLocationRelativeTo(viewMain);
+
+        new Thread(() -> {
+            try {
+                // Buscar el registro por código
+                com.subcafae.finantialtracker.data.dao.RegistroDao registroDao =
+                    new com.subcafae.finantialtracker.data.dao.RegistroDao();
+
+                var registroOpt = registroDao.findByCodigo(codigoRecibo);
+
+                if (registroOpt.isEmpty()) {
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        viewMain.loading.dispose();
+                        JOptionPane.showMessageDialog(viewMain,
+                            "No se encontró ningún registro con el código: " + codigoRecibo,
+                            "REGISTRO NO ENCONTRADO", JOptionPane.WARNING_MESSAGE);
+                    });
+                    return;
+                }
+
+                var registro = registroOpt.get();
+
+                // Obtener detalles del pago
+                String detallesPago = registroDao.obtenerDetallesPagoParaRevertir(registro.getId());
+
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+
+                    // Mostrar confirmación con detalles
+                    String mensajeConfirmacion =
+                        "<html><body style='width: 350px;'>" +
+                        "<h3 style='color:#C0392B;'>¿ESTÁ SEGURO DE REVERTIR ESTE PAGO?</h3>" +
+                        "<hr/>" +
+                        "<b>Código:</b> " + registro.getCodigo() + "<br/>" +
+                        "<b>Fecha:</b> " + registro.getFechaRegistro() + "<br/>" +
+                        "<b>Monto:</b> S/ " + String.format("%.2f", registro.getAmount()) + "<br/>" +
+                        "<hr/>" +
+                        "<b>Detalles del pago:</b><br/>" + detallesPago +
+                        "<hr/>" +
+                        "<p style='color:#E74C3C;'><b>Esta acción eliminará:</b></p>" +
+                        "<ul>" +
+                        "<li>El registro de pago</li>" +
+                        "<li>Los detalles asociados (préstamos/abonos)</li>" +
+                        "<li>Actualizará los saldos de las cuotas afectadas</li>" +
+                        "</ul>" +
+                        "</body></html>";
+
+                    int confirmacion = JOptionPane.showConfirmDialog(
+                        viewMain,
+                        mensajeConfirmacion,
+                        "CONFIRMAR REVERSIÓN DE PAGO",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE
+                    );
+
+                    if (confirmacion != JOptionPane.YES_OPTION) {
+                        return;
+                    }
+
+                    // Solicitar motivo de la reversión
+                    javax.swing.JPanel panelMotivo = new javax.swing.JPanel();
+                    panelMotivo.setLayout(new java.awt.BorderLayout(5, 10));
+                    panelMotivo.setPreferredSize(new java.awt.Dimension(400, 150));
+
+                    javax.swing.JLabel lblMotivo = new javax.swing.JLabel(
+                        "<html><b style='color:#C0392B;'>MOTIVO DE LA REVERSIÓN</b><br/>" +
+                        "<i style='color:gray;'>Ingrese la razón por la cual se revierte este pago:</i></html>"
+                    );
+
+                    javax.swing.JTextArea txtMotivo = new javax.swing.JTextArea(4, 30);
+                    txtMotivo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+                    txtMotivo.setLineWrap(true);
+                    txtMotivo.setWrapStyleWord(true);
+                    txtMotivo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                        javax.swing.BorderFactory.createLineBorder(new java.awt.Color(52, 73, 94), 2),
+                        javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
+                    ));
+
+                    javax.swing.JScrollPane scrollMotivo = new javax.swing.JScrollPane(txtMotivo);
+
+                    panelMotivo.add(lblMotivo, java.awt.BorderLayout.NORTH);
+                    panelMotivo.add(scrollMotivo, java.awt.BorderLayout.CENTER);
+
+                    int opcionMotivo = JOptionPane.showConfirmDialog(
+                        viewMain,
+                        panelMotivo,
+                        "MOTIVO DE REVERSIÓN - " + codigoRecibo,
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.QUESTION_MESSAGE
+                    );
+
+                    if (opcionMotivo != JOptionPane.OK_OPTION) {
+                        return;
+                    }
+
+                    String motivoReversion = txtMotivo.getText().trim();
+                    if (motivoReversion.isEmpty()) {
+                        JOptionPane.showMessageDialog(viewMain,
+                            "Debe ingresar un motivo para la reversión del pago.",
+                            "MOTIVO REQUERIDO", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+
+                    // Segunda confirmación de seguridad
+                    int confirmacionFinal = JOptionPane.showConfirmDialog(
+                        viewMain,
+                        "<html><body style='width: 300px;'>" +
+                        "<h2 style='color:#C0392B;'>⚠ ÚLTIMA ADVERTENCIA</h2>" +
+                        "<p>¿Realmente desea eliminar el pago <b>" + codigoRecibo + "</b>?</p>" +
+                        "<p><b>Motivo:</b> " + motivoReversion + "</p>" +
+                        "<p style='color:red;'><b>Esta acción NO se puede deshacer.</b></p>" +
+                        "</body></html>",
+                        "CONFIRMAR ELIMINACIÓN",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.ERROR_MESSAGE
+                    );
+
+                    if (confirmacionFinal != JOptionPane.YES_OPTION) {
+                        return;
+                    }
+
+                    // Obtener usuario actual (si está disponible)
+                    String usuarioActual = "SISTEMA";
+                    try {
+                        if (usser != null && usser.getUsername() != null) {
+                            usuarioActual = usser.getUsername();
+                        }
+                    } catch (Exception e) {
+                        // Si no hay usuario activo, usar SISTEMA
+                    }
+                    final String usuarioFinal = usuarioActual;
+                    final String motivoFinal = motivoReversion;
+
+                    // Ejecutar reversión directamente (ya estamos en EDT)
+                    // Usar SwingWorker para no bloquear la UI
+                    new javax.swing.SwingWorker<Boolean, Void>() {
+                        @Override
+                        protected Boolean doInBackground() throws Exception {
+                            return registroDao.revertirPago(registro.getId(), usuarioFinal, motivoFinal);
+                        }
+
+                        @Override
+                        protected void done() {
+                            try {
+                                boolean exito = get();
+                                if (exito) {
+                                    JOptionPane.showMessageDialog(viewMain,
+                                        "<html><body>" +
+                                        "<h3 style='color:#27AE60;'>✓ PAGO REVERTIDO EXITOSAMENTE</h3>" +
+                                        "<p>El pago <b>" + codigoRecibo + "</b> ha sido eliminado.</p>" +
+                                        "<p>Los saldos de las cuotas han sido actualizados.</p>" +
+                                        "</body></html>",
+                                        "OPERACIÓN EXITOSA", JOptionPane.INFORMATION_MESSAGE);
+                                } else {
+                                    JOptionPane.showMessageDialog(viewMain,
+                                        "Ocurrió un error al revertir el pago.\nPor favor, verifique los datos e intente nuevamente.",
+                                        "ERROR", JOptionPane.ERROR_MESSAGE);
+                                }
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                                JOptionPane.showMessageDialog(viewMain,
+                                    "Error al revertir el pago: " + ex.getMessage(),
+                                    "ERROR", JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
+                    }.execute();
+                });
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(viewMain,
+                        "Error al buscar el registro: " + ex.getMessage(),
+                        "ERROR", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
+
+        viewMain.loading.setVisible(true);
+    }
+
+    /**
+     * Método para revertir una carga masiva completa
+     * Muestra un diálogo con los lotes disponibles y permite seleccionar uno para revertir
+     */
+    public void revertirCargaMasiva() {
+        com.subcafae.finantialtracker.data.dao.RegistroDao registroDao =
+            new com.subcafae.finantialtracker.data.dao.RegistroDao();
+
+        // Obtener lotes activos
+        java.util.List<String[]> lotes = registroDao.obtenerLotesActivos();
+
+        if (lotes.isEmpty()) {
+            JOptionPane.showMessageDialog(viewMain,
+                "No hay lotes de carga masiva disponibles para revertir.",
+                "SIN LOTES", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Crear tabla para mostrar lotes
+        String[] columnas = {"ID", "Archivo", "Mes", "Año", "Registros", "Monto Total", "Fecha Carga", "Usuario"};
+        Object[][] datos = new Object[lotes.size()][8];
+        for (int i = 0; i < lotes.size(); i++) {
+            datos[i] = lotes.get(i);
+        }
+
+        javax.swing.JTable tablaLotes = new javax.swing.JTable(datos, columnas);
+        tablaLotes.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        tablaLotes.setRowHeight(25);
+        tablaLotes.getTableHeader().setReorderingAllowed(false);
+
+        // Ajustar anchos de columnas
+        tablaLotes.getColumnModel().getColumn(0).setPreferredWidth(40);  // ID
+        tablaLotes.getColumnModel().getColumn(1).setPreferredWidth(120); // Archivo
+        tablaLotes.getColumnModel().getColumn(2).setPreferredWidth(40);  // Mes
+        tablaLotes.getColumnModel().getColumn(3).setPreferredWidth(50);  // Año
+        tablaLotes.getColumnModel().getColumn(4).setPreferredWidth(70);  // Registros
+        tablaLotes.getColumnModel().getColumn(5).setPreferredWidth(100); // Monto
+        tablaLotes.getColumnModel().getColumn(6).setPreferredWidth(140); // Fecha
+        tablaLotes.getColumnModel().getColumn(7).setPreferredWidth(80);  // Usuario
+
+        javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(tablaLotes);
+        scrollPane.setPreferredSize(new java.awt.Dimension(750, 300));
+
+        javax.swing.JPanel panelPrincipal = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
+        panelPrincipal.add(new javax.swing.JLabel(
+            "<html><b style='color:#C0392B;'>SELECCIONE UN LOTE PARA REVERTIR</b><br/>" +
+            "<i style='color:gray;'>Esta acción eliminará todos los registros de pago del lote seleccionado.</i></html>"),
+            java.awt.BorderLayout.NORTH);
+        panelPrincipal.add(scrollPane, java.awt.BorderLayout.CENTER);
+
+        int opcion = JOptionPane.showConfirmDialog(
+            viewMain,
+            panelPrincipal,
+            "REVERTIR CARGA MASIVA",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+
+        if (opcion != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        int filaSeleccionada = tablaLotes.getSelectedRow();
+        if (filaSeleccionada == -1) {
+            JOptionPane.showMessageDialog(viewMain,
+                "Debe seleccionar un lote de la tabla.",
+                "SELECCIÓN REQUERIDA", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int loteId = Integer.parseInt(lotes.get(filaSeleccionada)[0]);
+        String nombreArchivo = lotes.get(filaSeleccionada)[1];
+        String mesLote = lotes.get(filaSeleccionada)[2];
+        String anioLote = lotes.get(filaSeleccionada)[3];
+        String cantidadReg = lotes.get(filaSeleccionada)[4];
+        String montoTotal = lotes.get(filaSeleccionada)[5];
+
+        // Mostrar detalles del lote
+        String detallesLote = registroDao.obtenerDetalleLoteParaRevertir(loteId);
+
+        int confirmacion = JOptionPane.showConfirmDialog(
+            viewMain,
+            detallesLote,
+            "CONFIRMAR REVERSIÓN DEL LOTE " + loteId,
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+
+        if (confirmacion != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        // Solicitar motivo de la reversión
+        javax.swing.JPanel panelMotivo = new javax.swing.JPanel();
+        panelMotivo.setLayout(new java.awt.BorderLayout(5, 10));
+        panelMotivo.setPreferredSize(new java.awt.Dimension(400, 150));
+
+        javax.swing.JLabel lblMotivo = new javax.swing.JLabel(
+            "<html><b style='color:#C0392B;'>MOTIVO DE LA REVERSIÓN</b><br/>" +
+            "<i style='color:gray;'>Ingrese la razón por la cual se revierte este lote:</i></html>"
+        );
+
+        javax.swing.JTextArea txtMotivo = new javax.swing.JTextArea(4, 30);
+        txtMotivo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        txtMotivo.setLineWrap(true);
+        txtMotivo.setWrapStyleWord(true);
+        txtMotivo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(52, 73, 94), 2),
+            javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+
+        javax.swing.JScrollPane scrollMotivo = new javax.swing.JScrollPane(txtMotivo);
+
+        panelMotivo.add(lblMotivo, java.awt.BorderLayout.NORTH);
+        panelMotivo.add(scrollMotivo, java.awt.BorderLayout.CENTER);
+
+        int opcionMotivo = JOptionPane.showConfirmDialog(
+            viewMain,
+            panelMotivo,
+            "MOTIVO DE REVERSIÓN - LOTE " + loteId,
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (opcionMotivo != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String motivoReversion = txtMotivo.getText().trim();
+        if (motivoReversion.isEmpty()) {
+            JOptionPane.showMessageDialog(viewMain,
+                "Debe ingresar un motivo para la reversión del lote.",
+                "MOTIVO REQUERIDO", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Confirmación final
+        int confirmacionFinal = JOptionPane.showConfirmDialog(
+            viewMain,
+            "<html><body style='width: 350px;'>" +
+            "<h2 style='color:#C0392B;'>⚠ ÚLTIMA ADVERTENCIA</h2>" +
+            "<p>¿Realmente desea revertir el lote <b>#" + loteId + "</b>?</p>" +
+            "<p><b>Archivo:</b> " + nombreArchivo + "</p>" +
+            "<p><b>Período:</b> " + mesLote + "/" + anioLote + "</p>" +
+            "<p><b>Registros:</b> " + cantidadReg + "</p>" +
+            "<p><b>Monto Total:</b> S/ " + montoTotal + "</p>" +
+            "<p><b>Motivo:</b> " + motivoReversion + "</p>" +
+            "<hr/>" +
+            "<p style='color:red;'><b>Esta acción NO se puede deshacer.</b></p>" +
+            "</body></html>",
+            "CONFIRMAR ELIMINACIÓN DE LOTE",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.ERROR_MESSAGE
+        );
+
+        if (confirmacionFinal != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        // Ejecutar reversión
+        viewMain.loading.setModal(true);
+        viewMain.loading.setLocationRelativeTo(viewMain);
+
+        String usuarioActual = (usser != null && usser.getUsername() != null) ? usser.getUsername() : "SISTEMA";
+        final String usuarioFinal = usuarioActual;
+        final String motivoFinal = motivoReversion;
+        final int loteIdFinal = loteId;
+
+        new javax.swing.SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                return registroDao.revertirLoteCarga(loteIdFinal, usuarioFinal, motivoFinal);
+            }
+
+            @Override
+            protected void done() {
+                viewMain.loading.dispose();
+                try {
+                    boolean exito = get();
+                    if (exito) {
+                        JOptionPane.showMessageDialog(viewMain,
+                            "<html><body>" +
+                            "<h3 style='color:#27AE60;'>✓ LOTE REVERTIDO EXITOSAMENTE</h3>" +
+                            "<p>El lote <b>#" + loteIdFinal + "</b> ha sido eliminado.</p>" +
+                            "<p>Todos los registros y saldos han sido actualizados.</p>" +
+                            "</body></html>",
+                            "OPERACIÓN EXITOSA", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(viewMain,
+                            "Ocurrió un error al revertir el lote.\nPor favor, verifique los datos e intente nuevamente.",
+                            "ERROR", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(viewMain,
+                        "Error al revertir el lote: " + ex.getMessage(),
+                        "ERROR", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
+
+        viewMain.loading.setVisible(true);
     }
 }

@@ -4,14 +4,46 @@
  */
 package com.subcafae.finantialtracker.data.entity;
 
+import java.sql.Timestamp;
+
 public class RegistroTb {
-   
+
+    private int id;
+    private String codigo;
     private int empleadoId;
+    private Timestamp fechaRegistro;
     public Double amount;
+
+    public RegistroTb() {
+    }
 
     public RegistroTb(int empleadoId, Double amount) {
         this.empleadoId = empleadoId;
         this.amount = amount;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
+    }
+
+    public Timestamp getFechaRegistro() {
+        return fechaRegistro;
+    }
+
+    public void setFechaRegistro(Timestamp fechaRegistro) {
+        this.fechaRegistro = fechaRegistro;
     }
 
     public Double getAmount() {
@@ -20,7 +52,8 @@ public class RegistroTb {
 
     public void setAmount(Double amount) {
         this.amount = amount;
-    } 
+    }
+
     public int getEmpleadoId() {
         return empleadoId;
     }
@@ -31,7 +64,7 @@ public class RegistroTb {
 
     @Override
     public String toString() {
-        return "RegistroTb{" + "empleadoId=" + empleadoId + ", amount=" + amount + '}';
+        return "RegistroTb{" + "id=" + id + ", codigo=" + codigo + ", empleadoId=" + empleadoId + ", fechaRegistro=" + fechaRegistro + ", amount=" + amount + '}';
     }
     
     
