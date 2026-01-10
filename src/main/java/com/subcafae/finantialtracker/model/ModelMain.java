@@ -286,14 +286,21 @@ public class ModelMain {
 
                 javax.swing.SwingUtilities.invokeLater(() -> {
                     viewMain.loading.dispose();
+
+                    if (employees.isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "No hay empleados registrados", "GESTIÓN DE PAGOS", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
                     centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE PAGOS", employees, false, viewMain));
                 });
 
             } catch (Exception ex) {
                 System.out.println("Error -> " + ex.getMessage());
+                ex.printStackTrace();
                 javax.swing.SwingUtilities.invokeLater(() -> {
                     viewMain.loading.dispose();
-                    JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE PAGOS", JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(null, "Ocurrió un error al cargar empleados: " + ex.getMessage(), "GESTIÓN DE PAGOS", JOptionPane.WARNING_MESSAGE);
                 });
             }
         }).start();
@@ -522,6 +529,14 @@ public class ModelMain {
                     listExecel.add(model);
                 }
 
+                if (datosLista.isEmpty()) {
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        viewMain.loading.dispose();
+                        JOptionPane.showMessageDialog(null, "No hay datos para generar el reporte de tipo " + contractType, "REPORTE DESCUENTO", JOptionPane.INFORMATION_MESSAGE);
+                    });
+                    return;
+                }
+
                 ExcelExporter exporter = new ExcelExporter();
                 exporter.generateExcel(listExecel);
 
@@ -529,11 +544,12 @@ public class ModelMain {
                     viewMain.loading.dispose();
                 });
 
-              } catch (SQLException ex) {
+            } catch (Exception ex) {
                 System.out.println("Error -> " + ex.getMessage());
+                ex.printStackTrace();
                 javax.swing.SwingUtilities.invokeLater(() -> {
                     viewMain.loading.dispose();
-                    JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(null, "Ocurrió un error al generar el reporte: " + ex.getMessage(), "REPORTE DESCUENTO", JOptionPane.WARNING_MESSAGE);
                 });
             }
         }).start();
@@ -561,11 +577,12 @@ public class ModelMain {
                     centerInternalComponent(new ComponentSearchEmpl("GESTIÓN DE DEUDAS", listEmployee, true, viewMain));
                 });
 
-            } catch (SQLException ex) {
+            } catch (Exception ex) {
                 System.out.println("Error -> " + ex.getMessage());
+                ex.printStackTrace();
                 javax.swing.SwingUtilities.invokeLater(() -> {
                     viewMain.loading.dispose();
-                    JOptionPane.showMessageDialog(null, "Ocurrió un problema al cargar la lista de empleados", "GESTIÓN DE DEUDAS", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(null, "Ocurrió un problema al cargar la lista de empleados: " + ex.getMessage(), "GESTIÓN DE DEUDAS", JOptionPane.ERROR_MESSAGE);
                 });
             }
         }).start();
@@ -800,10 +817,10 @@ public class ModelMain {
             if (esTxt(fileChooser.getSelectedFile().getAbsolutePath())) {
                 File archivo = fileChooser.getSelectedFile();
 
-                viewMain.loading.setVisible(true);
-                viewMain.jInternalPagoPrestamosOtros.setEnabled(false);
-                new Thread(() -> {
+                viewMain.loading.setModal(true);
+                viewMain.loading.setLocationRelativeTo(viewMain);
 
+                new Thread(() -> {
                     try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(archivo), StandardCharsets.UTF_8))) {
 
                         model.setRowCount(0);
@@ -855,17 +872,22 @@ public class ModelMain {
 //                            viewMain.jLabelCode.setText("");
 //                            JOptionPane.showMessageDialog(null, "FECHA INCOPATIBLE CON EL ACTUAL");
 //                        }
-                        viewMain.jLabelCantidad.setText(String.valueOf(count)); // Actualizar etiqueta con el conteo
-                        viewMain.loading.dispose();
-                        viewMain.jInternalPagoPrestamosOtros.setEnabled(true);
-                    } catch (IOException e) {
+                        final int finalCount = count;
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            viewMain.jLabelCantidad.setText(String.valueOf(finalCount));
+                            viewMain.loading.dispose();
+                        });
+                    } catch (Exception e) {
                         System.out.println("Error -> " + e.getMessage());
-                        viewMain.loading.dispose();
-                        viewMain.jInternalPagoPrestamosOtros.setEnabled(true);
-                        JOptionPane.showMessageDialog(null, "ERROR EN NOMBRE DEL DOCUMENTO");
+                        e.printStackTrace();
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            viewMain.loading.dispose();
+                            JOptionPane.showMessageDialog(null, "ERROR EN NOMBRE DEL DOCUMENTO: " + e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+                        });
                     }
                 }).start();
 
+                viewMain.loading.setVisible(true);
             }
 
         } else {
@@ -953,8 +975,8 @@ public class ModelMain {
             return;
         }
 
-        ViewMain.loading.setVisible(true);
-        viewMain.setEnabled(false);
+        ViewMain.loading.setModal(true);
+        ViewMain.loading.setLocationRelativeTo(viewMain);
 
         new Thread(() -> {
             boolean ver = false;
@@ -1113,23 +1135,29 @@ public class ModelMain {
                     }
 
                 } catch (Exception ex) {
-                    viewMain.setEnabled(true);
-                    ViewMain.loading.setVisible(false);
-                    JOptionPane.showMessageDialog(null, "Ocurrió un error", "MENSAJE", JOptionPane.WARNING_MESSAGE);
-                    Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("Error -> " + ex.getMessage());
+                    ex.printStackTrace();
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
+                        JOptionPane.showMessageDialog(null, "Ocurrió un error: " + ex.getMessage(), "MENSAJE", JOptionPane.WARNING_MESSAGE);
+                    });
+                    return;
                 }
             }
 
-            if (!ver) {
-                JOptionPane.showMessageDialog(null, "No hubo nada que descontar", "MENSAJE", JOptionPane.WARNING_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(null, "Se registró correctamente", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
-            }
-
-            viewMain.setEnabled(true);
-            ViewMain.loading.setVisible(false);
+            final boolean resultado = ver;
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                ViewMain.loading.dispose();
+                if (!resultado) {
+                    JOptionPane.showMessageDialog(null, "No hubo nada que descontar", "MENSAJE", JOptionPane.WARNING_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(null, "Se registró correctamente", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
+                }
+            });
 
         }).start();
+
+        ViewMain.loading.setVisible(true);
     }
 
     private List<AbonoDetailsTb> ordenarBonosPorVencimiento(List<AbonoDetailsTb> lista, LocalDate fechaReferencia) {

@@ -67,7 +67,7 @@ public class LeerExcelConFileChooser {
                     if (option == JOptionPane.OK_OPTION) {
 
                         viewMain.setEnabled(false);
-
+                        
                         ViewMain.loading.setVisible(true);
                         
                         new Thread(() -> {
