@@ -33,7 +33,6 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -75,7 +74,13 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
         componentManageBond.jTableListDetalle.getSelectionModel().addListSelectionListener(this);
         componentManageBond.jButtonRegistorAbondForExcel.addActionListener(this);
         componentManageBond.jButtonShowList.addActionListener(this);
-        
+
+        // KeyListeners para autocompletado
+        componentManageBond.jTextFieldSearchSoliBond.addKeyListener(this);
+        componentManageBond.jTextFieldEliminarBono.addKeyListener(this);
+        componentManageBond.jTextFieldRenunciarBono.addKeyListener(this);
+        componentManageBond.searchConcept.addKeyListener(this);
+
 //        componentManageBond.jDialog1.addWindowListener(new WindowAdapter() {
 //            @Override
 //            public void windowClosing(WindowEvent e) {
@@ -117,16 +122,16 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
         }
         if (e.getSource().equals(componentManageBond.jButtonShowList)) {
             try {
-                if (componentManageBond.dateStart.getDate() != null || componentManageBond.dateStart.getDate() != null) {
+                if (componentManageBond.dateStart.getDate() != null && componentManageBond.dateFinaly.getDate() != null) {
                     insertListTableBono(componentManageBond.dateStart.getDate(), componentManageBond.dateFinaly.getDate());
                 } else {
-                    JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
-                    return;
+                    // Si no hay fechas, mostrar los ultimos 100 registros
+                    insertListTableBonoLast(100);
                 }
             } catch (Exception ee) {
                 System.out.println("Error -> " + ee.getMessage());
-                JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
-                return;
+                // Si hay error, mostrar los ultimos 100 registros
+                insertListTableBonoLast(100);
             }
         }
         if (e.getSource().equals(componentManageBond.jButton1)) {
@@ -134,47 +139,72 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                 JOptionPane.showMessageDialog(null, "Escriba el número de solicitud ", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            try {
-                ViewMain.loading.setVisible(true);
-                List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
-                List<AbonoTb> listAbono = abonoDao.findAllAbonos().stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(componentManageBond.jTextFieldSearchSoliBond.getText())).collect(Collectors.toList());
 
-                if (listAbono.isEmpty()) {
-                    ViewMain.loading.dispose();
-                    JOptionPane.showMessageDialog(null, "No se encontro numero de solicitud ", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
-                    return;
-                }
+            String numSolicitud = componentManageBond.jTextFieldSearchSoliBond.getText();
 
-                DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListBonos.getModel();
-                model.setRowCount(0);
-                for (AbonoTb abonoTb : listAbono) {
-                    model.addRow(new Object[]{
-                        abonoTb.getSoliNum(),
-                        listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get().getDescription(),
-                        new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
-                        abonoTb.getDues(),
-                        abonoTb.getMonthly(),
-                        abonoTb.getStatus()
+            ViewMain.loading.setModal(true);
+            ViewMain.loading.setLocationRelativeTo(viewMain);
+
+            new Thread(() -> {
+                try {
+                    List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
+                    List<AbonoTb> listAbono = abonoDao.findAllAbonos().stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(numSolicitud)).collect(Collectors.toList());
+
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        if (listAbono.isEmpty()) {
+                            ViewMain.loading.dispose();
+                            JOptionPane.showMessageDialog(null, "No se encontró número de solicitud ", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+                            return;
+                        }
+
+                        DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListBonos.getModel();
+                        model.setRowCount(0);
+                        for (AbonoTb abonoTb : listAbono) {
+                            try {
+                                model.addRow(new Object[]{
+                                    abonoTb.getSoliNum(),
+                                    listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(abonoTb.getServiceConceptId())).findFirst().get().getDescription(),
+                                    new EmployeeDao().findById(Integer.valueOf(abonoTb.getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
+                                    abonoTb.getDues(),
+                                    abonoTb.getMonthly(),
+                                    abonoTb.getStatus()
+                                });
+                            } catch (Exception ex) {
+                                System.out.println("Error al agregar fila: " + ex.getMessage());
+                            }
+                        }
+                        ViewMain.loading.dispose();
+                    });
+                } catch (Exception ex) {
+                    System.out.println("Error -> " + ex.getMessage());
+                    ex.printStackTrace();
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
+                        JOptionPane.showMessageDialog(null, "Ocurrió un problema: " + ex.getMessage(), "GESTIÓN ABONOS", JOptionPane.ERROR_MESSAGE);
                     });
                 }
-                ViewMain.loading.dispose();
-            } catch (SQLException ex) {
-                ViewMain.loading.dispose();
-                System.out.println("Error -> " + ex.getMessage());
+            }).start();
 
-                JOptionPane.showMessageDialog(null, "Ocurrio un problema", "GÉSTION ABONOS", JOptionPane.OK_OPTION);
-            }
-
+            ViewMain.loading.setVisible(true);
         }
         if (e.getSource().equals(componentManageBond.jButtonEliminarBono)) {
             if (componentManageBond.jTextFieldEliminarBono.getText().isBlank()) {
                 JOptionPane.showMessageDialog(null, "Escriba el número de solicitud del bono para eliminar", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
+            // Confirmacion antes de eliminar
+            int confirm = JOptionPane.showConfirmDialog(null,
+                "¿Está seguro que desea eliminar el bono con número de solicitud: " + componentManageBond.jTextFieldEliminarBono.getText() + "?",
+                "CONFIRMAR ELIMINACIÓN", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
             try {
                 boolean verr = new AbonoDao().deleteAbonoIfNotUsed(componentManageBond.jTextFieldEliminarBono.getText());
                 if (verr) {
                     JOptionPane.showMessageDialog(null, "Se elimino el abono", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+                    componentManageBond.jTextFieldEliminarBono.setText("");
+                    reloadSoliNumsAbono();
                 }
                 return;
             } catch (SQLException ex) {
@@ -188,8 +218,17 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                 JOptionPane.showMessageDialog(null, "Escriba el número de solicitud del bono para renunciar", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
+            // Confirmacion antes de renunciar
+            int confirm = JOptionPane.showConfirmDialog(null,
+                "¿Está seguro que desea renunciar al bono con número de solicitud: " + componentManageBond.jTextFieldRenunciarBono.getText() + "?",
+                "CONFIRMAR RENUNCIA", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
             try {
                 new AbonoDao().renounceAbono(componentManageBond.jTextFieldRenunciarBono.getText(), user.getId(), LocalDate.now().toString());
+                componentManageBond.jTextFieldRenunciarBono.setText("");
+                reloadSoliNumsAbono();
             } catch (SQLException ex) {
                 System.out.println("Error -> " + ex);
                 JOptionPane.showMessageDialog(null, "Ocurrio un error", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
@@ -359,8 +398,44 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
     }
 
     @Override
-    public void keyReleased(KeyEvent e
-    ) {
+    public void keyReleased(KeyEvent e) {
+        // Autocompletado para jTextFieldSearchSoliBond
+        if (e.getSource().equals(componentManageBond.jTextFieldSearchSoliBond)) {
+            if ((e.getKeyCode() >= KeyEvent.VK_A && e.getKeyCode() <= KeyEvent.VK_Z)
+                    || (e.getKeyCode() >= KeyEvent.VK_0 && e.getKeyCode() <= KeyEvent.VK_9)
+                    || (e.getKeyCode() >= KeyEvent.VK_NUMPAD0 && e.getKeyCode() <= KeyEvent.VK_NUMPAD9)
+                    || e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                showAutocompleteSearchSoliBond();
+            }
+        }
+        // Autocompletado para jTextFieldEliminarBono
+        if (e.getSource().equals(componentManageBond.jTextFieldEliminarBono)) {
+            if ((e.getKeyCode() >= KeyEvent.VK_A && e.getKeyCode() <= KeyEvent.VK_Z)
+                    || (e.getKeyCode() >= KeyEvent.VK_0 && e.getKeyCode() <= KeyEvent.VK_9)
+                    || (e.getKeyCode() >= KeyEvent.VK_NUMPAD0 && e.getKeyCode() <= KeyEvent.VK_NUMPAD9)
+                    || e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                showAutocompleteEliminarBono();
+            }
+        }
+        // Autocompletado para jTextFieldRenunciarBono
+        if (e.getSource().equals(componentManageBond.jTextFieldRenunciarBono)) {
+            if ((e.getKeyCode() >= KeyEvent.VK_A && e.getKeyCode() <= KeyEvent.VK_Z)
+                    || (e.getKeyCode() >= KeyEvent.VK_0 && e.getKeyCode() <= KeyEvent.VK_9)
+                    || (e.getKeyCode() >= KeyEvent.VK_NUMPAD0 && e.getKeyCode() <= KeyEvent.VK_NUMPAD9)
+                    || e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                showAutocompleteRenunciarBono();
+            }
+        }
+        // Autocompletado para searchConcept
+        if (e.getSource().equals(componentManageBond.searchConcept)) {
+            if ((e.getKeyCode() >= KeyEvent.VK_A && e.getKeyCode() <= KeyEvent.VK_Z)
+                    || (e.getKeyCode() >= KeyEvent.VK_0 && e.getKeyCode() <= KeyEvent.VK_9)
+                    || (e.getKeyCode() >= KeyEvent.VK_NUMPAD0 && e.getKeyCode() <= KeyEvent.VK_NUMPAD9)
+                    || e.getKeyCode() == KeyEvent.VK_BACK_SPACE
+                    || e.getKeyCode() == KeyEvent.VK_SPACE) {
+                showAutocompleteSearchConcept();
+            }
+        }
     }
 
     @Override
@@ -420,81 +495,91 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                                     }
 
                                     if (!text.getText().isBlank()) {
-                                        try {
 
-                                            AbonoDetailsTb elecD = bonodetails.stream().filter(predicate -> predicate.getDues() == Integer.parseInt(componentManageBond.jTableListDetalle.getValueAt(indexDetalle, 2).toString())).findFirst().get();
+                                        AbonoDetailsTb elecD = bonodetails.stream().filter(predicate -> predicate.getDues() == Integer.parseInt(componentManageBond.jTableListDetalle.getValueAt(indexDetalle, 2).toString())).findFirst().get();
 
-                                            Double monto = elecD.getMonthly();
-                                            Double parcial = elecD.getPayment();
+                                        Double monto = elecD.getMonthly();
+                                        Double parcial = elecD.getPayment();
 
-                                            Double finalMonto = Double.valueOf(String.format("%.2f", (monto - parcial)));
-                                            Double montoEx = Double.valueOf(text.getText());
+                                        Double finalMonto = Double.valueOf(String.format("%.2f", (monto - parcial)));
+                                        Double montoEx = Double.valueOf(text.getText());
 
-                                            if (finalMonto > montoEx) {
+                                        if (finalMonto < montoEx) {
+                                            JOptionPane.showMessageDialog(null, "El monto ingresado es mayor al monto pendiente", "GESTION DE BONO", JOptionPane.WARNING_MESSAGE);
+                                            return;
+                                        }
 
+                                        // Mostrar loading y deshabilitar dialog
+                                        componentManageBond.jDialog1.setEnabled(false);
+                                        ViewMain.loading.setModal(true);
+                                        ViewMain.loading.setLocationRelativeTo(componentManageBond.jDialog1);
+
+                                        final String numSolFinal = numSol;
+                                        final AbonoDetailsTb elecDFinal = elecD;
+                                        final Double montoFinal = monto;
+                                        final Double montoExFinal = montoEx;
+
+                                        new Thread(() -> {
+                                            try {
                                                 String name = componentManageBond.jTableListEmple.getValueAt(0, 2).toString();
-
                                                 EmployeeTb empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
+                                                RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoExFinal);
 
-                                                RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
-
-                                                new RegistroDao().insertarRegistroCompleto(registroTb, null, elecD, montoEx);
-                                                new AbonoDetailsDao().updateLoanStateByLoandetailId(elecD.getId(), monto, montoEx);
+                                                new RegistroDao().insertarRegistroCompleto(registroTb, null, elecDFinal, montoExFinal);
+                                                new AbonoDetailsDao().updateLoanStateByLoandetailId(elecDFinal.getId(), montoFinal, montoExFinal);
                                                 System.out.println("Se registro");
-                                            }
 
-                                            if (Objects.equals(finalMonto, montoEx)) {
+                                                javax.swing.SwingUtilities.invokeLater(() -> {
+                                                    try {
+                                                        DefaultTableModel modelFirts = (DefaultTableModel) componentManageBond.jTableListEmple.getModel();
+                                                        modelFirts.setRowCount(0);
+                                                        List<AbonoTb> list = abonoDao.findAllAbonos();
+                                                        List<AbonoTb> listFind = list.stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(numSolFinal)).collect(Collectors.toList());
 
-                                                String name = componentManageBond.jTableListEmple.getValueAt(0, 2).toString();
+                                                        List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
 
-                                                EmployeeTb empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
+                                                        modelFirts.addRow(new Object[]{
+                                                            listFind.get(0).getSoliNum(),
+                                                            listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(listFind.get(0).getServiceConceptId())).findFirst().get().getDescription(),
+                                                            new EmployeeDao().findById(Integer.valueOf(listFind.get(0).getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
+                                                            listFind.get(0).getDues(),
+                                                            listFind.get(0).getMonthly(),
+                                                            listFind.get(0).getStatus()
+                                                        });
 
-                                                RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
+                                                        DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListDetalle.getModel();
+                                                        model.setRowCount(0);
 
-                                                new RegistroDao().insertarRegistroCompleto(registroTb, null, elecD, montoEx);
-                                                new AbonoDetailsDao().updateLoanStateByLoandetailId(elecD.getId(), monto, montoEx);
+                                                        for (AbonoDetailsTb bonodetail : new AbonoDao().getListAbonoBySoli(numSolFinal)) {
+                                                            model.addRow(new Object[]{
+                                                                bonodetail.getMonthly(),
+                                                                bonodetail.getPayment(),
+                                                                bonodetail.getDues(),
+                                                                bonodetail.getPaymentDate(),
+                                                                bonodetail.getState()
+                                                            });
+                                                        }
 
-                                            }
-                                            //
-
-                                            DefaultTableModel modelFirts = (DefaultTableModel) componentManageBond.jTableListEmple.getModel();
-                                            modelFirts.setRowCount(0);
-                                            List<AbonoTb> list = abonoDao.findAllAbonos();
-                                            List<AbonoTb> listFind = list.stream().filter(predicate -> predicate.getSoliNum().equalsIgnoreCase(numSol)).collect(Collectors.toList());
-
-                                            List<ServiceConceptTb> listServi = new ServiceConceptDao().getAllServiceConcepts();
-
-                                            modelFirts.addRow(new Object[]{
-                                                listFind.get(0).getSoliNum(),
-                                                listServi.stream().filter(predicate -> predicate.getId() == Integer.parseInt(listFind.get(0).getServiceConceptId())).findFirst().get().getDescription(),
-                                                new EmployeeDao().findById(Integer.valueOf(listFind.get(0).getEmployeeId())).map(mapper -> mapper.getFullName()).get(),
-                                                listFind.get(0).getDues(),
-                                                listFind.get(0).getMonthly(),
-                                                listFind.get(0).getStatus()
-                                            });
-
-                                            //
-                                            DefaultTableModel model = (DefaultTableModel) componentManageBond.jTableListDetalle.getModel();
-                                            model.setRowCount(0);
-
-                                            for (AbonoDetailsTb bonodetail : new AbonoDao().getListAbonoBySoli(numSol)) {
-
-                                                model.addRow(new Object[]{
-                                                    bonodetail.getMonthly(),
-                                                    bonodetail.getPayment(),
-                                                    bonodetail.getDues(),
-                                                    bonodetail.getPaymentDate(),
-                                                    bonodetail.getState()
+                                                        componentManageBond.jTableListDetalle.repaint();
+                                                    } catch (Exception ex) {
+                                                        System.out.println("Error actualizando tabla: " + ex.getMessage());
+                                                    } finally {
+                                                        componentManageBond.jDialog1.setEnabled(true);
+                                                        ViewMain.loading.dispose();
+                                                    }
+                                                });
+                                            } catch (Exception ex) {
+                                                System.out.println("Error -> " + ex.getMessage());
+                                                javax.swing.SwingUtilities.invokeLater(() -> {
+                                                    componentManageBond.jDialog1.setEnabled(true);
+                                                    ViewMain.loading.dispose();
+                                                    JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTION DE BONO", JOptionPane.ERROR_MESSAGE);
                                                 });
                                             }
+                                        }).start();
 
-                                            componentManageBond.jTableListDetalle.repaint();
-
-                                        } catch (SQLException ex) {
-                                            System.out.println("Error -> " + ex.getMessage());
-                                            JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE BONO", JOptionPane.OK_OPTION);
-                                            // Logger.getLogger(ControllerManageBond.class.getName()).log(Level.SEVERE, null, ex);
-                                        }
+                                        ViewMain.loading.setVisible(true);
+                                        return;
 
                                     }
 

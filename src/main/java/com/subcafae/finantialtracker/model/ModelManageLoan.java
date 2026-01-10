@@ -31,7 +31,7 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
  * @author Jesus Gutierrez
  */
 public class ModelManageLoan extends LoanDao {
-    
+
 
     public ComponentManageLoan componentManageLoan;
     protected List<EmployeeTb> listEmployeeApplicant;
@@ -40,6 +40,12 @@ public class ModelManageLoan extends LoanDao {
     protected EmployeeTb employeeAval;
     protected List<String> listSoliNums;
     protected javax.swing.JPopupMenu popupSoliNum;
+    protected javax.swing.JList<String> listaSugerencias;
+    protected javax.swing.DefaultListModel<String> modeloLista;
+    // Para autocompletado de textSearchLoanSoli
+    protected javax.swing.JPopupMenu popupSoliNumReport;
+    protected javax.swing.JList<String> listaSugerenciasReport;
+    protected javax.swing.DefaultListModel<String> modeloListaReport;
 
     public ModelManageLoan(ComponentManageLoan componentManageLoan) {
 
@@ -59,10 +65,141 @@ public class ModelManageLoan extends LoanDao {
 
         // Inicializar popup para autocompletado de números de solicitud
         popupSoliNum = new javax.swing.JPopupMenu();
+        modeloLista = new javax.swing.DefaultListModel<>();
+        listaSugerencias = new javax.swing.JList<>(modeloLista);
+        listaSugerencias.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        listaSugerencias.setVisibleRowCount(8);
+
+        javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(listaSugerencias);
+        scrollPane.setPreferredSize(new java.awt.Dimension(250, 150));
+        popupSoliNum.add(scrollPane);
+        popupSoliNum.setFocusable(false);
+
+        // Listener para seleccionar con mouse (doble clic o clic simple)
+        listaSugerencias.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() >= 1) {
+                    String selected = listaSugerencias.getSelectedValue();
+                    if (selected != null) {
+                        componentManageLoan.jTextFieldSearchLoanNum.setText(selected);
+                        popupSoliNum.setVisible(false);
+                        componentManageLoan.jTextFieldSearchLoanNum.requestFocusInWindow();
+                    }
+                }
+            }
+        });
+
+        // Configurar teclas en el campo de texto para navegar la lista
+        componentManageLoan.jTextFieldSearchLoanNum.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                int index = listaSugerencias.getSelectedIndex();
+                int size = modeloLista.getSize();
+
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_DOWN && popupSoliNum.isVisible()) {
+                    if (size > 0) {
+                        int newIndex = (index < size - 1) ? index + 1 : 0;
+                        listaSugerencias.setSelectedIndex(newIndex);
+                        listaSugerencias.ensureIndexIsVisible(newIndex);
+                    }
+                    e.consume();
+                } else if (e.getKeyCode() == java.awt.event.KeyEvent.VK_UP && popupSoliNum.isVisible()) {
+                    if (size > 0) {
+                        int newIndex = (index > 0) ? index - 1 : size - 1;
+                        listaSugerencias.setSelectedIndex(newIndex);
+                        listaSugerencias.ensureIndexIsVisible(newIndex);
+                    }
+                    e.consume();
+                } else if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    // Si el popup esta visible, seleccionar el item
+                    if (popupSoliNum.isVisible()) {
+                        String selected = listaSugerencias.getSelectedValue();
+                        if (selected != null) {
+                            componentManageLoan.jTextFieldSearchLoanNum.setText(selected);
+                        }
+                        popupSoliNum.setVisible(false);
+                    }
+                    // Ejecutar la busqueda (simular clic en boton buscar)
+                    if (!componentManageLoan.jTextFieldSearchLoanNum.getText().isBlank()) {
+                        componentManageLoan.jButtonBuscar.doClick();
+                    }
+                    e.consume();
+                } else if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE && popupSoliNum.isVisible()) {
+                    popupSoliNum.setVisible(false);
+                    e.consume();
+                }
+            }
+        });
+
+        // Inicializar popup para autocompletado de textSearchLoanSoli (reportes)
+        popupSoliNumReport = new javax.swing.JPopupMenu();
+        modeloListaReport = new javax.swing.DefaultListModel<>();
+        listaSugerenciasReport = new javax.swing.JList<>(modeloListaReport);
+        listaSugerenciasReport.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        listaSugerenciasReport.setVisibleRowCount(8);
+
+        javax.swing.JScrollPane scrollPaneReport = new javax.swing.JScrollPane(listaSugerenciasReport);
+        scrollPaneReport.setPreferredSize(new java.awt.Dimension(250, 150));
+        popupSoliNumReport.add(scrollPaneReport);
+        popupSoliNumReport.setFocusable(false);
+
+        // Listener para seleccionar con mouse
+        listaSugerenciasReport.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() >= 1) {
+                    String selected = listaSugerenciasReport.getSelectedValue();
+                    if (selected != null) {
+                        componentManageLoan.textSearchLoanSoli.setText(selected);
+                        popupSoliNumReport.setVisible(false);
+                        componentManageLoan.textSearchLoanSoli.requestFocusInWindow();
+                    }
+                }
+            }
+        });
+
+        // Configurar teclas para textSearchLoanSoli
+        componentManageLoan.textSearchLoanSoli.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                int index = listaSugerenciasReport.getSelectedIndex();
+                int size = modeloListaReport.getSize();
+
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_DOWN && popupSoliNumReport.isVisible()) {
+                    if (size > 0) {
+                        int newIndex = (index < size - 1) ? index + 1 : 0;
+                        listaSugerenciasReport.setSelectedIndex(newIndex);
+                        listaSugerenciasReport.ensureIndexIsVisible(newIndex);
+                    }
+                    e.consume();
+                } else if (e.getKeyCode() == java.awt.event.KeyEvent.VK_UP && popupSoliNumReport.isVisible()) {
+                    if (size > 0) {
+                        int newIndex = (index > 0) ? index - 1 : size - 1;
+                        listaSugerenciasReport.setSelectedIndex(newIndex);
+                        listaSugerenciasReport.ensureIndexIsVisible(newIndex);
+                    }
+                    e.consume();
+                } else if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    // Solo seleccionar el valor, no ejecutar busqueda
+                    if (popupSoliNumReport.isVisible()) {
+                        String selected = listaSugerenciasReport.getSelectedValue();
+                        if (selected != null) {
+                            componentManageLoan.textSearchLoanSoli.setText(selected);
+                        }
+                        popupSoliNumReport.setVisible(false);
+                        e.consume();
+                    }
+                } else if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE && popupSoliNumReport.isVisible()) {
+                    popupSoliNumReport.setVisible(false);
+                    e.consume();
+                }
+            }
+        });
 
     }
 
-    // Método para mostrar autocompletado de números de solicitud
+    // Metodo para mostrar autocompletado de numeros de solicitud
     public void showSoliNumAutocomplete() {
         String textSearch = componentManageLoan.jTextFieldSearchLoanNum.getText().trim();
 
@@ -71,29 +208,28 @@ public class ModelManageLoan extends LoanDao {
             return;
         }
 
-        // Cargar lista de números si no está cargada
+        // Cargar lista de numeros si no esta cargada
         if (listSoliNums == null || listSoliNums.isEmpty()) {
             listSoliNums = getAllSoliNums();
         }
 
-        popupSoliNum.removeAll();
+        modeloLista.clear();
 
         int count = 0;
         for (String soliNumItem : listSoliNums) {
             if (soliNumItem.toLowerCase().contains(textSearch.toLowerCase())) {
-                javax.swing.JMenuItem item = new javax.swing.JMenuItem(soliNumItem);
-                item.addActionListener(e -> {
-                    componentManageLoan.jTextFieldSearchLoanNum.setText(soliNumItem);
-                    popupSoliNum.setVisible(false);
-                });
-                popupSoliNum.add(item);
+                modeloLista.addElement(soliNumItem);
                 count++;
-                if (count >= 10) break; // Limitar a 10 resultados
+                if (count >= 10) break;
             }
         }
 
         if (count > 0) {
-            popupSoliNum.show(componentManageLoan.jTextFieldSearchLoanNum, 0, componentManageLoan.jTextFieldSearchLoanNum.getHeight());
+            listaSugerencias.setSelectedIndex(0);
+            if (!popupSoliNum.isVisible()) {
+                popupSoliNum.show(componentManageLoan.jTextFieldSearchLoanNum, 0, componentManageLoan.jTextFieldSearchLoanNum.getHeight());
+            }
+            componentManageLoan.jTextFieldSearchLoanNum.requestFocusInWindow();
         } else {
             popupSoliNum.setVisible(false);
         }
@@ -102,6 +238,42 @@ public class ModelManageLoan extends LoanDao {
     // Método para recargar la lista de números de solicitud
     public void reloadSoliNums() {
         listSoliNums = getAllSoliNums();
+    }
+
+    // Metodo para mostrar autocompletado en textSearchLoanSoli (reportes)
+    public void showSoliNumAutocompleteReport() {
+        String textSearch = componentManageLoan.textSearchLoanSoli.getText().trim();
+
+        if (textSearch.isEmpty()) {
+            popupSoliNumReport.setVisible(false);
+            return;
+        }
+
+        // Cargar lista de numeros si no esta cargada
+        if (listSoliNums == null || listSoliNums.isEmpty()) {
+            listSoliNums = getAllSoliNums();
+        }
+
+        modeloListaReport.clear();
+
+        int count = 0;
+        for (String soliNumItem : listSoliNums) {
+            if (soliNumItem.toLowerCase().contains(textSearch.toLowerCase())) {
+                modeloListaReport.addElement(soliNumItem);
+                count++;
+                if (count >= 10) break;
+            }
+        }
+
+        if (count > 0) {
+            listaSugerenciasReport.setSelectedIndex(0);
+            if (!popupSoliNumReport.isVisible()) {
+                popupSoliNumReport.show(componentManageLoan.textSearchLoanSoli, 0, componentManageLoan.textSearchLoanSoli.getHeight());
+            }
+            componentManageLoan.textSearchLoanSoli.requestFocusInWindow();
+        } else {
+            popupSoliNumReport.setVisible(false);
+        }
     }
 
     public void insertListEmployeeAvalComboBox() {
@@ -328,6 +500,63 @@ public class ModelManageLoan extends LoanDao {
             System.out.println("Error -> " + ex.getMessage());
             JOptionPane.showMessageDialog(null, "Ocurrio un problema");
         }
+    }
+
+    // Metodo para mostrar los ultimos N registros sin filtro de fecha
+    public void insertTabletLast(int limit) {
+
+        ViewMain.loading.setModal(true);
+        ViewMain.loading.setLocationRelativeTo(componentManageLoan);
+
+        new Thread(() -> {
+            try {
+                List<Loan> list = getLastLoans(limit);
+
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    ViewMain.loading.dispose();
+
+                    DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
+                    model.setRowCount(0);
+                    for (Loan loan : list) {
+                        System.out.print(" ff " + loan.getAmountWithdrawn());
+                        if (loan.getRequestedAmount() != loan.getAmountWithdrawn()) {
+                            if (loan.getRefinanciado() == null) {
+                                if (!loan.getAmountWithdrawn().toString().equals("0.00")) {
+                                    Double daod = Double.parseDouble(loan.getRequestedAmount().toString()) - Double.parseDouble(loan.getAmountWithdrawn().toString());
+                                    loan.setRefinanciado(BigDecimal.valueOf(daod));
+                                }
+                            }
+                        }
+                        model.addRow(new Object[]{
+                            loan.getModificado() == null ? "" : loan.getModificado(),
+                            loan.getSoliNum(),
+                            loan.getSolicitorName(),
+                            loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
+                            loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
+                            loan.getRequestedAmount(),
+                            loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
+                            loan.getCantCuota(),
+                            loan.getInterTo() == null ? "" : loan.getInterTo(),
+                            loan.getFondoTo() == null ? "" : loan.getFondoTo(),
+                            loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
+                            loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
+                            loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
+                            loan.getValor() == null ? "" : loan.getValor(),
+                            loan.getState(),
+                            loan.getPaymentResponsibility()
+                        });
+                    }
+                });
+            } catch (Exception ex) {
+                System.out.println("Error -> " + ex.getMessage());
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    ViewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(null, "Ocurrio un problema al cargar la lista", "GESTION PRESTAMOS", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
+
+        ViewMain.loading.setVisible(true);
     }
 
     public void insertTablet(java.util.Date dateStart, java.util.Date dateFinaly) {

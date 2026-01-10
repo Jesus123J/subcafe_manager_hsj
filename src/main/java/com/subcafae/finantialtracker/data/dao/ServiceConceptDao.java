@@ -143,4 +143,25 @@ public class ServiceConceptDao {
         return serviceConceptList;
     }
 
+    // Metodo para obtener codigo y descripcion de conceptos para autocompletado
+    // Formato: "codigo - descripcion"
+    public List<String> getAllConceptDescriptions() {
+        List<String> descriptions = new ArrayList<>();
+        String sql = "SELECT codigo, description FROM service_concept ORDER BY codigo ASC";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                String codigo = rs.getString("codigo");
+                String desc = rs.getString("description");
+                if (codigo != null && !codigo.isBlank() && desc != null && !desc.isBlank()) {
+                    descriptions.add(codigo + " - " + desc);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return descriptions;
+    }
+
 }

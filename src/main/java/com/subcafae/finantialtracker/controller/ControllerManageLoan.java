@@ -67,6 +67,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
         ((JTextField) componentManageLoan.comboBoxApplicant.getEditor().getEditorComponent()).addKeyListener(this);
         ((JTextField) componentManageLoan.comboBoxAval.getEditor().getEditorComponent()).addKeyListener(this);
         componentManageLoan.jTextFieldSearchLoanNum.addKeyListener(this);
+        componentManageLoan.textSearchLoanSoli.addKeyListener(this);
 
         componentManageLoan.buttonRegisterLoan.addActionListener(this);
         componentManageLoan.buttonCleanApplicant.addActionListener(this);
@@ -156,16 +157,17 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
         if (e.getSource().equals(componentManageLoan.jButtonShowList)) {
 
             try {
-                if (componentManageLoan.dateStart.getDate() != null || componentManageLoan.dateFinaly.getDate() != null) {
+                // Si ambas fechas estan puestas, filtrar por rango de fechas
+                if (componentManageLoan.dateStart.getDate() != null && componentManageLoan.dateFinaly.getDate() != null) {
                     insertTablet(componentManageLoan.dateStart.getDate(), componentManageLoan.dateFinaly.getDate());
                 } else {
-                    JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
-                    return;
+                    // Si no hay fechas, mostrar los ultimos 100 registros
+                    insertTabletLast(100);
                 }
             } catch (Exception ee) {
                 System.out.println("Error -> " + ee.getMessage());
-                JOptionPane.showMessageDialog(null, "Rellene las fechas para mostrar la lista");
-                return;
+                // Si hay error, mostrar los ultimos 100 registros
+                insertTabletLast(100);
             }
         }
 
@@ -184,6 +186,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                 Boolean ver = new LoanDetailsDao().updatePaymentResponsibilityToGuarantor(soliNum);
 
                 if (ver) {
+                
                     componentManageLoan.jButton1.setEnabled(false);
                     componentManageLoan.jLabelShowAval.setText("LOS PAGOS EN PARTES, LO HARÁ EL AVAL");
                     componentManageLoan.jTableLoanList1.setValueAt("AVAL", 0, 6);
@@ -633,15 +636,28 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
 
         }
 
-        // Autocompletado para campo de búsqueda de número de solicitud
+        // Autocompletado para campo de busqueda de numero de solicitud
         if (e.getSource().equals(componentManageLoan.jTextFieldSearchLoanNum)) {
-            if ((e.getKeyCode() >= KeyEvent.VK_0 && e.getKeyCode() <= KeyEvent.VK_9) // Números
-                    || (e.getKeyCode() >= KeyEvent.VK_NUMPAD0 && e.getKeyCode() <= KeyEvent.VK_NUMPAD9) // Teclado numérico
-                    || e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // Borrar
-                showSoliNumAutocomplete();
+            // Solo actualizar sugerencias con teclas de texto (numeros y backspace)
+            // Las teclas de navegacion (UP, DOWN, ENTER, ESCAPE) se manejan en ModelManageLoan
+            int keyCode = e.getKeyCode();
+            if ((keyCode >= KeyEvent.VK_0 && keyCode <= KeyEvent.VK_9)
+                    || (keyCode >= KeyEvent.VK_NUMPAD0 && keyCode <= KeyEvent.VK_NUMPAD9)
+                    || keyCode == KeyEvent.VK_BACK_SPACE
+                    || keyCode == KeyEvent.VK_DELETE) {
+                // Usar SwingUtilities.invokeLater para que el texto ya este actualizado
+                javax.swing.SwingUtilities.invokeLater(() -> showSoliNumAutocomplete());
             }
-            if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                popupSoliNum.setVisible(false);
+        }
+
+        // Autocompletado para campo de busqueda de solicitud en reportes
+        if (e.getSource().equals(componentManageLoan.textSearchLoanSoli)) {
+            int keyCode = e.getKeyCode();
+            if ((keyCode >= KeyEvent.VK_0 && keyCode <= KeyEvent.VK_9)
+                    || (keyCode >= KeyEvent.VK_NUMPAD0 && keyCode <= KeyEvent.VK_NUMPAD9)
+                    || keyCode == KeyEvent.VK_BACK_SPACE
+                    || keyCode == KeyEvent.VK_DELETE) {
+                javax.swing.SwingUtilities.invokeLater(() -> showSoliNumAutocompleteReport());
             }
         }
 
@@ -757,7 +773,7 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                                 }
                             }
                         } else if (loan.get().getState().equalsIgnoreCase("Aceptado") || loan.get().getState().equalsIgnoreCase("Refinanciado")) {
-
+                            
                             try {
                                 Loan loann = new LoanDao().searchLoan(loan.get().getSoliNum()).get(0);
 
@@ -867,90 +883,107 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                                 if (opction != JOptionPane.OK_OPTION) {
                                     return;
                                 }
-                                ViewMain.loading.setVisible(true);
-                                componentManageLoan.jDialog1.setEnabled(false);
 
-                                if (!text.getText().isBlank()) {
-
-                                    Double monto = Double.valueOf(componentManageLoan.jTableListLoanDetails.getValueAt(index, 0).toString());
-                                    Double montoParcial = Double.valueOf(componentManageLoan.jTableListLoanDetails.getValueAt(index, 1).toString());
-                                    Double finalMonto = Double.parseDouble(String.format("%.2f", (monto - montoParcial)));
-                                    Double montoEx = Double.valueOf(text.getText());
-
-                                    EmployeeTb empl = new EmployeeTb();
-                                    if (loan.get().getPaymentResponsibility().equalsIgnoreCase("GUARANTOR")) {
-                                        String name = componentManageLoan.jTableLoanList1.getValueAt(0, 2).toString();
-                                        empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
-
-                                    } else {
-                                        String name = componentManageLoan.jTableLoanList1.getValueAt(0, 1).toString();
-                                        empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
-                                    }
-
-                                    if (finalMonto > montoEx) {
-                                        RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
-                                        new RegistroDao().insertarRegistroCompleto(registroTb, tableDetails, null, montoEx);
-                                        new LoanDetailsDao().updateLoanStateByLoandetailId(tableDetails.getId(), monto, montoEx);
-                                    }
-                                    if (Objects.equals(finalMonto, montoEx)) {
-                                        RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
-                                        new RegistroDao().insertarRegistroCompleto(registroTb, tableDetails, null, montoEx);
-                                        new LoanDetailsDao().updateLoanStateByLoandetailId(tableDetails.getId(), monto, montoEx);
-
-                                    }
-
-                                    if (finalMonto < montoEx) {
-                                        componentManageLoan.jDialog1.setEnabled(true);
-                                        ViewMain.loading.dispose();
-                                        JOptionPane.showMessageDialog(null, "ERROR EN EL MONTO DADO", "GÉSTION PRESTAMOS", JOptionPane.OK_OPTION);
-                                    }
-
-                                    DefaultTableModel modelList = (DefaultTableModel) componentManageLoan.jTableListLoanDetails.getModel();
-                                    modelList.setRowCount(0);
-
-                                    List<LoanDetailsTb> listDetailss = new LoanDetailsDao().findLoanDetailsByLoanId(loan.get().getId());
-                                    Double montfo = 0.0;
-                                    for (LoanDetailsTb loanDetailsTb : listDetailss) {
-                                        if (loanDetailsTb.getState().equalsIgnoreCase("Pendiente")) {
-                                            montfo += loanDetailsTb.getMonthlyFeeValue();
-                                        }
-
-                                        if (loanDetailsTb.getState().equalsIgnoreCase("Parcial")) {
-                                            montfo += (loanDetailsTb.getMonthlyFeeValue() - loanDetailsTb.getPayment());
-                                        }
-
-                                        modelList.addRow(new Object[]{
-                                            loanDetailsTb.getMonthlyFeeValue(),
-                                            loanDetailsTb.getPayment(),
-                                            loanDetailsTb.getDues(),
-                                            loanDetailsTb.getPaymentDate().toString(),
-                                            loanDetailsTb.getState()
-                                        });
-
-                                    }
-
-                                    componentManageLoan.jLabelMonto.setText(String.format("%.2f", montfo));
-
-                                    List<Loan> listTableFind = new LoanDao().searchLoan(soliNum);
-
-                                    DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList1.getModel();
-                                    model.setRowCount(0);
-
-                                    model.addRow(new Object[]{
-                                        listTableFind.get(0).getSoliNum(),
-                                        listTableFind.get(0).getSolicitorName(),
-                                        listTableFind.get(0).getGuarantorName(),
-                                        listTableFind.get(0).getRequestedAmount(),
-                                        listTableFind.get(0).getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? listTableFind.get(0).getRequestedAmount() : listTableFind.get(0).getAmountWithdrawn(),
-                                        listTableFind.get(0).getState(),
-                                        listTableFind.get(0).getPaymentResponsibility()
-                                    });
+                                if (text.getText().isBlank()) {
+                                    JOptionPane.showMessageDialog(null, "Debe ingresar un monto", "GÉSTION PRESTAMOS", JOptionPane.WARNING_MESSAGE);
+                                    return;
                                 }
 
-                            }
+                                Double monto = Double.valueOf(componentManageLoan.jTableListLoanDetails.getValueAt(index, 0).toString());
+                                Double montoParcial = Double.valueOf(componentManageLoan.jTableListLoanDetails.getValueAt(index, 1).toString());
+                                Double finalMonto = Double.parseDouble(String.format("%.2f", (monto - montoParcial)));
+                                Double montoEx = Double.valueOf(text.getText());
 
-                            componentManageLoan.jDialog1.setEnabled(true);
-                            ViewMain.loading.dispose();
+                                if (finalMonto < montoEx) {
+                                    JOptionPane.showMessageDialog(null, "ERROR EN EL MONTO DADO", "GÉSTION PRESTAMOS", JOptionPane.OK_OPTION);
+                                    return;
+                                }
+
+                                componentManageLoan.jDialog1.setEnabled(false);
+                                ViewMain.loading.setModal(true);
+                                ViewMain.loading.setLocationRelativeTo(componentManageLoan.jDialog1);
+
+                                final LoanTb loanFinal = loan.get();
+                                final LoanDetailsTb tableDetailsFinal = tableDetails;
+                                final String soliNumFinal = soliNum;
+                                final int indexFinal = index;
+
+                                new Thread(() -> {
+                                    try {
+                                        EmployeeTb empl = new EmployeeTb();
+                                        if (loanFinal.getPaymentResponsibility().equalsIgnoreCase("GUARANTOR")) {
+                                            String name = componentManageLoan.jTableLoanList1.getValueAt(0, 2).toString();
+                                            empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
+                                        } else {
+                                            String name = componentManageLoan.jTableLoanList1.getValueAt(0, 1).toString();
+                                            empl = new EmployeeDao().findAll().stream().filter(predicate -> predicate.getFullName().equalsIgnoreCase(name)).findFirst().get();
+                                        }
+
+                                        RegistroTb registroTb = new RegistroTb(empl.getEmployeeId(), montoEx);
+                                        new RegistroDao().insertarRegistroCompleto(registroTb, tableDetailsFinal, null, montoEx);
+                                        new LoanDetailsDao().updateLoanStateByLoandetailId(tableDetailsFinal.getId(), monto, montoEx);
+
+                                        javax.swing.SwingUtilities.invokeLater(() -> {
+                                            try {
+                                                DefaultTableModel modelList = (DefaultTableModel) componentManageLoan.jTableListLoanDetails.getModel();
+                                                modelList.setRowCount(0);
+
+                                                List<LoanDetailsTb> listDetailss = new LoanDetailsDao().findLoanDetailsByLoanId(loanFinal.getId());
+                                                Double montfo = 0.0;
+                                                for (LoanDetailsTb loanDetailsTb : listDetailss) {
+                                                    if (loanDetailsTb.getState().equalsIgnoreCase("Pendiente")) {
+                                                        montfo += loanDetailsTb.getMonthlyFeeValue();
+                                                    }
+
+                                                    if (loanDetailsTb.getState().equalsIgnoreCase("Parcial")) {
+                                                        montfo += (loanDetailsTb.getMonthlyFeeValue() - loanDetailsTb.getPayment());
+                                                    }
+
+                                                    modelList.addRow(new Object[]{
+                                                        loanDetailsTb.getMonthlyFeeValue(),
+                                                        loanDetailsTb.getPayment(),
+                                                        loanDetailsTb.getDues(),
+                                                        loanDetailsTb.getPaymentDate().toString(),
+                                                        loanDetailsTb.getState()
+                                                    });
+                                                }
+
+                                                componentManageLoan.jLabelMonto.setText(String.format("%.2f", montfo));
+
+                                                List<Loan> listTableFind = new LoanDao().searchLoan(soliNumFinal);
+
+                                                DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList1.getModel();
+                                                model.setRowCount(0);
+
+                                                model.addRow(new Object[]{
+                                                    listTableFind.get(0).getSoliNum(),
+                                                    listTableFind.get(0).getSolicitorName(),
+                                                    listTableFind.get(0).getGuarantorName(),
+                                                    listTableFind.get(0).getRequestedAmount(),
+                                                    listTableFind.get(0).getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? listTableFind.get(0).getRequestedAmount() : listTableFind.get(0).getAmountWithdrawn(),
+                                                    listTableFind.get(0).getState(),
+                                                    listTableFind.get(0).getPaymentResponsibility()
+                                                });
+                                            } catch (Exception ex) {
+                                                System.out.println("Error actualizando tabla: " + ex.getMessage());
+                                            } finally {
+                                                componentManageLoan.jDialog1.setEnabled(true);
+                                                ViewMain.loading.dispose();
+                                            }
+                                        });
+                                    } catch (Exception ex) {
+                                        System.out.println("Error en pago: " + ex.getMessage());
+                                        javax.swing.SwingUtilities.invokeLater(() -> {
+                                            componentManageLoan.jDialog1.setEnabled(true);
+                                            ViewMain.loading.dispose();
+                                            JOptionPane.showMessageDialog(null, "Ocurrio un problema al registrar el pago", "GÉSTION PRESTAMOS", JOptionPane.ERROR_MESSAGE);
+                                        });
+                                    }
+                                }).start();
+
+                                ViewMain.loading.setVisible(true);
+                                return;
+                            }
 
                         } catch (SQLException ex) {
                             componentManageLoan.jDialog1.setEnabled(true);

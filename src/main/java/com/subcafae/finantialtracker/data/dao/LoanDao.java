@@ -286,6 +286,69 @@ public class LoanDao extends LoanDetailsDao {
         return loans;
     }
 
+    // Metodo para obtener los ultimos N prestamos sin filtro de fecha
+    public List<Loan> getLastLoans(int limit) {
+        List<Loan> loans = new ArrayList<>();
+        String sql = "SELECT \n"
+                + "    l.ID, l.ModifiedAt, l.SoliNum, \n"
+                + "    e1.fullName AS SolicitorName, \n"
+                + "    e2.fullName AS GuarantorName, \n"
+                + "    (SELECT SUM(MonthlyFeeValue - IFNULL(payment, 0)) \n"
+                + "     FROM loandetail \n"
+                + "     WHERE LoanID = l.RefinanceParentID AND State IN ('pendiente', 'parcial') \n"
+                + "     GROUP BY LoanID) AS Refinanciado,\n"
+                + "    l.RequestedAmount, l.AmountWithdrawn,\n"
+                + "    l.Dues,\n"
+                + "    dd.TotalInterest,\n"
+                + "    dd.TotalIntangibleFund,\n"
+                + "    dd.MonthlyCapitalInstallment,\n"
+                + "    dd.MonthlyInterestFee,\n"
+                + "    dd.MonthlyIntangibleFundFee,\n"
+                + "    dd.MonthlyFeeValue,\n"
+                + "    l.State, l.PaymentResponsibility \n"
+                + "FROM loan l \n"
+                + "LEFT JOIN employees e1 ON l.EmployeeID = e1.national_id \n"
+                + "LEFT JOIN employees e2 ON l.GuarantorId = e2.national_id\n"
+                + "LEFT JOIN (\n"
+                + "    SELECT ld.* \n"
+                + "    FROM loandetail ld \n"
+                + "    WHERE ld.ID = (SELECT MIN(ID) FROM loandetail WHERE LoanID = ld.LoanID) \n"
+                + ") dd ON dd.LoanID = l.ID \n"
+                + "ORDER BY l.ID DESC LIMIT ?";
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, limit);
+
+            ResultSet rs = statement.executeQuery();
+
+            while (rs.next()) {
+                loans.add(new Loan(
+                        rs.getInt("ID"),
+                        rs.getDate("ModifiedAt") == null ? "" : rs.getDate("ModifiedAt").toString(),
+                        rs.getString("SoliNum"),
+                        rs.getString("SolicitorName"),
+                        rs.getString("GuarantorName"),
+                        rs.getBigDecimal("RequestedAmount"),
+                        rs.getBigDecimal("AmountWithdrawn"),
+                        rs.getBigDecimal("Refinanciado"),
+                        rs.getInt("Dues"),
+                        rs.getBigDecimal("TotalInterest"),
+                        rs.getBigDecimal("TotalIntangibleFund"),
+                        rs.getBigDecimal("MonthlyCapitalInstallment"),
+                        rs.getBigDecimal("MonthlyInterestFee"),
+                        rs.getBigDecimal("MonthlyIntangibleFundFee"),
+                        rs.getBigDecimal("MonthlyFeeValue"),
+                        rs.getString("State"),
+                        rs.getString("PaymentResponsibility").equalsIgnoreCase("EMPLOYEE") ? "SOLICITANTE" : "AVAL"
+                ));
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error -< " + e.getMessage());
+            e.printStackTrace();
+        }
+        return loans;
+    }
+
     public List<Loan> getAllLoanss(Date fechaInicio, Date fechaFin) {
         List<Loan> loans = new ArrayList<>();
         String sql = "SELECT \n"
@@ -313,7 +376,7 @@ public class LoanDao extends LoanDetailsDao {
                 + "    FROM loandetail ld \n"
                 + "    WHERE ld.ID = (SELECT MIN(ID) FROM loandetail WHERE LoanID = ld.LoanID) \n"
                 + ") dd ON dd.LoanID = l.ID \n"
-                + "WHERE DATE(l.CreatedAt) BETWEEN ? AND ? ORDER BY l.CreatedAt ASC";
+                + "WHERE DATE(l.CreatedAt) BETWEEN ? AND ? ORDER BY l.ID DESC";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setDate(1, new java.sql.Date(fechaInicio.getTime()));
@@ -561,8 +624,9 @@ public class LoanDao extends LoanDetailsDao {
     private int insertNewLoan(LoanTb loan) throws SQLException {
         String insertSql = "INSERT INTO loan ("
                 + "EmployeeID, GuarantorId, RequestedAmount, AmountWithdrawn, Dues, PaymentDate, "
-                + "State,StateLoan, RefinanceParentID, CreatedBy, CreatedAt, ModifiedAt, ModifiedBy, Type"
-                + ") VALUES (?, ?, ?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "State, StateLoan, RefinanceParentID, CreatedBy, CreatedAt, ModifiedAt, ModifiedBy, Type, PaymentResponsibility, "
+                + "requested_amount"
+                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
             setInsertParameters(stmt, loan);
@@ -649,8 +713,21 @@ public class LoanDao extends LoanDetailsDao {
 
         stmt.setString(1, loan.getEmployeeId());
         stmt.setString(2, loan.getGuarantorIds() == null ? null : loan.getGuarantorIds());
-        stmt.setDouble(3, loan.getRequestedAmount());
-        stmt.setDouble(4, loan.getAmountWithdrawn());
+
+        // Manejar RequestedAmount - usar 0.0 si es null
+        if (loan.getRequestedAmount() != null) {
+            stmt.setDouble(3, loan.getRequestedAmount());
+        } else {
+            stmt.setDouble(3, 0.0);
+        }
+
+        // Manejar AmountWithdrawn - usar 0.0 si es null
+        if (loan.getAmountWithdrawn() != null) {
+            stmt.setDouble(4, loan.getAmountWithdrawn());
+        } else {
+            stmt.setDouble(4, 0.0);
+        }
+
         stmt.setInt(5, loan.getDues());
         stmt.setDate(6, Date.valueOf(loan.getPaymentDate()));
         stmt.setString(7, loan.getState());
@@ -661,6 +738,13 @@ public class LoanDao extends LoanDetailsDao {
         stmt.setTimestamp(12, loan.getModifiedAt() != null ? Timestamp.valueOf(loan.getModifiedAt()) : null);
         stmt.setObject(13, loan.getModifiedBy(), Types.INTEGER);
         stmt.setString(14, loan.getType());
+        stmt.setString(15, loan.getPaymentResponsibility() != null ? loan.getPaymentResponsibility() : "EMPLOYEE");
+        // Columna duplicada creada por Spring Boot (requested_amount en minusculas)
+        if (loan.getRequestedAmount() != null) {
+            stmt.setDouble(16, loan.getRequestedAmount());
+        } else {
+            stmt.setDouble(16, 0.0);
+        }
     }
 
     private LoanTb mapResultSetToLoan(ResultSet rs) throws SQLException {

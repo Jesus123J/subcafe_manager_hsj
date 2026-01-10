@@ -350,4 +350,38 @@ public class AbonoDao {
 
         return abonos;
     }
+
+    // Metodo para obtener los ultimos N abonos sin filtro de fecha
+    public List<AbonoTb> getLastAbonos(int limit) throws SQLException {
+        String sql = "SELECT * FROM abono ORDER BY ID DESC LIMIT ?";
+        List<AbonoTb> abonos = new ArrayList<>();
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, limit);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                abonos.add(mapResultSetToAbono(rs));
+            }
+        }
+        return abonos;
+    }
+
+    // Metodo para obtener todos los numeros de solicitud de abonos
+    public List<String> getAllSoliNums() {
+        List<String> soliNums = new ArrayList<>();
+        String sql = "SELECT SoliNum FROM abono WHERE SoliNum IS NOT NULL ORDER BY ID DESC";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                String soliNum = rs.getString("SoliNum");
+                if (soliNum != null && !soliNum.isBlank()) {
+                    soliNums.add(soliNum);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return soliNums;
+    }
 }
