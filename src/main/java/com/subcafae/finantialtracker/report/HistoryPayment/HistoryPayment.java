@@ -103,22 +103,29 @@ public class HistoryPayment {
             Map<String, String> mapAndPaymeny = new HashMap<>();
 
             for (RegistroDetailsModel registroDetailsModel : entry.getValue()) {
-                if (registroDetailsModel.getConceptLoan() != null) {
-                    mapAndPaymeny.put(registroDetailsModel.getConceptLoan().trim(),
-                            registroDetailsModel.getAmountPar().toString() + " - "
-                            + registroDetailsModel.getMontoLoan().toString());
+                // Verificar si es un préstamo (conceptLoan no es null)
+                if (registroDetailsModel.getConceptLoan() != null && !registroDetailsModel.getConceptLoan().trim().isEmpty()) {
+                    String conceptoLoan = registroDetailsModel.getConceptLoan().trim();
+                    String montoLoan = registroDetailsModel.getMontoLoan() != null
+                            ? registroDetailsModel.getMontoLoan().toString() : "0.00";
+                    String amountPar = registroDetailsModel.getAmountPar() != null
+                            ? registroDetailsModel.getAmountPar().toString() : "0.00";
 
-                    // SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd");
-                    // date.add(registroDetailsModel.getFechaVBond() + " - " + registroDetailsModel.getConceptBond());
-                    date.put(registroDetailsModel.getConceptLoan().trim(), registroDetailsModel.getFechaVLoan());
-                } else {
-                    mapAndPaymeny.put(registroDetailsModel.getConceptBond().trim(),
-                            registroDetailsModel.getAmountPar().toString() + " - "
-                            + registroDetailsModel.getMontoBond().toString());
-
-                    date.put(registroDetailsModel.getConceptBond().trim(), registroDetailsModel.getFechaVBond());
-                    ///date.add(registroDetailsModel.getFechaVBond() + " - " + registroDetailsModel.getConceptBond());
+                    mapAndPaymeny.put(conceptoLoan, amountPar + " - " + montoLoan);
+                    date.put(conceptoLoan, registroDetailsModel.getFechaVLoan());
                 }
+                // Verificar si es un bono/abono (conceptBond no es null)
+                else if (registroDetailsModel.getConceptBond() != null && !registroDetailsModel.getConceptBond().trim().isEmpty()) {
+                    String conceptoBond = registroDetailsModel.getConceptBond().trim();
+                    String montoBond = registroDetailsModel.getMontoBond() != null
+                            ? registroDetailsModel.getMontoBond().toString() : "0.00";
+                    String amountPar = registroDetailsModel.getAmountPar() != null
+                            ? registroDetailsModel.getAmountPar().toString() : "0.00";
+
+                    mapAndPaymeny.put(conceptoBond, amountPar + " - " + montoBond);
+                    date.put(conceptoBond, registroDetailsModel.getFechaVBond());
+                }
+                // Si ambos son null, omitir este registro (registro sin detalle asociado)
             }
 
             ModelPayment modePayment = new ModelPayment();

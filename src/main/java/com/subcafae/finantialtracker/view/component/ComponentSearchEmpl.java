@@ -57,17 +57,143 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
         super("GESTIÓN DE INFORMES", false, true, false);
         this.viewMain = view;
         initComponents();
-        jLabelTitle.setText(string_conditional_option);
         this.opcion_main = opcion_main;
-        // En caso marco la opcion de deudas
+        this.empleados = empleados;
+
+        // Aplicar diseño moderno
+        aplicarDisenoModerno(string_conditional_option);
+
+        // Configurar según el tipo de operación
         if (opcion_main) {
+            // Modo: Reporte de Deudas
             jComboBox2.setEnabled(false);
+            jComboBox2.setVisible(false);
+            jLabel2.setVisible(false);
             combo_box(jComboBox1, empleados, null);
-        } else {  // opcion de ver los pagos 
-//            jCom
-            this.empleados = empleados;
+        } else {
+            // Modo: Historial de Pagos - requiere seleccionar tipo de contrato primero
+            jComboBox1.setEnabled(false);
+            ((JTextField) jComboBox1.getEditor().getEditorComponent()).setText("Primero seleccione el tipo de contrato...");
         }
 
+        // Agregar atajos de teclado
+        configurarAtajosTeclado();
+    }
+
+    /**
+     * Aplica un diseño moderno al componente
+     */
+    private void aplicarDisenoModerno(String titulo) {
+        // Configurar el panel principal
+        getContentPane().setBackground(new java.awt.Color(250, 250, 252));
+
+        // Configurar título con icono y estilo
+        String iconoTitulo = opcion_main ? "📊" : "📋";
+        String descripcion = opcion_main
+            ? "Generar reporte de deudas pendientes del empleado"
+            : "Ver historial completo de pagos realizados";
+
+        jLabelTitle.setText("<html><div style='text-align: center;'>" +
+            "<span style='font-size: 16px;'>" + iconoTitulo + "</span><br>" +
+            "<span style='font-size: 14px; font-weight: bold; color: #2c3e50;'>" + titulo + "</span><br>" +
+            "<span style='font-size: 10px; color: #7f8c8d;'>" + descripcion + "</span>" +
+            "</div></html>");
+        jLabelTitle.setOpaque(true);
+        jLabelTitle.setBackground(new java.awt.Color(236, 240, 241));
+        jLabelTitle.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(52, 152, 219)),
+            javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
+        // Estilo para el combo de tipo de contrato
+        jLabel2.setText("<html><span style='color: #34495e;'>Tipo de Contrato:</span></html>");
+        jLabel2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+
+        jComboBox2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        jComboBox2.setBackground(java.awt.Color.WHITE);
+        jComboBox2.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(189, 195, 199), 1),
+            javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+
+        // Estilo para el combo de búsqueda de empleado
+        jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>" +
+            "<span style='font-size: 9px; color: #95a5a6;'>(Escriba DNI o nombre para buscar)</span></html>");
+        jLabel3.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+
+        jComboBox1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        jComboBox1.setBackground(java.awt.Color.WHITE);
+
+        // Estilo para los botones
+        estilizarBoton(jButton1, new java.awt.Color(46, 204, 113), "✓ GENERAR INFORME");
+        estilizarBoton(jButton2, new java.awt.Color(231, 76, 60), "✕ LIMPIAR");
+
+        // Ajustar tamaño del frame
+        setPreferredSize(new java.awt.Dimension(550, 320));
+        pack();
+    }
+
+    /**
+     * Aplica estilo moderno a un botón
+     */
+    private void estilizarBoton(javax.swing.JButton boton, java.awt.Color colorFondo, String texto) {
+        boton.setText(texto);
+        boton.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        boton.setBackground(colorFondo);
+        boton.setForeground(java.awt.Color.WHITE);
+        boton.setFocusPainted(false);
+        boton.setBorderPainted(false);
+        boton.setOpaque(true);
+        boton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+        // Efecto hover
+        boton.addMouseListener(new java.awt.event.MouseAdapter() {
+            java.awt.Color colorOriginal = colorFondo;
+
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                boton.setBackground(colorOriginal.darker());
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                boton.setBackground(colorOriginal);
+            }
+        });
+    }
+
+    /**
+     * Configura atajos de teclado para el componente
+     */
+    private void configurarAtajosTeclado() {
+        // ESC para cerrar
+        getRootPane().registerKeyboardAction(
+            e -> dispose(),
+            javax.swing.KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
+            javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
+
+        // ENTER para generar informe (cuando hay empleado seleccionado)
+        getRootPane().registerKeyboardAction(
+            e -> {
+                if (!block && empleadoSeleccionado != null) {
+                    jButton1.doClick();
+                }
+            },
+            javax.swing.KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, java.awt.event.InputEvent.CTRL_DOWN_MASK),
+            javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
+
+        // F5 para limpiar/deseleccionar
+        getRootPane().registerKeyboardAction(
+            e -> jButton2.doClick(),
+            javax.swing.KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0),
+            javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
+
+        // Agregar tooltips con atajos
+        jButton1.setToolTipText("Generar el informe del empleado seleccionado (Ctrl+Enter)");
+        jButton2.setToolTipText("Limpiar selección y buscar otro empleado (F5)");
     }
 
     private void metodoPagos() {
@@ -98,10 +224,16 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
     private void combo_box(JComboBox<String> jComboBox1, List<EmployeeTb> empleados, String filtroStatus) {
         jComboBox1.setEditable(true);
         jComboBox1.setSelectedItem(null);
+        jComboBox1.setEnabled(true);
 
         // Editor de texto
         JTextField editor = (JTextField) jComboBox1.getEditor().getEditorComponent();
         editor.setText("");
+        editor.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+
+        // Placeholder inicial
+        editor.setText("");
+        editor.setForeground(java.awt.Color.GRAY);
 
         // Aplicar filtro CAS/NOMBRADO si corresponde
         List<EmployeeTb> listaFiltrada = (filtroStatus != null && !filtroStatus.isEmpty())
@@ -110,15 +242,24 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
                         .collect(Collectors.toList())
                 : empleados;
 
+        // Mostrar cantidad de empleados disponibles
+        int totalEmpleados = listaFiltrada.size();
+        jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>" +
+            "<span style='font-size: 9px; color: #95a5a6;'>(" + totalEmpleados + " empleados disponibles - Escriba DNI o nombre)</span></html>");
+
         // Listener de teclado
         editor.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
                 String texto = editor.getText().trim().toLowerCase();
+                editor.setForeground(java.awt.Color.BLACK);
 
                 if (texto.isEmpty()) {
                     jComboBox1.hidePopup();
                     jComboBox1.setModel(new DefaultComboBoxModel<>());
+                    // Actualizar label
+                    jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>" +
+                        "<span style='font-size: 9px; color: #95a5a6;'>(" + totalEmpleados + " empleados disponibles)</span></html>");
                     return;
                 }
 
@@ -135,6 +276,11 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
                 editor.setText(texto);
                 editor.setCaretPosition(editor.getText().length());
 
+                // Mostrar cantidad de resultados encontrados
+                jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>" +
+                    "<span style='font-size: 9px; color: " + (filtrados.isEmpty() ? "#e74c3c" : "#27ae60") + ";'>" +
+                    "(" + filtrados.size() + " resultado" + (filtrados.size() != 1 ? "s" : "") + " encontrado" + (filtrados.size() != 1 ? "s" : "") + ")</span></html>");
+
                 if (!filtrados.isEmpty()) {
                     jComboBox1.showPopup();
                 } else {
@@ -143,13 +289,7 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
 
                 // Si presiona ENTER y solo hay un resultado → selecciona ese
                 if (e.getKeyCode() == KeyEvent.VK_ENTER && filtrados.size() == 1) {
-                    EmployeeTb emp = filtrados.get(0);
-                    empleadoSeleccionado = emp;
-
-                    editor.setText(emp.getNationalId() + " - " + emp.getFullName());
-                    block = false;
-                    jComboBox1.setEnabled(false);
-                    jComboBox1.hidePopup();
+                    seleccionarEmpleado(filtrados.get(0), editor, jComboBox1);
                 }
             }
         });
@@ -163,18 +303,37 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
                     for (int i = 0; i < listaFiltrada.size(); i++) {
                         String formato = listaFiltrada.get(i).getNationalId() + " - " + listaFiltrada.get(i).getFullName();
                         if (formato.equals(seleccionado)) {
-                            empleadoSeleccionado = listaFiltrada.get(i);
+                            seleccionarEmpleado(listaFiltrada.get(i), editor, jComboBox1);
                             break;
                         }
                     }
-
-                    editor.setText(seleccionado);
-                    block = false;
-                    jComboBox1.setEnabled(false);
-                    jComboBox1.hidePopup();
                 }
             }
         });
+    }
+
+    /**
+     * Selecciona un empleado y actualiza la UI con feedback visual
+     */
+    private void seleccionarEmpleado(EmployeeTb emp, JTextField editor, JComboBox<String> combo) {
+        empleadoSeleccionado = emp;
+        block = false;
+
+        // Actualizar el texto del editor con formato
+        editor.setText(emp.getNationalId() + " - " + emp.getFullName());
+        editor.setForeground(new java.awt.Color(39, 174, 96)); // Verde
+        editor.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+
+        // Deshabilitar el combo
+        combo.setEnabled(false);
+        combo.hidePopup();
+
+        // Actualizar label con confirmación
+        jLabel3.setText("<html><span style='color: #27ae60; font-weight: bold;'>✓ Empleado Seleccionado:</span><br>" +
+            "<span style='font-size: 9px; color: #2c3e50;'>" + emp.getEmploymentStatus() + "</span></html>");
+
+        // Enfocar el botón de generar informe
+        jButton1.requestFocus();
     }
 
     /**
@@ -450,6 +609,27 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
         empleadoSeleccionado = null;
         block = true;
         jComboBox1.setEnabled(true);
+
+        // Restablecer estilos visuales
+        JTextField editor = (JTextField) jComboBox1.getEditor().getEditorComponent();
+        editor.setText("");
+        editor.setForeground(java.awt.Color.GRAY);
+        editor.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>());
+
+        // Restablecer label
+        int totalEmpleados = empleados.size();
+        if (!opcion_main && jComboBox2.getSelectedItem() != null) {
+            String filtro = jComboBox2.getSelectedItem().toString();
+            totalEmpleados = (int) empleados.stream()
+                .filter(emp -> emp.getEmploymentStatus().equalsIgnoreCase(filtro))
+                .count();
+        }
+        jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>" +
+            "<span style='font-size: 9px; color: #95a5a6;'>(" + totalEmpleados + " empleados disponibles - Escriba DNI o nombre)</span></html>");
+
+        // Enfocar el combo de búsqueda
+        jComboBox1.requestFocus();
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jComboBox2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox2ActionPerformed

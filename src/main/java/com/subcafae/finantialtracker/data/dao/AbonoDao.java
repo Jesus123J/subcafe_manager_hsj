@@ -215,23 +215,45 @@ public class AbonoDao {
         return abonos;
     }
 
+    /**
+     * Obtiene la lista de abonos por concepto y código de empleado.
+     * @param idConcept ID del concepto de servicio
+     * @param codeEm Código de tipo de empleado (ej: "2028" para CAS, "2154" para Nombrado)
+     * @param start Fecha de inicio para filtrar (opcional, puede ser null para traer todos)
+     * @return Lista de abonos que coinciden con los criterios
+     */
     public List<AbonoTb> getListAbonoTByConcepAndCodeEm(Integer idConcept, String codeEm, Date start) throws SQLException {
-        System.out.println("Fecha -> " + start);
-        String sql = "SELECT ab.* FROM financialtracker1.abono ab "
-                + "LEFT JOIN financialtracker1.employees em ON em.employee_id = ab.Employee_id "
-                + "WHERE ab.service_concept_id = ? "
-                + "AND em.employment_status_code = ? "
-                + "AND YEAR(ab.CreatedAt) = YEAR(?) "
-                + "AND MONTH(ab.CreatedAt) = MONTH(?) "
-                + "ORDER BY ab.CreatedAt ASC";
-
         List<AbonoTb> abonos = new ArrayList<>();
-        PreparedStatement stmt = connection.prepareStatement(sql);
+        String sql;
+        PreparedStatement stmt;
 
-        stmt.setInt(1, idConcept);
-        stmt.setString(2, codeEm);
-        stmt.setDate(3, start); // Aquí pasas el mes y año de inicio
-        stmt.setDate(4, start); // Aquí el mes y año de fin
+        if (start != null) {
+            // Con filtro de fecha: filtra por año y mes de creación
+            sql = "SELECT ab.* FROM financialtracker1.abono ab "
+                    + "LEFT JOIN financialtracker1.employees em ON em.employee_id = ab.Employee_id "
+                    + "WHERE ab.service_concept_id = ? "
+                    + "AND em.employment_status_code = ? "
+                    + "AND YEAR(ab.CreatedAt) = YEAR(?) "
+                    + "AND MONTH(ab.CreatedAt) = MONTH(?) "
+                    + "ORDER BY ab.CreatedAt ASC";
+
+            stmt = connection.prepareStatement(sql);
+            stmt.setInt(1, idConcept);
+            stmt.setString(2, codeEm);
+            stmt.setDate(3, start);
+            stmt.setDate(4, start);
+        } else {
+            // Sin filtro de fecha: trae todos los abonos del concepto y tipo de empleado
+            sql = "SELECT ab.* FROM financialtracker1.abono ab "
+                    + "LEFT JOIN financialtracker1.employees em ON em.employee_id = ab.Employee_id "
+                    + "WHERE ab.service_concept_id = ? "
+                    + "AND em.employment_status_code = ? "
+                    + "ORDER BY ab.CreatedAt ASC";
+
+            stmt = connection.prepareStatement(sql);
+            stmt.setInt(1, idConcept);
+            stmt.setString(2, codeEm);
+        }
 
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {

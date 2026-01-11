@@ -62,7 +62,6 @@ public class ReporteAbono {
     ServiceConceptDao serviceConceptDAO = new ServiceConceptDao();
     AbonoDao abonoDAO = new AbonoDao();
     EmployeeDao employeeDao = new EmployeeDao();
-    private Object java;
 
     public void ReporteAbono(String conceptoName) {
 
@@ -91,15 +90,22 @@ public class ReporteAbono {
             ServiceConceptTb service = serviceConceptDAO.findServiceConceptByCodigo(nameConcepto.toUpperCase());
 
             if (service == null) {
+                JOptionPane.showMessageDialog(null,
+                    "No se encontró el concepto: " + nameConcepto,
+                    "REPORTE DE ABONO",
+                    JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
+            // Paso 1: Seleccionar tipo de trabajador
             String[] contractTypeOptions = {"CAS", "Nombrado"};
 
             String contractType = (String) JOptionPane.showInputDialog(
                     null,
-                    "Selecciona el tipo de trabajador:",
-                    "Tipo de Trabajador",
+                    "<html><b>Paso 1 de 3: Seleccione el tipo de contrato</b><br><br>" +
+                    "Concepto seleccionado: <b>" + service.getDescription() + "</b><br><br>" +
+                    "Elija la modalidad de contrato para filtrar los trabajadores:</html>",
+                    "REPORTE DE ABONO - Tipo de Contrato",
                     JOptionPane.QUESTION_MESSAGE,
                     null,
                     contractTypeOptions,
@@ -109,46 +115,203 @@ public class ReporteAbono {
                 return;
             }
 
-            if (contractType.equals("CAS")) {
+            String contractCode = contractType.equals("CAS") ? "2028" : "2154";
 
-                contractType = "2028";
+            // Paso 2: Filtrar por fecha (OPCIONAL)
+            String[] fechaOptions = {"Todos los abonos", "Filtrar por fecha de creación"};
+
+            String opcionFecha = (String) JOptionPane.showInputDialog(
+                    null,
+                    "<html><b>Paso 2 de 3: Filtro por fecha (Opcional)</b><br><br>" +
+                    "Concepto: <b>" + service.getDescription() + "</b><br>" +
+                    "Tipo contrato: <b>" + contractType + "</b><br><br>" +
+                    "<b>¿Desea filtrar los abonos por fecha de creación?</b><br><br>" +
+                    "• <b>Todos los abonos:</b> Muestra todos los abonos registrados del concepto<br>" +
+                    "• <b>Filtrar por fecha:</b> Solo muestra abonos creados desde una fecha específica</html>",
+                    "REPORTE DE ABONO - Filtro de Fecha",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    fechaOptions,
+                    fechaOptions[0]
+            );
+
+            if (opcionFecha == null) {
+                return;
+            }
+
+            List<AbonoTb> listAbono;
+
+            if (opcionFecha.equals("Filtrar por fecha de creación")) {
+                // Crear panel principal con mejor diseño y tamaño adecuado
+                javax.swing.JPanel panelPrincipal = new javax.swing.JPanel();
+                panelPrincipal.setLayout(new java.awt.BorderLayout(10, 15));
+                panelPrincipal.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20));
+                panelPrincipal.setPreferredSize(new java.awt.Dimension(480, 320));
+
+                // Panel de información superior con estilo
+                javax.swing.JPanel panelInfo = new javax.swing.JPanel();
+                panelInfo.setLayout(new java.awt.BorderLayout(5, 10));
+                panelInfo.setBackground(new java.awt.Color(240, 248, 255));
+                panelInfo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    javax.swing.BorderFactory.createLineBorder(new java.awt.Color(70, 130, 180), 1),
+                    javax.swing.BorderFactory.createEmptyBorder(12, 15, 12, 15)
+                ));
+
+                javax.swing.JLabel lblTitulo = new javax.swing.JLabel(
+                    "<html><div style='text-align: center;'>" +
+                    "<span style='font-size: 13px; font-weight: bold; color: #2c3e50;'>" +
+                    "FILTRAR ABONOS POR FECHA DE CREACIÓN</span></div></html>"
+                );
+                lblTitulo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                panelInfo.add(lblTitulo, java.awt.BorderLayout.NORTH);
+
+                javax.swing.JLabel lblDescripcion = new javax.swing.JLabel(
+                    "<html><div style='margin-top: 8px; text-align: center;'>" +
+                    "<p style='font-size: 11px; color: #34495e;'>Se mostrarán los abonos del concepto:</p>" +
+                    "<p style='font-size: 12px; font-weight: bold; color: #2980b9; margin: 8px 0;'>" +
+                    "\"" + service.getDescription() + "\"</p>" +
+                    "<p style='font-size: 11px; color: #34495e;'>" +
+                    "Registrados en el <b>mes y año</b> de la fecha que seleccione.</p></div></html>"
+                );
+                lblDescripcion.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                panelInfo.add(lblDescripcion, java.awt.BorderLayout.CENTER);
+
+                panelPrincipal.add(panelInfo, java.awt.BorderLayout.NORTH);
+
+                // Panel central con el selector de fecha
+                javax.swing.JPanel panelFecha = new javax.swing.JPanel();
+                panelFecha.setLayout(new java.awt.GridBagLayout());
+                panelFecha.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    javax.swing.BorderFactory.createTitledBorder(
+                        javax.swing.BorderFactory.createEtchedBorder(),
+                        " Seleccione la Fecha ",
+                        javax.swing.border.TitledBorder.CENTER,
+                        javax.swing.border.TitledBorder.TOP,
+                        new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12),
+                        new java.awt.Color(52, 73, 94)
+                    ),
+                    javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)
+                ));
+
+                java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+                gbc.insets = new java.awt.Insets(8, 10, 8, 10);
+                gbc.anchor = java.awt.GridBagConstraints.CENTER;
+
+                // Etiqueta para el campo de fecha
+                javax.swing.JLabel lblFecha = new javax.swing.JLabel("Fecha de creación:");
+                lblFecha.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+                gbc.gridx = 0;
+                gbc.gridy = 0;
+                panelFecha.add(lblFecha, gbc);
+
+                // Selector de fecha con mejor tamaño
+                com.toedter.calendar.JDateChooser dateChooser = new com.toedter.calendar.JDateChooser();
+                dateChooser.setDateFormatString("dd / MM / yyyy");
+                dateChooser.setPreferredSize(new java.awt.Dimension(180, 38));
+                dateChooser.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+                ((JTextField) dateChooser.getDateEditor().getUiComponent()).setEditable(false);
+                ((JTextField) dateChooser.getDateEditor().getUiComponent()).setHorizontalAlignment(javax.swing.JTextField.CENTER);
+                ((JTextField) dateChooser.getDateEditor().getUiComponent()).setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+
+                gbc.gridx = 1;
+                gbc.gridy = 0;
+                panelFecha.add(dateChooser, gbc);
+
+                // Nota informativa
+                javax.swing.JLabel lblNota = new javax.swing.JLabel(
+                    "<html><div style='text-align: center; margin-top: 10px;'>" +
+                    "<p style='color: #7f8c8d; font-size: 10px;'><i>" +
+                    "Ejemplo: Si selecciona 15/03/2025, se mostrarán</i></p>" +
+                    "<p style='color: #7f8c8d; font-size: 10px;'><i>" +
+                    "todos los abonos creados en Marzo 2025</i></p></div></html>"
+                );
+                gbc.gridx = 0;
+                gbc.gridy = 1;
+                gbc.gridwidth = 2;
+                gbc.insets = new java.awt.Insets(15, 10, 5, 10);
+                panelFecha.add(lblNota, gbc);
+
+                panelPrincipal.add(panelFecha, java.awt.BorderLayout.CENTER);
+
+                // Mostrar diálogo con tamaño adecuado
+                int result = JOptionPane.showConfirmDialog(
+                    null,
+                    panelPrincipal,
+                    "REPORTE DE ABONO - Paso 2: Seleccionar Fecha",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+                );
+
+                if (result != JOptionPane.OK_OPTION) {
+                    return;
+                }
+
+                if (dateChooser.getDate() == null) {
+                    JOptionPane.showMessageDialog(null,
+                        "<html><div style='text-align: center;'>" +
+                        "<p><b>Debe seleccionar una fecha para continuar.</b></p><br>" +
+                        "<p>Si no desea filtrar por fecha, seleccione</p>" +
+                        "<p><b>'Todos los abonos'</b> en el paso anterior.</p></div></html>",
+                        "REPORTE DE ABONO",
+                        JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                listAbono = abonoDAO.getListAbonoTByConcepAndCodeEm(service.getId(), contractCode,
+                    new java.sql.Date(dateChooser.getDate().getTime()));
             } else {
-                contractType = "2154";
+                // Obtener todos los abonos sin filtro de fecha
+                listAbono = abonoDAO.getListAbonoTByConcepAndCodeEm(service.getId(), contractCode, null);
             }
 
-            System.out.println("Service ");
-
-            PaneComparedTime paneComparedTime = new PaneComparedTime();
-
-            ((JTextField) paneComparedTime.dcDateStart.getDateEditor().getUiComponent()).setEditable(false);
-            if (JOptionPane.showConfirmDialog(null, paneComparedTime, "Time", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE) != JOptionPane.OK_OPTION) {
+            if (listAbono == null || listAbono.isEmpty()) {
+                JOptionPane.showMessageDialog(null,
+                    "<html>No se encontraron abonos con los siguientes criterios:<br><br>" +
+                    "• Concepto: <b>" + service.getDescription() + "</b><br>" +
+                    "• Tipo de contrato: <b>" + contractType + "</b><br><br>" +
+                    "Verifique que existan abonos registrados con estos filtros.</html>",
+                    "REPORTE DE ABONO",
+                    JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
-            if (paneComparedTime.dcDateStart.getDate() == null) {
-                JOptionPane.showMessageDialog(null, "inserte una fecha en los dos intervalos");
+            // Paso 3: Opciones de visualización
+            String[] opcionesVisualizacion = {
+                "Mostrar solo el mes actual",
+                "Mostrar todo el historial del año"
+            };
+
+            String opcionVista = (String) JOptionPane.showInputDialog(
+                    null,
+                    "<html><b>Paso 3 de 3: Opciones de visualización</b><br><br>" +
+                    "Concepto: <b>" + service.getDescription() + "</b><br>" +
+                    "Tipo contrato: <b>" + contractType + "</b><br>" +
+                    "Registros encontrados: <b>" + listAbono.size() + "</b><br><br>" +
+                    "<b>¿Cómo desea visualizar los pagos en el reporte?</b><br><br>" +
+                    "• <b>Solo mes actual:</b> Resalta únicamente los pagos del mes en curso<br>" +
+                    "• <b>Todo el historial:</b> Muestra los pagos de todos los meses del año</html>",
+                    "REPORTE DE ABONO - Visualización",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    opcionesVisualizacion,
+                    opcionesVisualizacion[1]
+            );
+
+            if (opcionVista == null) {
                 return;
             }
 
-            List<AbonoTb> listAbono = abonoDAO.getListAbonoTByConcepAndCodeEm(service.getId(), contractType, new java.sql.Date(paneComparedTime.dcDateStart.getDate().getTime()));
+            boolean statusMonth = opcionVista.equals("Mostrar solo el mes actual");
 
-            if (listAbono.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "No se encontro ningun bono a este concepto a este tipo contrato " + contractType, "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-
-            int statusMo = JOptionPane.showConfirmDialog(null, "Mostrar solo el mes actual ? ", "", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-            boolean statusMonth = false;
-
-            if (statusMo == JOptionPane.YES_OPTION) {
-                statusMonth = true;
-            }
-
-            saveDocument(contractType, listAbono, statusMonth, service.getDescription(), LocalDate.now());
+            saveDocument(contractCode, listAbono, statusMonth, service.getDescription(), LocalDate.now());
 
         } catch (Exception e) {
             System.out.println("Error -> " + e.getMessage());
-            JOptionPane.showMessageDialog(null, "Ocurrio un Problema", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null,
+                "Ocurrió un problema al generar el reporte:\n" + e.getMessage(),
+                "REPORTE DE ABONO - Error",
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 

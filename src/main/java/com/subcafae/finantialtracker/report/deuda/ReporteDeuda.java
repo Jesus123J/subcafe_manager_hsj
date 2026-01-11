@@ -1,24 +1,25 @@
 package com.subcafae.finantialtracker.report.deuda;
 
-import com.itextpdf.kernel.colors.DeviceRgb;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.Cell;
-import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.properties.TextAlignment;
-import com.itextpdf.layout.properties.UnitValue;
 import com.subcafae.finantialtracker.data.entity.AbonoTb;
 import com.subcafae.finantialtracker.data.entity.LoanTb;
-import java.awt.Desktop;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.JFileChooser;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.view.JasperViewer;
 
 public class ReporteDeuda {
 
@@ -89,209 +90,157 @@ public class ReporteDeuda {
     ) throws SQLException {
 
         try {
+            // Parámetros para el reporte
+            Map<String, Object> parametros = new HashMap<>();
+            parametros.put("name_lastname_var", nameEmployee);
+            parametros.put("dni_var", dni);
 
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Guardar reporte de Deuda");
-            fileChooser.setSelectedFile(new File("reporte_deuda.pdf"));
+            // Lista principal de datos para el reporte
+            List<Map<String, Object>> dataList = new ArrayList<>();
 
-            int userSelection = fileChooser.showSaveDialog(null);
+            // Procesar sección de abonos
+            procesarSeccionAbonos(dataList, lisComAbono);
 
-            if (userSelection != JFileChooser.APPROVE_OPTION) {
-                System.out.println("Operación cancelada.");
+            // Procesar sección de préstamos
+            procesarSeccionPrestamos(dataList, listComLoan);
+
+            if (dataList.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "No se encontraron deudas para este empleado.");
                 return;
             }
 
-            PdfWriter writer = new PdfWriter(fileChooser.getSelectedFile().getAbsolutePath());
+            // Cargar y compilar el reporte
+            InputStream reporteStream = getClass().getResourceAsStream("/reports/report_history_debt.jrxml");
 
-            PdfDocument pdfDoc = new PdfDocument(writer);
+            JasperReport jasperReport = JasperCompileManager.compileReport(reporteStream);
 
-            try (Document document = new Document(pdfDoc)) {
-                // Título
-                document.add(new Paragraph("REPORTE DE DEUDA - SUBCAFAE HSJ")
-                        .setBold()
-                        .setFontSize(14)
-                        .setTextAlignment(TextAlignment.CENTER));
+            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(dataList);
 
-                // Detalles del empleado
-                document.add(new Paragraph("DNI : " + dni));
-                document.add(new Paragraph("Apellidos y Nombres : " + nameEmployee));
+            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parametros, dataSource);
 
-                mostrarSeccionAbonos(document, lisComAbono);
+            // Crear visor
+            JasperViewer jasperViewer = new JasperViewer(jasperPrint, false);
 
-                mostrarSeccionPrestamos(document, listComLoan);
+            // Configurar ventana
+            JFrame frame = (JFrame) jasperViewer.getContentPane().getParent().getParent().getParent();
+            frame.setTitle("REPORTE DE DEUDA");
 
-//                if (!hasAbono && !hasLoan) {
-//                    document.add(new Paragraph("No se encontraron deudas de abonos ni préstamos para este empleado. Recuerda aceptar el prestamo, si has generado uno.")
-//                            .setTextAlignment(TextAlignment.CENTER));
-//                }
-            }
+            ImageIcon icon = new ImageIcon(getClass().getResource("/IconGeneral/logoIcon.png"));
+            frame.setIconImage(icon.getImage());
 
-            abrirArchivo(fileChooser.getSelectedFile().getAbsolutePath());
+            jasperViewer.setVisible(true);
+            frame.toFront();
+            frame.requestFocus();
+            frame.setAlwaysOnTop(true);
+            frame.setAlwaysOnTop(false);
 
-        } catch (FileNotFoundException ex) {
-
-            //  Logger.getLogger(ReporteDeuda.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (JRException ex) {
+            Logger.getLogger(ReporteDeuda.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(null, "Error al generar el reporte: " + ex.getMessage());
         }
     }
-// Método para mostrar abonos
 
-    private void mostrarSeccionAbonos(Document document, Map<AbonoTb, List<ReporteDeuda>> lisComAbono) throws SQLException {
-
+    // Método para procesar abonos
+    private void procesarSeccionAbonos(List<Map<String, Object>> dataList, Map<AbonoTb, List<ReporteDeuda>> lisComAbono) {
         if (lisComAbono.isEmpty()) {
             return;
         }
 
-        document.add(new Paragraph("SECCIÓN DE ABONOS").setBold().setFontSize(12));
-
         for (Map.Entry<AbonoTb, List<ReporteDeuda>> entry : lisComAbono.entrySet()) {
+            Map<String, Object> fila = new HashMap<>();
 
             double totalAbonos = 0.0;
-
-            document.add(new Paragraph("CONCEPTO : " + entry.getValue().get(0).getConceptBono())
-                    .setBold()
-                    .setFontColor(new DeviceRgb(255, 255, 255))
-                    .setBackgroundColor(new DeviceRgb(0, 0, 0))
-                    .setTextAlignment(TextAlignment.CENTER));
-
-            // Detalles del abono
-            document.add(new Paragraph("Num. Solicitud : " + entry.getValue().get(0).getNumSoli()));
-
-            document.add(new Paragraph("Num. Cuotas Pendientes : " + entry.getValue().size()));
-
-            document.add(new Paragraph("Vencimiento : " + entry.getValue().get(entry.getValue().size() - 1).getFechaVencimiento()))
-                    .setTextAlignment(TextAlignment.RIGHT);
-
-            // Tabla de detalles del abono
-            Table table = new Table(UnitValue.createPercentArray(new float[]{4, 4, 4}));
-
-            table.setWidth(UnitValue.createPercentValue(100));
-            table.addHeaderCell(new Cell().add(new Paragraph("Detalle de Cuota").setBold().setTextAlignment(TextAlignment.CENTER)));
-            table.addHeaderCell(new Cell().add(new Paragraph("Vencimiento").setBold().setTextAlignment(TextAlignment.CENTER)));
-            table.addHeaderCell(new Cell().add(new Paragraph("Monto").setBold().setTextAlignment(TextAlignment.CENTER)));
+            List<Map<String, Object>> detalles = new ArrayList<>();
 
             for (int i = 0; i < entry.getValue().size(); i++) {
+                Map<String, Object> detalle = new HashMap<>();
+                detalle.put("details_var", entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size());
+                detalle.put("vencimiento_var", entry.getValue().get(i).getFechaVencimiento());
+                detalle.put("amount_var", entry.getValue().get(i).getMonto());
+                detalles.add(detalle);
 
-                table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size())));
-                table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getFechaVencimiento())));
-                table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getMonto())));
-
-                totalAbonos += Double.parseDouble(entry.getValue().get(i).getMonto());  // Acumulando la deuda
-
+                totalAbonos += Double.parseDouble(entry.getValue().get(i).getMonto());
             }
 
-            document.add(table);
+            fila.put("section_var", "SECCIÓN DE ABONOS");
+            fila.put("concepto_var", entry.getValue().get(0).getConceptBono());
+            fila.put("num_solicitud_var", entry.getValue().get(0).getNumSoli());
+            fila.put("num_cuotas_pendiente_var", String.valueOf(entry.getValue().size()));
+            fila.put("vencimiento_information_var", entry.getValue().get(entry.getValue().size() - 1).getFechaVencimiento());
+            fila.put("total_var", String.format("%.2f", totalAbonos));
+            fila.put("detalles", detalles);
 
-            // Mostrar el total de deuda
-            document.add(new Paragraph("TOTAL DE DEUDA DE ABONOS: " + String.format("%.2f", totalAbonos))
-                    .setTextAlignment(TextAlignment.RIGHT)
-                    .setBold());
-
+            dataList.add(fila);
         }
-
     }
 
-// Método para mostrar préstamos
-    private void mostrarSeccionPrestamos(Document document, Map<LoanTb, List<ReporteDeuda>> listComLoan) {
-
+    // Método para procesar préstamos
+    private void procesarSeccionPrestamos(List<Map<String, Object>> dataList, Map<LoanTb, List<ReporteDeuda>> listComLoan) {
         if (listComLoan.isEmpty()) {
             return;
         }
-        // String requestNumberLoan, double debtLoan, int duesLoan, String fvencimientoLoan, String[][] prestamoData, String[][] fondoData
-
-        document.add(new Paragraph("SECCIÓN DE PRÉSTAMOS").setBold().setFontSize(12));
 
         for (Map.Entry<LoanTb, List<ReporteDeuda>> entry : listComLoan.entrySet()) {
-
-            // Detalles del préstamo
-            document.add(new Paragraph("CONCEPTO : PRÉSTAMO " + entry.getValue().get(0).getNumSoli())
-                    .setBold()
-                    .setFontColor(new DeviceRgb(255, 255, 255))
-                    .setBackgroundColor(new DeviceRgb(0, 0, 0))
-                    .setTextAlignment(TextAlignment.CENTER));
-
-            document.add(new Paragraph("Num. Solicitud : " + entry.getValue().get(0).getNumSoli()));
-            document.add(new Paragraph("Num. Cuotas Pendientes : " + entry.getValue().size()));
-            document.add(new Paragraph("Vencimiento : " + entry.getValue().get(entry.getValue().size() - 1).getFechaVencimiento()).setTextAlignment(TextAlignment.RIGHT));
-
-            // Tabla de detalles del préstamo
-            Table table = new Table(UnitValue.createPercentArray(new float[]{4, 4, 4}));
-
-            table.setWidth(UnitValue.createPercentValue(100));
-            table.addHeaderCell(new Cell().add(new Paragraph("Detalle de Cuota").setBold().setTextAlignment(TextAlignment.CENTER)));
-            table.addHeaderCell(new Cell().add(new Paragraph("Vencimiento").setBold().setTextAlignment(TextAlignment.CENTER)));
-
-            table.addHeaderCell(new Cell().add(new Paragraph("Monto").setBold().setTextAlignment(TextAlignment.CENTER)));
+            // Préstamo principal
+            Map<String, Object> filaPrestamo = new HashMap<>();
 
             double totalPrestamo = 0.0;
+            double totalFondo = 0.0;
+            List<Map<String, Object>> detallesPrestamo = new ArrayList<>();
+            List<Map<String, Object>> detallesFondo = new ArrayList<>();
 
             for (int i = 0; i < entry.getValue().size(); i++) {
+                ReporteDeuda item = entry.getValue().get(i);
 
-                table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size())).setTextAlignment(TextAlignment.CENTER));
-                table.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getFechaVencimiento())).setTextAlignment(TextAlignment.CENTER));
-
-                // Verificar si fondo es null antes de restar
-                double montoMenosFondo = Double.parseDouble(entry.getValue().get(i).getMonto());
-                if (entry.getValue().get(i).getFondo() != null) {
-                    montoMenosFondo -= Double.parseDouble(entry.getValue().get(i).getFondo());
+                // Detalle del préstamo
+                Map<String, Object> detallePrestamo = new HashMap<>();
+                double montoMenosFondo = Double.parseDouble(item.getMonto());
+                if (item.getFondo() != null) {
+                    montoMenosFondo -= Double.parseDouble(item.getFondo());
                 }
-                table.addCell(new Cell().add(new Paragraph(String.valueOf(montoMenosFondo))));
+                detallePrestamo.put("details_var", item.getDetalleCouta() + "/" + entry.getValue().size());
+                detallePrestamo.put("vencimiento_var", item.getFechaVencimiento());
+                detallePrestamo.put("amount_var", String.format("%.2f", montoMenosFondo));
+                detallesPrestamo.add(detallePrestamo);
 
-                totalPrestamo += Double.parseDouble(entry.getValue().get(i).getMonto());
-            }
+                totalPrestamo += Double.parseDouble(item.getMonto());
 
-            document.add(table);
+                // Detalle del fondo intangible
+                if (item.getFondo() != null) {
+                    Map<String, Object> detalleFondo = new HashMap<>();
+                    detalleFondo.put("details_var", item.getDetalleCouta() + "/" + entry.getValue().size());
+                    detalleFondo.put("vencimiento_var", item.getFechaVencimiento());
+                    detalleFondo.put("amount_var", item.getFondo());
+                    detallesFondo.add(detalleFondo);
 
-            // Mostrar el total de deuda del préstamo
-            document.add(new Paragraph("TOTAL DE DEUDA DEL PRÉSTAMO: " + String.format("%.2f", totalPrestamo))
-                    .setTextAlignment(TextAlignment.RIGHT)
-                    .setBold());
-
-            // Detalles del fondo intangible
-            document.add(new Paragraph("CONCEPTO : Fondo Intangible ")
-                    .setBold()
-                    .setFontColor(new DeviceRgb(255, 255, 255))
-                    .setBackgroundColor(new DeviceRgb(0, 0, 0))
-                    .setTextAlignment(TextAlignment.CENTER));
-            document.add(new Paragraph("Num. Solicitud : " + entry.getValue().get(0).getNumSoli()));
-            document.add(new Paragraph("Num. Cuotas Pendientes : " + entry.getValue().size()));
-            document.add(new Paragraph("Vencimiento : " + entry.getValue().get(entry.getValue().size() - 1).getFechaVencimiento()).setTextAlignment(TextAlignment.RIGHT));
-
-            // Tabla de detalles del fondo intangible
-            Table table2 = new Table(UnitValue.createPercentArray(new float[]{4, 4, 4}));
-            table2.setWidth(UnitValue.createPercentValue(100));
-            table2.addHeaderCell(new Cell().add(new Paragraph("Detalle de Cuota").setBold().setTextAlignment(TextAlignment.CENTER)));
-            table2.addHeaderCell(new Cell().add(new Paragraph("Vencimiento").setBold().setTextAlignment(TextAlignment.CENTER)));
-            table2.addHeaderCell(new Cell().add(new Paragraph("Monto").setBold().setTextAlignment(TextAlignment.CENTER)));
-
-            double totalFondoIntangible = 0.0;
-
-            for (int i = 0; i < entry.getValue().size(); i++) {
-                if (entry.getValue().get(i).getFondo() != null) {
-                    table2.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getDetalleCouta() + "/" + entry.getValue().size())).setTextAlignment(TextAlignment.CENTER));
-                    table2.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getFechaVencimiento())).setTextAlignment(TextAlignment.CENTER));
-                    table2.addCell(new Cell().add(new Paragraph(entry.getValue().get(i).getFondo())).setTextAlignment(TextAlignment.CENTER));
-                    totalFondoIntangible += Double.parseDouble(entry.getValue().get(i).getFondo());
+                    totalFondo += Double.parseDouble(item.getFondo());
                 }
             }
 
-            document.add(table2);
+            // Agregar fila del préstamo
+            filaPrestamo.put("section_var", "SECCIÓN DE PRÉSTAMOS");
+            filaPrestamo.put("concepto_var", "PRÉSTAMO " + entry.getValue().get(0).getNumSoli());
+            filaPrestamo.put("num_solicitud_var", entry.getValue().get(0).getNumSoli());
+            filaPrestamo.put("num_cuotas_pendiente_var", String.valueOf(entry.getValue().size()));
+            filaPrestamo.put("vencimiento_information_var", entry.getValue().get(entry.getValue().size() - 1).getFechaVencimiento());
+            filaPrestamo.put("total_var", String.format("%.2f", totalPrestamo));
+            filaPrestamo.put("detalles", detallesPrestamo);
 
-            // Mostrar el total de deuda del fondo intangible
-            document.add(new Paragraph("TOTAL DEL FONDO INTANGIBLE: " + String.format("%.2f", totalFondoIntangible))
-                    .setTextAlignment(TextAlignment.RIGHT)
-                    .setBold());
-        }
+            dataList.add(filaPrestamo);
 
-    }
+            // Agregar fila del fondo intangible si hay datos
+            if (!detallesFondo.isEmpty()) {
+                Map<String, Object> filaFondo = new HashMap<>();
+                filaFondo.put("section_var", "SECCIÓN DE PRÉSTAMOS");
+                filaFondo.put("concepto_var", "Fondo Intangible");
+                filaFondo.put("num_solicitud_var", entry.getValue().get(0).getNumSoli());
+                filaFondo.put("num_cuotas_pendiente_var", String.valueOf(detallesFondo.size()));
+                filaFondo.put("vencimiento_information_var", entry.getValue().get(entry.getValue().size() - 1).getFechaVencimiento());
+                filaFondo.put("total_var", String.format("%.2f", totalFondo));
+                filaFondo.put("detalles", detallesFondo);
 
-// Método para abrir archivo
-    private void abrirArchivo(String filePath) {
-        try {
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().open(new File(filePath));
+                dataList.add(filaFondo);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 }

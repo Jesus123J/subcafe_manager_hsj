@@ -796,6 +796,11 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jButtonReportBond.setBackground(new java.awt.Color(0, 153, 0));
         jButtonReportBond.setForeground(new java.awt.Color(255, 255, 255));
         jButtonReportBond.setText("REPORTE DE ABONO");
+        jButtonReportBond.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonReportBondActionPerformed(evt);
+            }
+        });
 
         searchConcept.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "INSERTE EL  CODIGO DEL CONCEPTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
@@ -824,6 +829,10 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButtonReportBondActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonReportBondActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jButtonReportBondActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

@@ -8,7 +8,9 @@ import com.subcafae.finantialtracker.data.entity.RegistroTb;
 import com.subcafae.finantialtracker.report.HistoryPayment.ModelPaymentAndLoan;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.swing.JOptionPane;
 
 public class RegistroDao {
@@ -1347,29 +1349,29 @@ public class RegistroDao {
     }
 
     /**
-     * Corrige pagos duplicados en abonos (ajusta payment = monthly)
+     * Corrige pagos duplicados en abonos:
+     * 1. Ajusta payment = monthly donde hay exceso
+     * 2. Elimina registros duplicados en registerdetails (mantiene el primero)
      * @param usuario Usuario que realiza la corrección
      * @param motivo Motivo de la corrección
      * @return Cantidad de cuotas corregidas
      */
     public int corregirPagosDuplicadosAbonos(String usuario, String motivo) {
         int corregidos = 0;
-        String sqlSelect = "SELECT ad.id, a.SoliNum, ad.dues, ad.payment, ad.monthly " +
-                "FROM abonodetail ad " +
-                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
-                "WHERE ad.payment > ad.monthly " +
-                "AND ad.state = 'Pagado'";
-
-        String sqlUpdate = "UPDATE abonodetail SET payment = monthly WHERE id = ?";
-
-        String sqlHistorial = "INSERT INTO historial_correcciones " +
-                "(tipo, solicitud, cuota, pago_anterior, pago_nuevo, usuario, motivo) " +
-                "VALUES ('ABONO', ?, ?, ?, ?, ?, ?)";
 
         try {
             conn.setAutoCommit(false);
 
-            try (PreparedStatement stmtSelect = conn.prepareStatement(sqlSelect);
+            // 1. Corregir excesos de pago
+            String sqlSelectExceso = "SELECT ad.id, a.SoliNum, ad.dues, ad.payment, ad.monthly " +
+                    "FROM abonodetail ad " +
+                    "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                    "WHERE ad.payment > ad.monthly " +
+                    "AND ad.state = 'Pagado'";
+
+            String sqlUpdateExceso = "UPDATE abonodetail SET payment = monthly WHERE id = ?";
+
+            try (PreparedStatement stmtSelect = conn.prepareStatement(sqlSelectExceso);
                  ResultSet rs = stmtSelect.executeQuery()) {
 
                 while (rs.next()) {
@@ -1379,26 +1381,47 @@ public class RegistroDao {
                     double pagoAnterior = rs.getDouble("payment");
                     double pagoNuevo = rs.getDouble("monthly");
 
-                    // Actualizar el pago
-                    try (PreparedStatement stmtUpdate = conn.prepareStatement(sqlUpdate)) {
+                    try (PreparedStatement stmtUpdate = conn.prepareStatement(sqlUpdateExceso)) {
                         stmtUpdate.setLong(1, id);
                         stmtUpdate.executeUpdate();
                     }
 
-                    // Guardar en historial
-                    try (PreparedStatement stmtHist = conn.prepareStatement(sqlHistorial)) {
-                        stmtHist.setString(1, soliNum);
-                        stmtHist.setInt(2, cuota);
-                        stmtHist.setDouble(3, pagoAnterior);
-                        stmtHist.setDouble(4, pagoNuevo);
-                        stmtHist.setString(5, usuario);
-                        stmtHist.setString(6, motivo);
-                        stmtHist.executeUpdate();
-                    }
-
+                    guardarHistorialCorreccion("ABONO_EXCESO", soliNum, cuota, pagoAnterior, pagoNuevo, usuario, motivo);
                     corregidos++;
-                    System.out.println("✓ Corregido abono " + soliNum + " cuota " + cuota +
-                            ": " + pagoAnterior + " -> " + pagoNuevo);
+                    System.out.println("✓ Corregido exceso abono " + soliNum + " cuota " + cuota);
+                }
+            }
+
+            // 2. Eliminar registros duplicados en registerdetails
+            String sqlSelectDuplicados = "SELECT ad.id, a.SoliNum, ad.dues, GROUP_CONCAT(rd.id ORDER BY rd.id) as registros " +
+                    "FROM abonodetail ad " +
+                    "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                    "INNER JOIN registerdetails rd ON rd.idBondDetails = ad.id " +
+                    "GROUP BY ad.id, a.SoliNum, ad.dues " +
+                    "HAVING COUNT(rd.id) > 1";
+
+            try (PreparedStatement stmtSelect = conn.prepareStatement(sqlSelectDuplicados);
+                 ResultSet rs = stmtSelect.executeQuery()) {
+
+                while (rs.next()) {
+                    String soliNum = rs.getString("SoliNum");
+                    int cuota = rs.getInt("dues");
+                    String registrosStr = rs.getString("registros");
+
+                    String[] ids = registrosStr.split(",");
+                    if (ids.length > 1) {
+                        for (int i = 1; i < ids.length; i++) {
+                            String sqlDelete = "DELETE FROM registerdetails WHERE id = ?";
+                            try (PreparedStatement stmtDelete = conn.prepareStatement(sqlDelete)) {
+                                stmtDelete.setInt(1, Integer.parseInt(ids[i].trim()));
+                                stmtDelete.executeUpdate();
+                            }
+                        }
+                        guardarHistorialCorreccion("ABONO_REG_DUP", soliNum, cuota, ids.length, 1, usuario,
+                                motivo + " - Eliminados " + (ids.length - 1) + " registros duplicados");
+                        corregidos++;
+                        System.out.println("✓ Eliminados " + (ids.length - 1) + " registros duplicados de abono " + soliNum + " cuota " + cuota);
+                    }
                 }
             }
 
@@ -1418,5 +1441,511 @@ public class RegistroDao {
             }
         }
         return corregidos;
+    }
+
+    /**
+     * Crea la tabla historial_correcciones si no existe
+     */
+    private void crearTablaHistorialCorrecciones() {
+        try {
+            String createTable = "CREATE TABLE IF NOT EXISTS historial_correcciones (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                    "tipo VARCHAR(30), " +
+                    "solicitud VARCHAR(50), " +
+                    "cuota INT, " +
+                    "pago_anterior DECIMAL(10,2), " +
+                    "pago_nuevo DECIMAL(10,2), " +
+                    "usuario VARCHAR(100), " +
+                    "motivo TEXT, " +
+                    "fecha_correccion TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                    ")";
+            try (PreparedStatement stmt = conn.prepareStatement(createTable)) {
+                stmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            // Tabla ya existe, continuar
+        }
+    }
+
+    /**
+     * Guarda un registro en el historial de correcciones
+     */
+    private void guardarHistorialCorreccion(String tipo, String solicitud, int cuota,
+                                            double pagoAnterior, double pagoNuevo,
+                                            String usuario, String motivo) {
+        String sql = "INSERT INTO historial_correcciones " +
+                "(tipo, solicitud, cuota, pago_anterior, pago_nuevo, usuario, motivo) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, tipo);
+            stmt.setString(2, solicitud);
+            stmt.setInt(3, cuota);
+            stmt.setDouble(4, pagoAnterior);
+            stmt.setDouble(5, pagoNuevo);
+            stmt.setString(6, usuario);
+            stmt.setString(7, motivo);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error guardando historial: " + e.getMessage());
+        }
+    }
+
+    // ============================================
+    // MÉTODOS PARA REORGANIZAR PAGOS HUÉRFANOS
+    // ============================================
+
+    /**
+     * Busca registros huérfanos (sin detalles en registerdetails) por empleado
+     * @return Lista de Object[] con: empleado_id, dni, nombre, cantidad_registros_huerfanos, monto_total_huerfano
+     */
+    public List<Object[]> buscarEmpleadosConRegistrosHuerfanos() {
+        List<Object[]> empleados = new ArrayList<>();
+
+        String sql = "SELECT r.empleado_id, e.national_id, e.fullName, " +
+                "COUNT(r.id) as cantidad_huerfanos, SUM(r.amount) as monto_huerfano " +
+                "FROM registro r " +
+                "INNER JOIN employees e ON r.empleado_id = e.employee_id " +
+                "LEFT JOIN registerdetails rd ON rd.idRegistro = r.id " +
+                "WHERE rd.id IS NULL " +
+                "GROUP BY r.empleado_id, e.national_id, e.fullName " +
+                "ORDER BY e.fullName";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Object[] row = new Object[5];
+                row[0] = rs.getInt("empleado_id");
+                row[1] = rs.getString("national_id");
+                row[2] = rs.getString("fullName");
+                row[3] = rs.getInt("cantidad_huerfanos");
+                row[4] = rs.getDouble("monto_huerfano");
+                empleados.add(row);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando empleados con registros huérfanos: " + e.getMessage());
+        }
+
+        return empleados;
+    }
+
+    /**
+     * Obtiene detalles de un empleado específico para reorganizar sus pagos
+     * @param empleadoId ID del empleado
+     * @return Object[] con info del empleado y sus registros/cuotas pendientes
+     */
+    public Map<String, Object> obtenerDetalleEmpleadoParaReorganizar(int empleadoId) {
+        Map<String, Object> detalle = new HashMap<>();
+
+        // Info del empleado
+        String sqlEmpleado = "SELECT national_id, fullName FROM employees WHERE employee_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sqlEmpleado)) {
+            stmt.setInt(1, empleadoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    detalle.put("dni", rs.getString("national_id"));
+                    detalle.put("nombre", rs.getString("fullName"));
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo empleado: " + e.getMessage());
+        }
+
+        // Registros huérfanos (sin detalles)
+        List<Object[]> registrosHuerfanos = new ArrayList<>();
+        String sqlHuerfanos = "SELECT r.id, r.codigo, r.fecha_registro, r.amount " +
+                "FROM registro r " +
+                "LEFT JOIN registerdetails rd ON rd.idRegistro = r.id " +
+                "WHERE r.empleado_id = ? AND rd.id IS NULL " +
+                "ORDER BY r.fecha_registro ASC";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sqlHuerfanos)) {
+            stmt.setInt(1, empleadoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] reg = new Object[4];
+                    reg[0] = rs.getInt("id");
+                    reg[1] = rs.getString("codigo");
+                    reg[2] = rs.getTimestamp("fecha_registro");
+                    reg[3] = rs.getDouble("amount");
+                    registrosHuerfanos.add(reg);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo registros huérfanos: " + e.getMessage());
+        }
+        detalle.put("registrosHuerfanos", registrosHuerfanos);
+
+        // Cuotas de préstamos pendientes Y pagadas (ordenadas por fecha de vencimiento)
+        // Incluimos las pagadas para poder reasignar pagos que ya se hicieron
+        List<Object[]> cuotasPrestamos = new ArrayList<>();
+        String sqlPrestamos = "SELECT ld.ID, l.SoliNum, ld.Dues, l.Dues as TotalDues, " +
+                "ld.MonthlyFeeValue, ld.payment, (ld.MonthlyFeeValue - ld.payment) as pendiente, " +
+                "ld.PaymentDate, ld.State " +
+                "FROM loandetail ld " +
+                "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                "WHERE l.EmployeeID = ? " +
+                "ORDER BY ld.PaymentDate ASC, ld.Dues ASC";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sqlPrestamos)) {
+            stmt.setInt(1, empleadoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] cuota = new Object[9];
+                    cuota[0] = rs.getLong("ID");
+                    cuota[1] = rs.getString("SoliNum");
+                    cuota[2] = rs.getInt("Dues");
+                    cuota[3] = rs.getInt("TotalDues");
+                    cuota[4] = rs.getDouble("MonthlyFeeValue");
+                    cuota[5] = rs.getDouble("payment");
+                    cuota[6] = rs.getDouble("pendiente");
+                    cuota[7] = rs.getDate("PaymentDate");
+                    cuota[8] = rs.getString("State");
+                    cuotasPrestamos.add(cuota);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo cuotas de préstamos: " + e.getMessage());
+        }
+        detalle.put("cuotasPrestamos", cuotasPrestamos);
+
+        // Cuotas de abonos pendientes Y pagadas
+        List<Object[]> cuotasAbonos = new ArrayList<>();
+        String sqlAbonos = "SELECT ad.id, a.SoliNum, ad.dues, a.dues as TotalDues, " +
+                "ad.monthly, ad.payment, (ad.monthly - ad.payment) as pendiente, " +
+                "ad.paymentDate, ad.state, sc.description as concepto " +
+                "FROM abonodetail ad " +
+                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                "INNER JOIN service_concept sc ON a.service_concept_id = sc.id " +
+                "WHERE a.EmployeeID = ? " +
+                "ORDER BY ad.paymentDate ASC, ad.dues ASC";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sqlAbonos)) {
+            stmt.setInt(1, empleadoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] cuota = new Object[10];
+                    cuota[0] = rs.getLong("id");
+                    cuota[1] = rs.getString("SoliNum");
+                    cuota[2] = rs.getInt("dues");
+                    cuota[3] = rs.getInt("TotalDues");
+                    cuota[4] = rs.getDouble("monthly");
+                    cuota[5] = rs.getDouble("payment");
+                    cuota[6] = rs.getDouble("pendiente");
+                    cuota[7] = rs.getDate("paymentDate");
+                    cuota[8] = rs.getString("state");
+                    cuota[9] = rs.getString("concepto");
+                    cuotasAbonos.add(cuota);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo cuotas de abonos: " + e.getMessage());
+        }
+        detalle.put("cuotasAbonos", cuotasAbonos);
+
+        return detalle;
+    }
+
+    /**
+     * Reorganiza los pagos de un empleado: toma los registros huérfanos y los asigna
+     * a las cuotas en orden de vencimiento. Primero busca cuotas pendientes/parciales,
+     * luego cuotas pagadas sin registro en registerdetails.
+     * @param empleadoId ID del empleado
+     * @param usuario Usuario que realiza la reorganización
+     * @param motivo Motivo de la reorganización
+     * @return Cantidad de registros reorganizados
+     */
+    @SuppressWarnings("unchecked")
+    public int reorganizarPagosEmpleado(int empleadoId, String usuario, String motivo) {
+        int reorganizados = 0;
+
+        try {
+            conn.setAutoCommit(false);
+
+            Map<String, Object> detalle = obtenerDetalleEmpleadoParaReorganizar(empleadoId);
+            List<Object[]> registrosHuerfanos = (List<Object[]>) detalle.get("registrosHuerfanos");
+            List<Object[]> cuotasPrestamos = (List<Object[]>) detalle.get("cuotasPrestamos");
+            List<Object[]> cuotasAbonos = (List<Object[]>) detalle.get("cuotasAbonos");
+
+            if (registrosHuerfanos == null || registrosHuerfanos.isEmpty()) {
+                System.out.println("No hay registros huérfanos para el empleado: " + empleadoId);
+                return 0;
+            }
+
+            // Obtener cuotas de préstamos SIN registro en registerdetails (pagadas pero sin vincular)
+            List<Long> prestamosConRegistro = obtenerCuotasConRegistro("idLoanDetails");
+            List<Long> abonosConRegistro = obtenerCuotasConRegistro("idBondDetails");
+
+            System.out.println("Reorganizando " + registrosHuerfanos.size() + " registros huérfanos del empleado " + empleadoId);
+
+            // Procesar cada registro huérfano
+            for (Object[] regHuerfano : registrosHuerfanos) {
+                int registroId = (int) regHuerfano[0];
+                String codigo = (String) regHuerfano[1];
+                double montoDisponible = (double) regHuerfano[3];
+                boolean asignoAlgo = false;
+
+                System.out.println("Procesando registro huérfano: " + codigo + " con monto: " + montoDisponible);
+
+                // Primero intentar asignar a préstamos pendientes/parciales
+                for (Object[] cuotaPrestamo : cuotasPrestamos) {
+                    if (montoDisponible <= 0) break;
+
+                    long loanDetailId = (long) cuotaPrestamo[0];
+                    String soliNum = (String) cuotaPrestamo[1];
+                    int numCuota = (int) cuotaPrestamo[2];
+                    double mensual = (double) cuotaPrestamo[4];
+                    double pagado = (double) cuotaPrestamo[5];
+                    double pendiente = (double) cuotaPrestamo[6];
+                    String estado = (String) cuotaPrestamo[8];
+
+                    // Si la cuota está pendiente o parcial, asignar el pago
+                    if (pendiente > 0) {
+                        double pagoAplicar = Math.min(montoDisponible, pendiente);
+
+                        // Insertar en registerdetails
+                        String sqlInsert = "INSERT INTO registerdetails (idRegistro, idLoanDetails, amountPar) VALUES (?, ?, ?)";
+                        try (PreparedStatement stmt = conn.prepareStatement(sqlInsert)) {
+                            stmt.setInt(1, registroId);
+                            stmt.setLong(2, loanDetailId);
+                            stmt.setDouble(3, pagoAplicar);
+                            stmt.executeUpdate();
+                        }
+
+                        // Actualizar loandetail
+                        double nuevoPago = pagado + pagoAplicar;
+                        String nuevoEstado = nuevoPago >= mensual ? "Pagado" : "Parcial";
+
+                        String sqlUpdate = "UPDATE loandetail SET payment = ?, State = ? WHERE ID = ?";
+                        try (PreparedStatement stmt = conn.prepareStatement(sqlUpdate)) {
+                            stmt.setDouble(1, nuevoPago);
+                            stmt.setString(2, nuevoEstado);
+                            stmt.setLong(3, loanDetailId);
+                            stmt.executeUpdate();
+                        }
+
+                        // Actualizar valores locales
+                        cuotaPrestamo[5] = nuevoPago;
+                        cuotaPrestamo[6] = mensual - nuevoPago;
+                        cuotaPrestamo[8] = nuevoEstado;
+
+                        montoDisponible -= pagoAplicar;
+                        asignoAlgo = true;
+
+                        System.out.println("  -> Asignado S/ " + String.format("%.2f", pagoAplicar) +
+                                " a préstamo " + soliNum + " cuota " + numCuota);
+                    }
+                    // Si está pagada pero no tiene registro en registerdetails, vincular
+                    else if ("Pagado".equals(estado) && !prestamosConRegistro.contains(loanDetailId)) {
+                        double pagoAplicar = Math.min(montoDisponible, mensual);
+
+                        // Solo vincular si el monto del registro coincide aproximadamente
+                        if (Math.abs(pagoAplicar - mensual) < 0.02 || montoDisponible >= mensual) {
+                            String sqlInsert = "INSERT INTO registerdetails (idRegistro, idLoanDetails, amountPar) VALUES (?, ?, ?)";
+                            try (PreparedStatement stmt = conn.prepareStatement(sqlInsert)) {
+                                stmt.setInt(1, registroId);
+                                stmt.setLong(2, loanDetailId);
+                                stmt.setDouble(3, pagoAplicar);
+                                stmt.executeUpdate();
+                            }
+
+                            prestamosConRegistro.add(loanDetailId); // Marcar como vinculado
+                            montoDisponible -= pagoAplicar;
+                            asignoAlgo = true;
+
+                            System.out.println("  -> Vinculado S/ " + String.format("%.2f", pagoAplicar) +
+                                    " a préstamo pagado " + soliNum + " cuota " + numCuota);
+                        }
+                    }
+                }
+
+                // Luego asignar a abonos pendientes/parciales
+                for (Object[] cuotaAbono : cuotasAbonos) {
+                    if (montoDisponible <= 0) break;
+
+                    long abonoDetailId = (long) cuotaAbono[0];
+                    String soliNum = (String) cuotaAbono[1];
+                    int numCuota = (int) cuotaAbono[2];
+                    double mensual = (double) cuotaAbono[4];
+                    double pagado = (double) cuotaAbono[5];
+                    double pendiente = (double) cuotaAbono[6];
+                    String estado = (String) cuotaAbono[8];
+                    String concepto = (String) cuotaAbono[9];
+
+                    // Si la cuota está pendiente o parcial
+                    if (pendiente > 0) {
+                        double pagoAplicar = Math.min(montoDisponible, pendiente);
+
+                        String sqlInsert = "INSERT INTO registerdetails (idRegistro, idBondDetails, amountPar) VALUES (?, ?, ?)";
+                        try (PreparedStatement stmt = conn.prepareStatement(sqlInsert)) {
+                            stmt.setInt(1, registroId);
+                            stmt.setLong(2, abonoDetailId);
+                            stmt.setDouble(3, pagoAplicar);
+                            stmt.executeUpdate();
+                        }
+
+                        double nuevoPago = pagado + pagoAplicar;
+                        String nuevoEstado = nuevoPago >= mensual ? "Pagado" : "Parcial";
+
+                        String sqlUpdate = "UPDATE abonodetail SET payment = ?, state = ? WHERE id = ?";
+                        try (PreparedStatement stmt = conn.prepareStatement(sqlUpdate)) {
+                            stmt.setDouble(1, nuevoPago);
+                            stmt.setString(2, nuevoEstado);
+                            stmt.setLong(3, abonoDetailId);
+                            stmt.executeUpdate();
+                        }
+
+                        cuotaAbono[5] = nuevoPago;
+                        cuotaAbono[6] = mensual - nuevoPago;
+                        cuotaAbono[8] = nuevoEstado;
+
+                        montoDisponible -= pagoAplicar;
+                        asignoAlgo = true;
+
+                        System.out.println("  -> Asignado S/ " + String.format("%.2f", pagoAplicar) +
+                                " a abono " + concepto + " " + soliNum + " cuota " + numCuota);
+                    }
+                    // Si está pagada pero no tiene registro
+                    else if ("Pagado".equals(estado) && !abonosConRegistro.contains(abonoDetailId)) {
+                        double pagoAplicar = Math.min(montoDisponible, mensual);
+
+                        if (Math.abs(pagoAplicar - mensual) < 0.02 || montoDisponible >= mensual) {
+                            String sqlInsert = "INSERT INTO registerdetails (idRegistro, idBondDetails, amountPar) VALUES (?, ?, ?)";
+                            try (PreparedStatement stmt = conn.prepareStatement(sqlInsert)) {
+                                stmt.setInt(1, registroId);
+                                stmt.setLong(2, abonoDetailId);
+                                stmt.setDouble(3, pagoAplicar);
+                                stmt.executeUpdate();
+                            }
+
+                            abonosConRegistro.add(abonoDetailId);
+                            montoDisponible -= pagoAplicar;
+                            asignoAlgo = true;
+
+                            System.out.println("  -> Vinculado S/ " + String.format("%.2f", pagoAplicar) +
+                                    " a abono pagado " + concepto + " " + soliNum + " cuota " + numCuota);
+                        }
+                    }
+                }
+
+                // Si no se asignó nada y hay monto, es un registro duplicado que quedó huérfano
+                if (!asignoAlgo) {
+                    System.out.println("  -> REGISTRO SIN CUOTAS DISPONIBLES: " + codigo +
+                            " con monto S/ " + String.format("%.2f", montoDisponible) +
+                            " - será eliminado como duplicado");
+
+                    // Eliminar el registro huérfano que no tiene a donde asignarse
+                    String sqlDelete = "DELETE FROM registro WHERE id = ?";
+                    try (PreparedStatement stmt = conn.prepareStatement(sqlDelete)) {
+                        stmt.setInt(1, registroId);
+                        stmt.executeUpdate();
+                    }
+
+                    guardarHistorialCorreccion("HUERFANO_ELIMINADO", codigo, 0,
+                            montoDisponible, 0, usuario, motivo + " - Registro sin cuotas disponibles");
+                } else if (montoDisponible > 0.01) {
+                    System.out.println("  -> Sobró S/ " + String.format("%.2f", montoDisponible) + " (saldo a favor)");
+                }
+
+                reorganizados++;
+            }
+
+            // Guardar en historial
+            guardarHistorialCorreccion("REORGANIZACION", String.valueOf(empleadoId), 0,
+                    registrosHuerfanos.size(), reorganizados, usuario, motivo);
+
+            conn.commit();
+            System.out.println("✓ Reorganizados " + reorganizados + " registros del empleado " + empleadoId);
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error reorganizando pagos: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+
+        return reorganizados;
+    }
+
+    /**
+     * Obtiene la lista de IDs de cuotas que ya tienen un registro en registerdetails
+     * @param campo Campo a buscar: "idLoanDetails" o "idBondDetails"
+     * @return Lista de IDs de cuotas con registro
+     */
+    private List<Long> obtenerCuotasConRegistro(String campo) {
+        List<Long> ids = new ArrayList<>();
+        String sql = "SELECT DISTINCT " + campo + " FROM registerdetails WHERE " + campo + " IS NOT NULL";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                ids.add(rs.getLong(1));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo cuotas con registro: " + e.getMessage());
+        }
+
+        return ids;
+    }
+
+    /**
+     * Elimina registros que quedaron completamente vacíos (sin detalles y monto 0)
+     * después de la reorganización
+     * @return Cantidad de registros eliminados
+     */
+    public int eliminarRegistrosVacios() {
+        int eliminados = 0;
+
+        String sqlSelect = "SELECT r.id, r.codigo FROM registro r " +
+                "LEFT JOIN registerdetails rd ON rd.idRegistro = r.id " +
+                "WHERE rd.id IS NULL";
+
+        String sqlDelete = "DELETE FROM registro WHERE id = ?";
+
+        try {
+            conn.setAutoCommit(false);
+
+            List<Object[]> registrosVacios = new ArrayList<>();
+            try (PreparedStatement stmt = conn.prepareStatement(sqlSelect);
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    registrosVacios.add(new Object[]{rs.getInt("id"), rs.getString("codigo")});
+                }
+            }
+
+            for (Object[] reg : registrosVacios) {
+                try (PreparedStatement stmt = conn.prepareStatement(sqlDelete)) {
+                    stmt.setInt(1, (int) reg[0]);
+                    stmt.executeUpdate();
+                    eliminados++;
+                    System.out.println("Eliminado registro vacío: " + reg[1]);
+                }
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error eliminando registros vacíos: " + e.getMessage());
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+
+        return eliminados;
     }
 }

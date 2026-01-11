@@ -1474,9 +1474,17 @@ public class ModelMain {
                         "</ul>" +
                         "</body></html>";
 
+                    // Crear panel con scroll para mostrar los detalles del pago
+                    javax.swing.JLabel lblConfirmacion = new javax.swing.JLabel(mensajeConfirmacion);
+                    javax.swing.JScrollPane scrollConfirmacion = new javax.swing.JScrollPane(lblConfirmacion);
+                    scrollConfirmacion.setPreferredSize(new java.awt.Dimension(400, 350));
+                    scrollConfirmacion.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+                    scrollConfirmacion.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+                    scrollConfirmacion.getVerticalScrollBar().setUnitIncrement(16);
+
                     int confirmacion = JOptionPane.showConfirmDialog(
                         viewMain,
-                        mensajeConfirmacion,
+                        scrollConfirmacion,
                         "CONFIRMAR REVERSIÓN DE PAGO",
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.WARNING_MESSAGE
@@ -1686,12 +1694,20 @@ public class ModelMain {
         String cantidadReg = lotes.get(filaSeleccionada)[4];
         String montoTotal = lotes.get(filaSeleccionada)[5];
 
-        // Mostrar detalles del lote
+        // Mostrar detalles del lote con scroll
         String detallesLote = registroDao.obtenerDetalleLoteParaRevertir(loteId);
+
+        // Crear panel con scroll para mostrar los detalles del lote
+        javax.swing.JLabel lblDetallesLote = new javax.swing.JLabel(detallesLote);
+        javax.swing.JScrollPane scrollDetallesLote = new javax.swing.JScrollPane(lblDetallesLote);
+        scrollDetallesLote.setPreferredSize(new java.awt.Dimension(500, 400));
+        scrollDetallesLote.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollDetallesLote.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollDetallesLote.getVerticalScrollBar().setUnitIncrement(16);
 
         int confirmacion = JOptionPane.showConfirmDialog(
             viewMain,
-            detallesLote,
+            scrollDetallesLote,
             "CONFIRMAR REVERSIÓN DEL LOTE " + loteId,
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE
@@ -1937,9 +1953,17 @@ public class ModelMain {
                     resumen.append("<p><i>Los pagos con REGISTROS MÚLTIPLES serán eliminados (se mantiene 1).</i></p>");
                     resumen.append("</body></html>");
 
+                    // Crear panel con scroll para mostrar los duplicados
+                    javax.swing.JLabel lblResumen = new javax.swing.JLabel(resumen.toString());
+                    javax.swing.JScrollPane scrollDuplicados = new javax.swing.JScrollPane(lblResumen);
+                    scrollDuplicados.setPreferredSize(new java.awt.Dimension(650, 400));
+                    scrollDuplicados.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+                    scrollDuplicados.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+                    scrollDuplicados.getVerticalScrollBar().setUnitIncrement(16);
+
                     int confirmar = JOptionPane.showConfirmDialog(
                         viewMain,
-                        resumen.toString(),
+                        scrollDuplicados,
                         "CONFIRMAR CORRECCIÓN",
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.WARNING_MESSAGE
@@ -2011,6 +2035,370 @@ public class ModelMain {
                     viewMain.loading.dispose();
                     JOptionPane.showMessageDialog(viewMain,
                         "Error al buscar duplicados: " + ex.getMessage(),
+                        "ERROR", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
+
+        viewMain.loading.setVisible(true);
+    }
+
+    /**
+     * Método para reorganizar pagos huérfanos (registros sin detalles en registerdetails)
+     * Busca empleados con registros vacíos y permite reorganizar sus pagos
+     */
+    @SuppressWarnings("unchecked")
+    public void reorganizarPagosHuerfanos() {
+        // Mostrar diálogo inicial
+        int opcionInicial = JOptionPane.showConfirmDialog(
+            viewMain,
+            "<html><body style='width: 450px;'>" +
+            "<h3 style='color:#8E44AD;'>REORGANIZAR PAGOS HUÉRFANOS</h3>" +
+            "<p>Esta herramienta detecta registros de pago que quedaron sin detalles asociados " +
+            "(por ejemplo, después de corregir duplicados) y los reasigna a las cuotas pendientes.</p>" +
+            "<ul>" +
+            "<li>Busca registros sin detalles en registerdetails</li>" +
+            "<li>Asigna los montos a cuotas pendientes en orden de vencimiento</li>" +
+            "<li>Primero préstamos, luego abonos</li>" +
+            "</ul>" +
+            "<p style='color:#C0392B;'><b>⚠ Se recomienda hacer backup antes de continuar.</b></p>" +
+            "<p>¿Desea buscar registros huérfanos?</p>" +
+            "</body></html>",
+            "REORGANIZAR PAGOS HUÉRFANOS",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+
+        if (opcionInicial != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        viewMain.loading.setModal(true);
+        viewMain.loading.setLocationRelativeTo(viewMain);
+
+        new Thread(() -> {
+            try {
+                com.subcafae.finantialtracker.data.dao.RegistroDao registroDao =
+                    new com.subcafae.finantialtracker.data.dao.RegistroDao();
+
+                // Buscar empleados con registros huérfanos
+                java.util.List<Object[]> empleadosHuerfanos = registroDao.buscarEmpleadosConRegistrosHuerfanos();
+
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+
+                    if (empleadosHuerfanos.isEmpty()) {
+                        JOptionPane.showMessageDialog(viewMain,
+                            "<html><body>" +
+                            "<h3 style='color:#27AE60;'>✓ NO HAY REGISTROS HUÉRFANOS</h3>" +
+                            "<p>Todos los registros tienen sus detalles correctamente asociados.</p>" +
+                            "</body></html>",
+                            "RESULTADO", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
+                    // Crear tabla para mostrar empleados con registros huérfanos
+                    String[] columnas = {"ID", "DNI", "Nombre", "Registros Huérfanos", "Monto Total"};
+                    Object[][] datos = new Object[empleadosHuerfanos.size()][5];
+                    for (int i = 0; i < empleadosHuerfanos.size(); i++) {
+                        Object[] emp = empleadosHuerfanos.get(i);
+                        datos[i][0] = emp[0]; // empleado_id
+                        datos[i][1] = emp[1]; // dni
+                        datos[i][2] = emp[2]; // nombre
+                        datos[i][3] = emp[3]; // cantidad
+                        datos[i][4] = String.format("S/ %.2f", (double) emp[4]); // monto
+                    }
+
+                    javax.swing.JTable tablaEmpleados = new javax.swing.JTable(datos, columnas);
+                    tablaEmpleados.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+                    tablaEmpleados.setRowHeight(25);
+                    tablaEmpleados.getTableHeader().setReorderingAllowed(false);
+
+                    // Ocultar columna ID
+                    tablaEmpleados.getColumnModel().getColumn(0).setMinWidth(0);
+                    tablaEmpleados.getColumnModel().getColumn(0).setMaxWidth(0);
+                    tablaEmpleados.getColumnModel().getColumn(0).setPreferredWidth(0);
+
+                    tablaEmpleados.getColumnModel().getColumn(1).setPreferredWidth(80);  // DNI
+                    tablaEmpleados.getColumnModel().getColumn(2).setPreferredWidth(200); // Nombre
+                    tablaEmpleados.getColumnModel().getColumn(3).setPreferredWidth(120); // Cantidad
+                    tablaEmpleados.getColumnModel().getColumn(4).setPreferredWidth(100); // Monto
+
+                    javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(tablaEmpleados);
+                    scrollPane.setPreferredSize(new java.awt.Dimension(550, 300));
+
+                    javax.swing.JPanel panelPrincipal = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
+                    panelPrincipal.add(new javax.swing.JLabel(
+                        "<html><b style='color:#8E44AD;'>EMPLEADOS CON REGISTROS HUÉRFANOS (" + empleadosHuerfanos.size() + ")</b><br/>" +
+                        "<i style='color:gray;'>Seleccione un empleado para reorganizar sus pagos.</i></html>"),
+                        java.awt.BorderLayout.NORTH);
+                    panelPrincipal.add(scrollPane, java.awt.BorderLayout.CENTER);
+
+                    // Agregar botones para opciones
+                    javax.swing.JPanel panelBotones = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 5));
+                    javax.swing.JButton btnReorganizarSeleccionado = new javax.swing.JButton("Reorganizar Seleccionado");
+                    javax.swing.JButton btnReorganizarTodos = new javax.swing.JButton("Reorganizar Todos");
+                    javax.swing.JButton btnCancelar = new javax.swing.JButton("Cancelar");
+
+                    btnReorganizarSeleccionado.setBackground(new java.awt.Color(52, 152, 219));
+                    btnReorganizarSeleccionado.setForeground(java.awt.Color.WHITE);
+                    btnReorganizarTodos.setBackground(new java.awt.Color(155, 89, 182));
+                    btnReorganizarTodos.setForeground(java.awt.Color.WHITE);
+
+                    panelBotones.add(btnReorganizarSeleccionado);
+                    panelBotones.add(btnReorganizarTodos);
+                    panelBotones.add(btnCancelar);
+                    panelPrincipal.add(panelBotones, java.awt.BorderLayout.SOUTH);
+
+                    // Crear diálogo personalizado
+                    javax.swing.JDialog dialogo = new javax.swing.JDialog(viewMain, "REORGANIZAR PAGOS HUÉRFANOS", true);
+                    dialogo.setContentPane(panelPrincipal);
+                    dialogo.pack();
+                    dialogo.setLocationRelativeTo(viewMain);
+
+                    btnCancelar.addActionListener(e -> dialogo.dispose());
+
+                    btnReorganizarSeleccionado.addActionListener(e -> {
+                        int filaSeleccionada = tablaEmpleados.getSelectedRow();
+                        if (filaSeleccionada == -1) {
+                            JOptionPane.showMessageDialog(dialogo,
+                                "Debe seleccionar un empleado de la tabla.",
+                                "SELECCIÓN REQUERIDA", JOptionPane.WARNING_MESSAGE);
+                            return;
+                        }
+
+                        int empleadoId = (int) tablaEmpleados.getValueAt(filaSeleccionada, 0);
+                        String dni = (String) tablaEmpleados.getValueAt(filaSeleccionada, 1);
+                        String nombre = (String) tablaEmpleados.getValueAt(filaSeleccionada, 2);
+
+                        // Mostrar detalles antes de reorganizar
+                        java.util.Map<String, Object> detalle = registroDao.obtenerDetalleEmpleadoParaReorganizar(empleadoId);
+                        java.util.List<Object[]> huerfanos = (java.util.List<Object[]>) detalle.get("registrosHuerfanos");
+                        java.util.List<Object[]> prestamos = (java.util.List<Object[]>) detalle.get("cuotasPrestamos");
+                        java.util.List<Object[]> abonos = (java.util.List<Object[]>) detalle.get("cuotasAbonos");
+
+                        StringBuilder detalleHtml = new StringBuilder();
+                        detalleHtml.append("<html><body style='width: 500px;'>");
+                        detalleHtml.append("<h3 style='color:#8E44AD;'>DETALLE DE REORGANIZACIÓN</h3>");
+                        detalleHtml.append("<p><b>Empleado:</b> ").append(nombre).append(" (").append(dni).append(")</p>");
+
+                        detalleHtml.append("<h4 style='color:#E74C3C;'>Registros Huérfanos (").append(huerfanos.size()).append("):</h4>");
+                        detalleHtml.append("<table border='1' cellpadding='3'>");
+                        detalleHtml.append("<tr><th>Código</th><th>Fecha</th><th>Monto</th></tr>");
+                        double totalHuerfanos = 0;
+                        for (Object[] h : huerfanos) {
+                            detalleHtml.append("<tr>");
+                            detalleHtml.append("<td>").append(h[1]).append("</td>");
+                            detalleHtml.append("<td>").append(h[2]).append("</td>");
+                            detalleHtml.append("<td>S/ ").append(String.format("%.2f", (double) h[3])).append("</td>");
+                            detalleHtml.append("</tr>");
+                            totalHuerfanos += (double) h[3];
+                        }
+                        detalleHtml.append("<tr><td colspan='2'><b>TOTAL</b></td><td><b>S/ ").append(String.format("%.2f", totalHuerfanos)).append("</b></td></tr>");
+                        detalleHtml.append("</table><br/>");
+
+                        if (!prestamos.isEmpty()) {
+                            detalleHtml.append("<h4 style='color:#2980B9;'>Cuotas Préstamos Pendientes (").append(prestamos.size()).append("):</h4>");
+                            detalleHtml.append("<table border='1' cellpadding='3'>");
+                            detalleHtml.append("<tr><th>Solicitud</th><th>Cuota</th><th>Pendiente</th></tr>");
+                            int maxMostrar = Math.min(prestamos.size(), 10);
+                            for (int i = 0; i < maxMostrar; i++) {
+                                Object[] p = prestamos.get(i);
+                                detalleHtml.append("<tr>");
+                                detalleHtml.append("<td>").append(p[1]).append("</td>");
+                                detalleHtml.append("<td>").append(p[2]).append("/").append(p[3]).append("</td>");
+                                detalleHtml.append("<td>S/ ").append(String.format("%.2f", (double) p[6])).append("</td>");
+                                detalleHtml.append("</tr>");
+                            }
+                            if (prestamos.size() > 10) {
+                                detalleHtml.append("<tr><td colspan='3'>... y ").append(prestamos.size() - 10).append(" más</td></tr>");
+                            }
+                            detalleHtml.append("</table><br/>");
+                        }
+
+                        if (!abonos.isEmpty()) {
+                            detalleHtml.append("<h4 style='color:#27AE60;'>Cuotas Abonos Pendientes (").append(abonos.size()).append("):</h4>");
+                            detalleHtml.append("<table border='1' cellpadding='3'>");
+                            detalleHtml.append("<tr><th>Concepto</th><th>Cuota</th><th>Pendiente</th></tr>");
+                            int maxMostrar = Math.min(abonos.size(), 10);
+                            for (int i = 0; i < maxMostrar; i++) {
+                                Object[] a = abonos.get(i);
+                                detalleHtml.append("<tr>");
+                                detalleHtml.append("<td>").append(a[9]).append("</td>");
+                                detalleHtml.append("<td>").append(a[2]).append("/").append(a[3]).append("</td>");
+                                detalleHtml.append("<td>S/ ").append(String.format("%.2f", (double) a[6])).append("</td>");
+                                detalleHtml.append("</tr>");
+                            }
+                            if (abonos.size() > 10) {
+                                detalleHtml.append("<tr><td colspan='3'>... y ").append(abonos.size() - 10).append(" más</td></tr>");
+                            }
+                            detalleHtml.append("</table>");
+                        }
+
+                        detalleHtml.append("<br/><p style='color:#C0392B;'><b>¿Desea reorganizar los pagos de este empleado?</b></p>");
+                        detalleHtml.append("</body></html>");
+
+                        // Mostrar con scroll
+                        javax.swing.JLabel lblDetalle = new javax.swing.JLabel(detalleHtml.toString());
+                        javax.swing.JScrollPane scrollDetalle = new javax.swing.JScrollPane(lblDetalle);
+                        scrollDetalle.setPreferredSize(new java.awt.Dimension(550, 400));
+                        scrollDetalle.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+                        scrollDetalle.getVerticalScrollBar().setUnitIncrement(16);
+
+                        int confirmar = JOptionPane.showConfirmDialog(
+                            dialogo,
+                            scrollDetalle,
+                            "CONFIRMAR REORGANIZACIÓN - " + dni,
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.WARNING_MESSAGE
+                        );
+
+                        if (confirmar != JOptionPane.YES_OPTION) {
+                            return;
+                        }
+
+                        // Solicitar motivo
+                        String motivo = JOptionPane.showInputDialog(
+                            dialogo,
+                            "Ingrese el motivo de la reorganización:",
+                            "MOTIVO DE REORGANIZACIÓN",
+                            JOptionPane.QUESTION_MESSAGE
+                        );
+
+                        if (motivo == null || motivo.trim().isEmpty()) {
+                            motivo = "Reorganización de pagos huérfanos";
+                        }
+
+                        dialogo.dispose();
+
+                        // Ejecutar reorganización
+                        viewMain.loading.setModal(true);
+                        viewMain.loading.setLocationRelativeTo(viewMain);
+
+                        String usuarioActual = (usser != null && usser.getUsername() != null) ? usser.getUsername() : "SISTEMA";
+                        final String usuarioFinal = usuarioActual;
+                        final String motivoFinal = motivo.trim();
+                        final int empleadoIdFinal = empleadoId;
+
+                        new javax.swing.SwingWorker<Integer, Void>() {
+                            @Override
+                            protected Integer doInBackground() throws Exception {
+                                return registroDao.reorganizarPagosEmpleado(empleadoIdFinal, usuarioFinal, motivoFinal);
+                            }
+
+                            @Override
+                            protected void done() {
+                                viewMain.loading.dispose();
+                                try {
+                                    int resultado = get();
+                                    JOptionPane.showMessageDialog(viewMain,
+                                        "<html><body>" +
+                                        "<h3 style='color:#27AE60;'>✓ REORGANIZACIÓN COMPLETADA</h3>" +
+                                        "<p><b>Registros reorganizados:</b> " + resultado + "</p>" +
+                                        "<p><i>Los pagos han sido asignados a las cuotas pendientes en orden.</i></p>" +
+                                        "</body></html>",
+                                        "OPERACIÓN EXITOSA", JOptionPane.INFORMATION_MESSAGE);
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
+                                    JOptionPane.showMessageDialog(viewMain,
+                                        "Error al reorganizar: " + ex.getMessage(),
+                                        "ERROR", JOptionPane.ERROR_MESSAGE);
+                                }
+                            }
+                        }.execute();
+
+                        viewMain.loading.setVisible(true);
+                    });
+
+                    btnReorganizarTodos.addActionListener(e -> {
+                        int confirmar = JOptionPane.showConfirmDialog(
+                            dialogo,
+                            "<html><body style='width: 350px;'>" +
+                            "<h3 style='color:#C0392B;'>⚠ REORGANIZAR TODOS</h3>" +
+                            "<p>¿Está seguro de reorganizar los pagos de <b>TODOS</b> los " +
+                            empleadosHuerfanos.size() + " empleados con registros huérfanos?</p>" +
+                            "<p style='color:#E74C3C;'><b>Esta acción puede tomar varios minutos.</b></p>" +
+                            "</body></html>",
+                            "CONFIRMAR REORGANIZACIÓN MASIVA",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.WARNING_MESSAGE
+                        );
+
+                        if (confirmar != JOptionPane.YES_OPTION) {
+                            return;
+                        }
+
+                        // Solicitar motivo
+                        String motivo = JOptionPane.showInputDialog(
+                            dialogo,
+                            "Ingrese el motivo de la reorganización masiva:",
+                            "MOTIVO DE REORGANIZACIÓN",
+                            JOptionPane.QUESTION_MESSAGE
+                        );
+
+                        if (motivo == null || motivo.trim().isEmpty()) {
+                            motivo = "Reorganización masiva de pagos huérfanos";
+                        }
+
+                        dialogo.dispose();
+
+                        // Ejecutar reorganización masiva
+                        viewMain.loading.setModal(true);
+                        viewMain.loading.setLocationRelativeTo(viewMain);
+
+                        String usuarioActual = (usser != null && usser.getUsername() != null) ? usser.getUsername() : "SISTEMA";
+                        final String usuarioFinal = usuarioActual;
+                        final String motivoFinal = motivo.trim();
+
+                        new javax.swing.SwingWorker<int[], Void>() {
+                            @Override
+                            protected int[] doInBackground() throws Exception {
+                                int totalReorganizados = 0;
+                                int empleadosProcesados = 0;
+
+                                for (Object[] emp : empleadosHuerfanos) {
+                                    int empId = (int) emp[0];
+                                    int reorganizados = registroDao.reorganizarPagosEmpleado(empId, usuarioFinal, motivoFinal);
+                                    totalReorganizados += reorganizados;
+                                    empleadosProcesados++;
+                                }
+
+                                return new int[]{empleadosProcesados, totalReorganizados};
+                            }
+
+                            @Override
+                            protected void done() {
+                                viewMain.loading.dispose();
+                                try {
+                                    int[] resultados = get();
+                                    JOptionPane.showMessageDialog(viewMain,
+                                        "<html><body>" +
+                                        "<h3 style='color:#27AE60;'>✓ REORGANIZACIÓN MASIVA COMPLETADA</h3>" +
+                                        "<p><b>Empleados procesados:</b> " + resultados[0] + "</p>" +
+                                        "<p><b>Total registros reorganizados:</b> " + resultados[1] + "</p>" +
+                                        "</body></html>",
+                                        "OPERACIÓN EXITOSA", JOptionPane.INFORMATION_MESSAGE);
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
+                                    JOptionPane.showMessageDialog(viewMain,
+                                        "Error en reorganización masiva: " + ex.getMessage(),
+                                        "ERROR", JOptionPane.ERROR_MESSAGE);
+                                }
+                            }
+                        }.execute();
+
+                        viewMain.loading.setVisible(true);
+                    });
+
+                    dialogo.setVisible(true);
+                });
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(viewMain,
+                        "Error al buscar registros huérfanos: " + ex.getMessage(),
                         "ERROR", JOptionPane.ERROR_MESSAGE);
                 });
             }
