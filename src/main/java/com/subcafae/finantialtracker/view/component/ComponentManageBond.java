@@ -162,6 +162,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jScrollPane4.setViewportView(jTableListEmple);
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        jLabel3.setForeground(new java.awt.Color(0, 0, 0));
         jLabel3.setText("Precione una celda para  pagar por partes");
 
         jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
@@ -271,9 +272,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
 
         jLabelShowDNIWorker.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DNI DEL TRABAJADOR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jComboSearchWorker.setBackground(new java.awt.Color(255, 255, 255));
         jComboSearchWorker.setEditable(true);
-        jComboSearchWorker.setForeground(new java.awt.Color(0, 0, 0));
         jComboSearchWorker.setToolTipText("");
         jComboSearchWorker.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "BUSCAR TRABAJADOR POR NOMBRE U DNI", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
@@ -304,8 +303,8 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
                 .addContainerGap())
         );
 
-        jButtonRegisterBond.setBackground(new java.awt.Color(0, 102, 51));
-        jButtonRegisterBond.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonRegisterBond.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonRegisterBond.setForeground(new java.awt.Color(0, 0, 0));
         jButtonRegisterBond.setText("REGISTRO DE ABONO");
 
         javax.swing.GroupLayout jPanel9Layout = new javax.swing.GroupLayout(jPanel9);
@@ -332,19 +331,13 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jPanel10.setBackground(new java.awt.Color(255, 255, 255));
         jPanel10.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DETALLES DEL ABONO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jComboDescont.setBackground(new java.awt.Color(255, 255, 255));
         jComboDescont.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "BOLETAS DE HABERES" }));
 
         jLabel4.setForeground(new java.awt.Color(0, 0, 0));
         jLabel4.setText("DESCONTAR DE  : ");
 
-        jTextFieldMonthly.setBackground(new java.awt.Color(255, 255, 255));
-        jTextFieldMonthly.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldMonthly.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "PAGO MENSUAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
-        jTextFieldMonthly.setCaretColor(new java.awt.Color(0, 0, 0));
 
-        jTextFieldDues.setBackground(new java.awt.Color(255, 255, 255));
-        jTextFieldDues.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldDues.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" }));
         jTextFieldDues.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CUOTAS", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
@@ -382,9 +375,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jPanel5.setBackground(new java.awt.Color(255, 255, 255));
         jPanel5.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "SERVICIO CONCEPTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jComboBoxSearchConceptBond.setBackground(new java.awt.Color(255, 255, 255));
         jComboBoxSearchConceptBond.setEditable(true);
-        jComboBoxSearchConceptBond.setForeground(new java.awt.Color(0, 0, 0));
         jComboBoxSearchConceptBond.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "BUSCAR CONCEPTO DE BONO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jLabelShowDNIWorker1.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DESCRIPCIÓN DEL CONCEPTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
@@ -412,16 +403,16 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
                 .addContainerGap())
         );
 
-        jButtonRegistorAbondForExcel.setBackground(new java.awt.Color(0, 204, 0));
+        jButtonRegistorAbondForExcel.setBackground(new java.awt.Color(0, 150, 136));
         jButtonRegistorAbondForExcel.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jButtonRegistorAbondForExcel.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonRegistorAbondForExcel.setForeground(new java.awt.Color(0, 0, 0));
         jButtonRegistorAbondForExcel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/excel.png"))); // NOI18N
         jButtonRegistorAbondForExcel.setText("REGISTRAR ABONO POR EXCEL");
 
         dateStart1.setDateFormatString("yyyy-MM-dd");
         dateStart1.setPreferredSize(new java.awt.Dimension(190, 30));
 
-        jLabel8.setForeground(new java.awt.Color(153, 0, 0));
+        jLabel8.setForeground(new java.awt.Color(255, 100, 100));
         jLabel8.setText("SOLO ALTERAR LA FECHA EN CASO DE QUE LOS REGISTROS DE PAGO HAYAN EMPEZADO ANTES");
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
@@ -493,33 +484,19 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jPanel11.setBackground(new java.awt.Color(255, 255, 255));
         jPanel11.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
-        jTextFieldPrioridad.setBackground(new java.awt.Color(255, 255, 255));
-        jTextFieldPrioridad.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldPrioridad.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "PRIORIDAD", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
-        jTextFieldPrioridad.setCaretColor(new java.awt.Color(0, 0, 0));
 
-        jTextFieldVenta.setBackground(new java.awt.Color(255, 255, 255));
-        jTextFieldVenta.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldVenta.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "PRECIO DE VENTA", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
-        jTextFieldVenta.setCaretColor(new java.awt.Color(0, 0, 0));
 
-        jTextFieldPrecioCosto.setBackground(new java.awt.Color(255, 255, 255));
-        jTextFieldPrecioCosto.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldPrecioCosto.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "PRECIO DE COSTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
-        jTextFieldPrecioCosto.setCaretColor(new java.awt.Color(0, 0, 0));
 
-        jTextFieldUnidades.setBackground(new java.awt.Color(255, 255, 255));
-        jTextFieldUnidades.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldUnidades.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "UNIDADES", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
-        jTextFieldUnidades.setCaretColor(new java.awt.Color(0, 0, 0));
 
         jPanel12.setBackground(new java.awt.Color(255, 255, 255));
         jPanel12.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "OPCIÓN DE TIPO DE CONCEPTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jRadioButtonPaga.setBackground(new java.awt.Color(255, 255, 255));
         jRadioButtonPaga.setText("SE PAGA ");
 
-        jRadioButtonSeOmitePago.setBackground(new java.awt.Color(255, 255, 255));
         jRadioButtonSeOmitePago.setText("SE OMITE EL PAGO");
 
         javax.swing.GroupLayout jPanel12Layout = new javax.swing.GroupLayout(jPanel12);
@@ -543,8 +520,6 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
                 .addContainerGap())
         );
 
-        jTextFieldDescription.setBackground(new java.awt.Color(255, 255, 255));
-        jTextFieldDescription.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldDescription.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DESCRIPCIÓN", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         javax.swing.GroupLayout jPanel11Layout = new javax.swing.GroupLayout(jPanel11);
@@ -590,14 +565,11 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jLabel2.setForeground(new java.awt.Color(0, 0, 0));
         jLabel2.setText("REGISTRO DE CONCEPTO");
 
-        jButtonRegistroConcepto.setBackground(new java.awt.Color(51, 153, 0));
-        jButtonRegistroConcepto.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonRegistroConcepto.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonRegistroConcepto.setForeground(new java.awt.Color(0, 0, 0));
         jButtonRegistroConcepto.setText("REGISTRAR CONCEPTO");
 
-        jScrollPane2.setBackground(new java.awt.Color(255, 255, 255));
         jScrollPane2.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "LISTADO DE CONCEPTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
-
-        jTableListConcept.setBackground(new java.awt.Color(255, 255, 255));
         jTableListConcept.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
 
@@ -616,7 +588,6 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         });
         jScrollPane2.setViewportView(jTableListConcept);
 
-        jTextFieldElimanarCecepto.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldElimanarCecepto.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "ESCRIBA EL CODIGO DEL CONCEPTO PARA ELIMINAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jButtonEliminarConcept.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/delete.png"))); // NOI18N
@@ -690,17 +661,14 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         });
         jScrollPane1.setViewportView(jTableListBonos);
 
-        jTextFieldEliminarBono.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldEliminarBono.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "ESCRIBA EL NUMERO DE SOLITUD PARA ELIMINAR EL ABONO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jButtonEliminarBono.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/delete.png"))); // NOI18N
 
-        jTextFieldRenunciarBono.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldRenunciarBono.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "ESCRIBA EL NÚMERO DE SOLICITUD PARA RENUNCIAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jButtonRenunciarBono.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/renuncia.png"))); // NOI18N
 
-        jTextFieldSearchSoliBond.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldSearchSoliBond.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "BUSCAR POR NUMERO DE SOLICITUD", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/iconVoucher/search.png"))); // NOI18N
@@ -793,8 +761,8 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
 
         jTabbedPane1.addTab("ABONOS", jPanel6);
 
-        jButtonReportBond.setBackground(new java.awt.Color(0, 153, 0));
-        jButtonReportBond.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonReportBond.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonReportBond.setForeground(new java.awt.Color(0, 0, 0));
         jButtonReportBond.setText("REPORTE DE ABONO");
         jButtonReportBond.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {

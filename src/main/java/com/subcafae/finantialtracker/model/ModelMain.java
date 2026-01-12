@@ -936,6 +936,10 @@ public class ModelMain {
                         try {
                             localDate = LocalDate.parse("01/" + archivo.getName().substring(4, 6) + "/" + archivo.getName().substring(6, 8), DateTimeFormatter.ofPattern("dd/MM/yy"));
                         } catch (Exception e) {
+                            javax.swing.SwingUtilities.invokeLater(() -> {
+                                viewMain.loading.dispose();
+                                JOptionPane.showMessageDialog(null, "ERROR: El nombre del archivo tiene un formato de fecha inválido.\nFormato esperado: XXXX[MM][YY]*.txt", "ERROR DE FORMATO", JOptionPane.ERROR_MESSAGE);
+                            });
                             return;
                         }
 
@@ -951,32 +955,33 @@ public class ModelMain {
 
                         }
 
-                        switch (ver) {
-                            case "2":
+                        final int finalCount = count;
+                        final String verFinal = ver;
+
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            viewMain.loading.dispose();
+
+                            if (verFinal == null) {
                                 viewMain.jLabelCode.setText("");
                                 viewMain.jLabelCantidad.setText("");
                                 model.setRowCount(0);
                                 modelFindNot.setRowCount(0);
-                                JOptionPane.showMessageDialog(null, "Ocurrió un problema", "ERROR GENERAL", JOptionPane.WARNING_MESSAGE);
-                                break;
-
-                            case "4":
+                                JOptionPane.showMessageDialog(null, "El archivo está vacío o tiene un formato incorrecto", "ERROR DE DOCUMENTO", JOptionPane.WARNING_MESSAGE);
+                            } else if (verFinal.equalsIgnoreCase("2")) {
+                                viewMain.jLabelCode.setText("");
+                                viewMain.jLabelCantidad.setText("");
+                                model.setRowCount(0);
+                                modelFindNot.setRowCount(0);
+                                JOptionPane.showMessageDialog(null, "Ocurrió un problema al procesar el archivo", "ERROR GENERAL", JOptionPane.WARNING_MESSAGE);
+                            } else if (verFinal.equalsIgnoreCase("4")) {
                                 viewMain.jLabelCode.setText("");
                                 viewMain.jLabelCantidad.setText("");
                                 model.setRowCount(0);
                                 modelFindNot.setRowCount(0);
                                 JOptionPane.showMessageDialog(null, "ERROR DE PROCESO DE UNA LÍNEA DOCUMENTO CORRUPTO", "ERROR DE DOCUMENTO", JOptionPane.WARNING_MESSAGE);
-                                break;
-                        }
-
-//                        } else {
-//                            viewMain.jLabelCode.setText("");
-//                            JOptionPane.showMessageDialog(null, "FECHA INCOPATIBLE CON EL ACTUAL");
-//                        }
-                        final int finalCount = count;
-                        javax.swing.SwingUtilities.invokeLater(() -> {
-                            viewMain.jLabelCantidad.setText(String.valueOf(finalCount));
-                            viewMain.loading.dispose();
+                            } else {
+                                viewMain.jLabelCantidad.setText(String.valueOf(finalCount));
+                            }
                         });
                     } catch (Exception e) {
                         System.out.println("Error -> " + e.getMessage());

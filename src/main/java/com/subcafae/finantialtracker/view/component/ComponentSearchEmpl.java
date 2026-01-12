@@ -81,13 +81,10 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
     }
 
     /**
-     * Aplica un diseño moderno al componente
+     * Aplica un diseño moderno al componente (compatible con tema oscuro FlatMacDarkLaf)
      */
     private void aplicarDisenoModerno(String titulo) {
-        // Configurar el panel principal
-        getContentPane().setBackground(new java.awt.Color(250, 250, 252));
-
-        // Configurar título con icono y estilo
+        // Configurar título con icono y estilo (colores para tema oscuro)
         String iconoTitulo = opcion_main ? "📊" : "📋";
         String descripcion = opcion_main
             ? "Generar reporte de deudas pendientes del empleado"
@@ -95,38 +92,32 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
 
         jLabelTitle.setText("<html><div style='text-align: center;'>" +
             "<span style='font-size: 16px;'>" + iconoTitulo + "</span><br>" +
-            "<span style='font-size: 14px; font-weight: bold; color: #2c3e50;'>" + titulo + "</span><br>" +
-            "<span style='font-size: 10px; color: #7f8c8d;'>" + descripcion + "</span>" +
+            "<span style='font-size: 14px; font-weight: bold; color: #E0E0E0;'>" + titulo + "</span><br>" +
+            "<span style='font-size: 10px; color: #A0A0A0;'>" + descripcion + "</span>" +
             "</div></html>");
         jLabelTitle.setOpaque(true);
-        jLabelTitle.setBackground(new java.awt.Color(236, 240, 241));
+        jLabelTitle.setBackground(new java.awt.Color(45, 45, 48));
         jLabelTitle.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(52, 152, 219)),
+            javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(0, 122, 204)),
             javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
 
-        // Estilo para el combo de tipo de contrato
-        jLabel2.setText("<html><span style='color: #34495e;'>Tipo de Contrato:</span></html>");
+        // Estilo para el combo de tipo de contrato (tema oscuro)
+        jLabel2.setText("<html><span style='color: #E0E0E0;'>Tipo de Contrato:</span></html>");
         jLabel2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
 
         jComboBox2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
-        jComboBox2.setBackground(java.awt.Color.WHITE);
-        jComboBox2.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(189, 195, 199), 1),
-            javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
 
-        // Estilo para el combo de búsqueda de empleado
-        jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>" +
-            "<span style='font-size: 9px; color: #95a5a6;'>(Escriba DNI o nombre para buscar)</span></html>");
+        // Estilo para el combo de búsqueda de empleado (tema oscuro)
+        jLabel3.setText("<html><span style='color: #E0E0E0;'>Buscar Empleado:</span><br>" +
+            "<span style='font-size: 9px; color: #A0A0A0;'>(Escriba DNI o nombre para buscar)</span></html>");
         jLabel3.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
 
         jComboBox1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
-        jComboBox1.setBackground(java.awt.Color.WHITE);
 
-        // Estilo para los botones
-        estilizarBoton(jButton1, new java.awt.Color(46, 204, 113), "✓ GENERAR INFORME");
-        estilizarBoton(jButton2, new java.awt.Color(231, 76, 60), "✕ LIMPIAR");
+        // Estilo para los botones (colores vibrantes para tema oscuro)
+        estilizarBoton(jButton1, new java.awt.Color(0, 150, 136), "GENERAR INFORME");  // Teal
+        estilizarBoton(jButton2, new java.awt.Color(211, 47, 47), "LIMPIAR");           // Rojo oscuro
 
         // Ajustar tamaño del frame
         setPreferredSize(new java.awt.Dimension(550, 320));
@@ -244,8 +235,8 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
 
         // Mostrar cantidad de empleados disponibles
         int totalEmpleados = listaFiltrada.size();
-        jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>" +
-            "<span style='font-size: 9px; color: #95a5a6;'>(" + totalEmpleados + " empleados disponibles - Escriba DNI o nombre)</span></html>");
+        jLabel3.setText("<html><span style='color: #E0E0E0;'>Buscar Empleado:</span><br>" +
+            "<span style='font-size: 9px; color: #A0A0A0;'>(" + totalEmpleados + " empleados disponibles - Escriba DNI o nombre)</span></html>");
 
         // Listener de teclado
         editor.addKeyListener(new KeyAdapter() {
@@ -625,8 +616,8 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
                 .filter(emp -> emp.getEmploymentStatus().equalsIgnoreCase(filtro))
                 .count();
         }
-        jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>" +
-            "<span style='font-size: 9px; color: #95a5a6;'>(" + totalEmpleados + " empleados disponibles - Escriba DNI o nombre)</span></html>");
+        jLabel3.setText("<html><span style='color: #E0E0E0;'>Buscar Empleado:</span><br>" +
+            "<span style='font-size: 9px; color: #A0A0A0;'>(" + totalEmpleados + " empleados disponibles - Escriba DNI o nombre)</span></html>");
 
         // Enfocar el combo de búsqueda
         jComboBox1.requestFocus();

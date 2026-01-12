@@ -150,12 +150,12 @@ public class ComponentManageWorker extends javax.swing.JInternalFrame {
 
         jButtoBuscarDni.setIcon(new javax.swing.ImageIcon(getClass().getResource("/iconVoucher/search.png"))); // NOI18N
 
-        jButtonRegisterWorker.setBackground(new java.awt.Color(0, 102, 0));
-        jButtonRegisterWorker.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonRegisterWorker.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonRegisterWorker.setForeground(new java.awt.Color(0, 0, 0));
         jButtonRegisterWorker.setText("REGISTRAR TRABAJADOR");
 
         jButtonCancelarEdicion.setBackground(new java.awt.Color(153, 0, 0));
-        jButtonCancelarEdicion.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonCancelarEdicion.setForeground(new java.awt.Color(0, 0, 0));
         jButtonCancelarEdicion.setText("CANCELAR");
         jButtonCancelarEdicion.setVisible(false);
 

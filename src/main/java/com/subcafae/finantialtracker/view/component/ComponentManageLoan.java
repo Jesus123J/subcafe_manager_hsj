@@ -182,8 +182,8 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         });
         jScrollPane2.setViewportView(jTableListLoanDetails);
 
-        jButtonExcelCompleto.setBackground(new java.awt.Color(0, 153, 0));
-        jButtonExcelCompleto.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonExcelCompleto.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonExcelCompleto.setForeground(new java.awt.Color(0, 0, 0));
         jButtonExcelCompleto.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/excel.png"))); // NOI18N
         jButtonExcelCompleto.setText("EXPORTAR A EXCEL");
 
@@ -274,7 +274,6 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         );
 
         jTabbedPane1.setBackground(new java.awt.Color(255, 255, 255));
-        jTabbedPane1.setForeground(new java.awt.Color(0, 0, 0));
 
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
 
@@ -285,41 +284,34 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jPanel6.setBackground(new java.awt.Color(255, 255, 255));
         jPanel6.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DETALLE DEL PRESTAMO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        textAmountLoan.setForeground(new java.awt.Color(0, 0, 0));
         textAmountLoan.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
-        textAmountLoan.setCaretColor(new java.awt.Color(0, 0, 0));
 
-        buttonConfirmApplicant.setBackground(new java.awt.Color(51, 153, 0));
+        buttonConfirmApplicant.setBackground(new java.awt.Color(0, 150, 136));
         buttonConfirmApplicant.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/confirm.png"))); // NOI18N
 
-        buttonCleanApplicant.setBackground(new java.awt.Color(0, 153, 204));
+        buttonCleanApplicant.setBackground(new java.awt.Color(0, 150, 136));
         buttonCleanApplicant.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/clean_component.png"))); // NOI18N
 
-        buttonConfirmAval.setBackground(new java.awt.Color(51, 153, 0));
+        buttonConfirmAval.setBackground(new java.awt.Color(0, 150, 136));
         buttonConfirmAval.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/confirm.png"))); // NOI18N
 
-        buttonCleanAval.setBackground(new java.awt.Color(0, 153, 204));
+        buttonCleanAval.setBackground(new java.awt.Color(0, 150, 136));
         buttonCleanAval.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/clean_component.png"))); // NOI18N
 
         comboBoxApplicant.setEditable(true);
-        comboBoxApplicant.setForeground(new java.awt.Color(0, 0, 0));
         comboBoxApplicant.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DNI  U NOMBRE A BUSCAR DEL SOLICITANTE", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         comboBoxAval.setEditable(true);
-        comboBoxAval.setForeground(new java.awt.Color(0, 0, 0));
         comboBoxAval.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DNI  U NOMBRE A BUSCAR DEL AVAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jComboBoxCuotas.setForeground(new java.awt.Color(0, 0, 0));
         jComboBoxCuotas.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24" }));
         jComboBoxCuotas.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CUOTAS", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        buttonRegisterLoan.setBackground(new java.awt.Color(0, 102, 0));
-        buttonRegisterLoan.setForeground(new java.awt.Color(255, 255, 255));
+        buttonRegisterLoan.setBackground(new java.awt.Color(0, 150, 136));
+        buttonRegisterLoan.setForeground(new java.awt.Color(0, 0, 0));
         buttonRegisterLoan.setText("REGISTRAR PRESTAMO");
 
-        textAmountLoan1.setForeground(new java.awt.Color(0, 0, 0));
         textAmountLoan1.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO REFINANCIADO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
-        textAmountLoan1.setCaretColor(new java.awt.Color(0, 0, 0));
 
         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
@@ -387,52 +379,42 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jPanel14.setBackground(new java.awt.Color(255, 255, 255));
         jPanel14.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "GENERAR DEMOSTRACIÓN", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jComboBoxCuotasDemonstration.setForeground(new java.awt.Color(0, 0, 0));
         jComboBoxCuotasDemonstration.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24" }));
         jComboBoxCuotasDemonstration.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CUOTAS", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jTextFieldMontoDemostration.setForeground(new java.awt.Color(0, 0, 0));
         jTextFieldMontoDemostration.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        textRefinanciamientoDemostration.setForeground(new java.awt.Color(0, 0, 0));
         textRefinanciamientoDemostration.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "REFINANCIAMIENTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
-        jPanel8.setBackground(new java.awt.Color(204, 204, 204));
+        jPanel8.setBackground(new java.awt.Color(255, 255, 255));
         jPanel8.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DETALLES DE LA DEMOSTRACIÓN", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jTextFieldCapitalMensual.setEditable(false);
-        jTextFieldCapitalMensual.setBackground(new java.awt.Color(204, 204, 204));
-        jTextFieldCapitalMensual.setForeground(new java.awt.Color(0, 0, 0));
+        jTextFieldCapitalMensual.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldCapitalMensual.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CAPITAL MENSUAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jTextFieldInteresMensual.setEditable(false);
-        jTextFieldInteresMensual.setBackground(new java.awt.Color(204, 204, 204));
-        jTextFieldInteresMensual.setForeground(new java.awt.Color(0, 0, 0));
+        jTextFieldInteresMensual.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldInteresMensual.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "INTERES MENSUAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jTextFieldMontoPrestar.setEditable(false);
-        jTextFieldMontoPrestar.setBackground(new java.awt.Color(204, 204, 204));
-        jTextFieldMontoPrestar.setForeground(new java.awt.Color(0, 0, 0));
+        jTextFieldMontoPrestar.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldMontoPrestar.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO SOLICITADO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jTextFieldMontoGirar.setEditable(false);
-        jTextFieldMontoGirar.setBackground(new java.awt.Color(204, 204, 204));
-        jTextFieldMontoGirar.setForeground(new java.awt.Color(0, 0, 0));
+        jTextFieldMontoGirar.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldMontoGirar.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "MONTO A GIRAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jTextFieldInteresTotal.setEditable(false);
-        jTextFieldInteresTotal.setBackground(new java.awt.Color(204, 204, 204));
-        jTextFieldInteresTotal.setForeground(new java.awt.Color(0, 0, 0));
+        jTextFieldInteresTotal.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldInteresTotal.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "INTERES TOTAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jTextFieldTotalPagar.setEditable(false);
-        jTextFieldTotalPagar.setBackground(new java.awt.Color(204, 204, 204));
-        jTextFieldTotalPagar.setForeground(new java.awt.Color(0, 0, 0));
+        jTextFieldTotalPagar.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldTotalPagar.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "TOTAL A PAGAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jTextFieldCuotaMensual.setEditable(false);
-        jTextFieldCuotaMensual.setBackground(new java.awt.Color(204, 204, 204));
-        jTextFieldCuotaMensual.setForeground(new java.awt.Color(0, 0, 0));
+        jTextFieldCuotaMensual.setBackground(new java.awt.Color(255, 255, 255));
         jTextFieldCuotaMensual.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CUOTA MENSUAL", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
@@ -471,13 +453,13 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 .addContainerGap())
         );
 
-        jButtonReportLiquidation.setBackground(new java.awt.Color(0, 153, 0));
-        jButtonReportLiquidation.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonReportLiquidation.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonReportLiquidation.setForeground(new java.awt.Color(0, 0, 0));
         jButtonReportLiquidation.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/excel.png"))); // NOI18N
         jButtonReportLiquidation.setText("REPORTE DE LIQUIDACIÓN");
 
-        jButtonCalcularDemo.setBackground(new java.awt.Color(0, 153, 204));
-        jButtonCalcularDemo.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonCalcularDemo.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonCalcularDemo.setForeground(new java.awt.Color(0, 0, 0));
         jButtonCalcularDemo.setText("CALCULAR DEMO");
 
         javax.swing.GroupLayout jPanel14Layout = new javax.swing.GroupLayout(jPanel14);
@@ -571,18 +553,18 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
         jPanel13.setBackground(new java.awt.Color(255, 255, 255));
         jPanel13.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
-        jButtonReporteCompromisoPago.setBackground(new java.awt.Color(102, 153, 0));
-        jButtonReporteCompromisoPago.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonReporteCompromisoPago.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonReporteCompromisoPago.setForeground(new java.awt.Color(0, 0, 0));
         jButtonReporteCompromisoPago.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
         jButtonReporteCompromisoPago.setText("DESCARGAR REPORTE DE COMPROMISO DE PAGO");
 
-        jButtonReporteCompromisoAval.setBackground(new java.awt.Color(102, 153, 0));
-        jButtonReporteCompromisoAval.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonReporteCompromisoAval.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonReporteCompromisoAval.setForeground(new java.awt.Color(0, 0, 0));
         jButtonReporteCompromisoAval.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
         jButtonReporteCompromisoAval.setText("DESCARGAR REPORTE COMPROMISO AVAL");
 
-        jButtonSolicitudLoan.setBackground(new java.awt.Color(102, 153, 0));
-        jButtonSolicitudLoan.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonSolicitudLoan.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonSolicitudLoan.setForeground(new java.awt.Color(0, 0, 0));
         jButtonSolicitudLoan.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/PDF.png"))); // NOI18N
         jButtonSolicitudLoan.setText("DESCARGAR SOLICITUD DE PRÉSTAMO");
 
@@ -610,6 +592,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
                 .addContainerGap(117, Short.MAX_VALUE))
         );
 
+        jLabel7.setForeground(new java.awt.Color(0, 0, 0));
         jLabel7.setText("INGRESAR EL NÚMERO DE SOLICITUD");
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
@@ -679,8 +662,8 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
             jTableLoanList.getColumnModel().getColumn(13).setMaxWidth(0);
         }
 
-        jButtonExcelList.setBackground(new java.awt.Color(0, 153, 0));
-        jButtonExcelList.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonExcelList.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonExcelList.setForeground(new java.awt.Color(0, 0, 0));
         jButtonExcelList.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/excel.png"))); // NOI18N
         jButtonExcelList.setText("EXPORTAR A EXCEL");
 
@@ -779,6 +762,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
             .addGap(0, 30, Short.MAX_VALUE)
         );
 
+        jLabel3.setForeground(new java.awt.Color(0, 0, 0));
         jLabel3.setText("PENDIENTE");
 
         jPanel10.setBackground(new java.awt.Color(0, 153, 0));
@@ -795,6 +779,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
             .addGap(0, 30, Short.MAX_VALUE)
         );
 
+        jLabel4.setForeground(new java.awt.Color(0, 0, 0));
         jLabel4.setText("ACEPTADO");
 
         jPanel11.setBackground(new java.awt.Color(204, 51, 0));
@@ -811,6 +796,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
             .addGap(0, 30, Short.MAX_VALUE)
         );
 
+        jLabel5.setForeground(new java.awt.Color(0, 0, 0));
         jLabel5.setText("DENEGADO");
 
         jPanel12.setBackground(new java.awt.Color(255, 204, 153));
@@ -827,6 +813,7 @@ public class ComponentManageLoan extends javax.swing.JInternalFrame {
             .addGap(0, 30, Short.MAX_VALUE)
         );
 
+        jLabel6.setForeground(new java.awt.Color(0, 0, 0));
         jLabel6.setText("REFINANCIADO");
 
         javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);

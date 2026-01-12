@@ -72,17 +72,21 @@ public class ComponentManageUser extends javax.swing.JInternalFrame {
 
         jPasswordFieldRepitaContrase.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "REPITA UNA CONTRASEÑA", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
+        jButtonRegisterUser.setBackground(new java.awt.Color(0, 150, 136));
+        jButtonRegisterUser.setForeground(new java.awt.Color(0, 0, 0));
         jButtonRegisterUser.setText("REGISTRO DE USUARIO");
 
-        jTextFieldUserBlock.setBorder(javax.swing.BorderFactory.createTitledBorder("INSERTE NOMBRE DE USUARIO PARA BLOQUEAR O ACTIVAR"));
+        jTextFieldUserBlock.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "INSERTE NOMBRE DE USUARIO PARA BLOQUEAR O ACTIVAR", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
         jButtonBloquiarUser.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/renuncia.png"))); // NOI18N
 
         jComboBoxBuscarEmpleado.setEditable(true);
         jComboBoxBuscarEmpleado.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "BUSCAR NOMBRE DE EMPLEADO U DNI", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
 
+        jLabel1.setForeground(new java.awt.Color(0, 0, 0));
         jLabel1.setText("DNI :");
 
+        jLabel2.setForeground(new java.awt.Color(0, 0, 0));
         jLabel2.setText("NOMBRE :");
 
         jComboBoxState.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "ADMINISTRADOR", "NORMAL" }));

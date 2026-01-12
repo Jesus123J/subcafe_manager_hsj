@@ -65,6 +65,20 @@
 	<field name="total_var" class="java.lang.String"/>
 	<field name="section_var" class="java.lang.String"/>
 	<field name="detalles" class="java.util.List"/>
+	<group name="SectionGroup">
+		<groupExpression><![CDATA[$F{section_var}]]></groupExpression>
+		<groupHeader>
+			<band height="30">
+				<textField>
+					<reportElement x="0" y="0" width="555" height="30" uuid="a1b2c3d4-e5f6-7890-abcd-ef1234567890"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font size="14" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{section_var}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
@@ -102,10 +116,10 @@
 		</band>
 	</title>
 	<detail>
-		<band height="235" splitType="Stretch">
+		<band height="205" splitType="Stretch">
 			<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.FreeLayout"/>
 			<frame>
-				<reportElement x="0" y="40" width="555" height="30" uuid="9caa24dd-5105-4389-86ca-5da481a55d50"/>
+				<reportElement x="0" y="0" width="555" height="30" uuid="9caa24dd-5105-4389-86ca-5da481a55d50"/>
 				<frame>
 					<reportElement mode="Opaque" x="0" y="0" width="555" height="30" backcolor="#0A0101" uuid="e6468329-fa34-4498-b3e2-6db5f70ea8d3">
 						<property name="com.jaspersoft.studio.unit.width" value="px"/>
@@ -127,47 +141,40 @@
 					</textField>
 				</frame>
 			</frame>
-			<textField>
-				<reportElement x="0" y="10" width="180" height="20" uuid="6978fd39-4e8a-403d-a689-3b29d52e40d3"/>
-				<textElement textAlignment="Left" verticalAlignment="Middle">
-					<font size="12" isBold="true"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{section_var}]]></textFieldExpression>
-			</textField>
 			<staticText>
-				<reportElement x="0" y="80" width="78" height="19" uuid="9b7e1d2a-7a0e-4896-973b-84335d9f99d0"/>
+				<reportElement x="0" y="40" width="78" height="19" uuid="9b7e1d2a-7a0e-4896-973b-84335d9f99d0"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle"/>
 				<text><![CDATA[Num. Solicitud :]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="0" y="105" width="124" height="17" uuid="af576702-fe4f-46d9-89e1-b3ed64bdab55"/>
+				<reportElement x="0" y="65" width="124" height="17" uuid="af576702-fe4f-46d9-89e1-b3ed64bdab55"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle"/>
 				<text><![CDATA[Num. Cuotas Pendientes :]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="0" y="130" width="70" height="15" uuid="5874808c-22df-491f-b0e3-5e0d12581c75">
+				<reportElement x="0" y="90" width="70" height="15" uuid="5874808c-22df-491f-b0e3-5e0d12581c75">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Left" verticalAlignment="Middle"/>
 				<text><![CDATA[Vencimiento :]]></text>
 			</staticText>
 			<textField>
-				<reportElement x="78" y="80" width="131" height="19" uuid="46a3d7a7-5363-4f17-9ec7-b1f27eb9e434"/>
+				<reportElement x="78" y="40" width="131" height="19" uuid="46a3d7a7-5363-4f17-9ec7-b1f27eb9e434"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle"/>
 				<textFieldExpression><![CDATA[$F{num_solicitud_var}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="124" y="106" width="183" height="16" uuid="8fccc129-5478-4e99-b711-316d27fe4801"/>
+				<reportElement x="124" y="66" width="183" height="16" uuid="8fccc129-5478-4e99-b711-316d27fe4801"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle"/>
 				<textFieldExpression><![CDATA[$F{num_cuotas_pendiente_var}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="70" y="130" width="156" height="15" uuid="e7cdff11-74ba-406e-876b-b9ae931f0011"/>
+				<reportElement x="70" y="90" width="156" height="15" uuid="e7cdff11-74ba-406e-876b-b9ae931f0011"/>
 				<textElement textAlignment="Left" verticalAlignment="Middle"/>
 				<textFieldExpression><![CDATA[$F{vencimiento_information_var}]]></textFieldExpression>
 			</textField>
 			<frame>
-				<reportElement x="0" y="150" width="555" height="60" uuid="2dfa5b20-a9e6-44a6-b679-8054a24ec35d"/>
+				<reportElement x="0" y="110" width="555" height="60" uuid="2dfa5b20-a9e6-44a6-b679-8054a24ec35d"/>
 				<componentElement>
 					<reportElement x="0" y="0" width="555" height="60" uuid="d67c2b0e-d3d4-4e52-b319-6d588575ab0e">
 						<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.VerticalRowLayout"/>
@@ -247,7 +254,7 @@
 				</componentElement>
 			</frame>
 			<textField>
-				<reportElement positionType="Float" x="300" y="220" width="255" height="15" uuid="a3bcfd97-0268-4aa3-936d-aec22839e36a">
+				<reportElement positionType="Float" x="300" y="180" width="255" height="15" uuid="a3bcfd97-0268-4aa3-936d-aec22839e36a">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Right" verticalAlignment="Middle"/>

@@ -148,18 +148,18 @@ public class ReporteAbono {
                 panelPrincipal.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20));
                 panelPrincipal.setPreferredSize(new java.awt.Dimension(480, 320));
 
-                // Panel de información superior con estilo
+                // Panel de información superior con estilo (compatible con tema oscuro)
                 javax.swing.JPanel panelInfo = new javax.swing.JPanel();
                 panelInfo.setLayout(new java.awt.BorderLayout(5, 10));
-                panelInfo.setBackground(new java.awt.Color(240, 248, 255));
+                panelInfo.setBackground(new java.awt.Color(50, 55, 60));
                 panelInfo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                    javax.swing.BorderFactory.createLineBorder(new java.awt.Color(70, 130, 180), 1),
+                    javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 122, 204), 1),
                     javax.swing.BorderFactory.createEmptyBorder(12, 15, 12, 15)
                 ));
 
                 javax.swing.JLabel lblTitulo = new javax.swing.JLabel(
                     "<html><div style='text-align: center;'>" +
-                    "<span style='font-size: 13px; font-weight: bold; color: #2c3e50;'>" +
+                    "<span style='font-size: 13px; font-weight: bold; color: #E0E0E0;'>" +
                     "FILTRAR ABONOS POR FECHA DE CREACIÓN</span></div></html>"
                 );
                 lblTitulo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -167,10 +167,10 @@ public class ReporteAbono {
 
                 javax.swing.JLabel lblDescripcion = new javax.swing.JLabel(
                     "<html><div style='margin-top: 8px; text-align: center;'>" +
-                    "<p style='font-size: 11px; color: #34495e;'>Se mostrarán los abonos del concepto:</p>" +
-                    "<p style='font-size: 12px; font-weight: bold; color: #2980b9; margin: 8px 0;'>" +
+                    "<p style='font-size: 11px; color: #B0B0B0;'>Se mostrarán los abonos del concepto:</p>" +
+                    "<p style='font-size: 12px; font-weight: bold; color: #64B5F6; margin: 8px 0;'>" +
                     "\"" + service.getDescription() + "\"</p>" +
-                    "<p style='font-size: 11px; color: #34495e;'>" +
+                    "<p style='font-size: 11px; color: #B0B0B0;'>" +
                     "Registrados en el <b>mes y año</b> de la fecha que seleccione.</p></div></html>"
                 );
                 lblDescripcion.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -178,17 +178,17 @@ public class ReporteAbono {
 
                 panelPrincipal.add(panelInfo, java.awt.BorderLayout.NORTH);
 
-                // Panel central con el selector de fecha
+                // Panel central con el selector de fecha (compatible con tema oscuro)
                 javax.swing.JPanel panelFecha = new javax.swing.JPanel();
                 panelFecha.setLayout(new java.awt.GridBagLayout());
                 panelFecha.setBorder(javax.swing.BorderFactory.createCompoundBorder(
                     javax.swing.BorderFactory.createTitledBorder(
-                        javax.swing.BorderFactory.createEtchedBorder(),
+                        javax.swing.BorderFactory.createLineBorder(new java.awt.Color(80, 85, 90)),
                         " Seleccione la Fecha ",
                         javax.swing.border.TitledBorder.CENTER,
                         javax.swing.border.TitledBorder.TOP,
                         new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12),
-                        new java.awt.Color(52, 73, 94)
+                        new java.awt.Color(180, 180, 180)
                     ),
                     javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)
                 ));
@@ -217,12 +217,12 @@ public class ReporteAbono {
                 gbc.gridy = 0;
                 panelFecha.add(dateChooser, gbc);
 
-                // Nota informativa
+                // Nota informativa (compatible con tema oscuro)
                 javax.swing.JLabel lblNota = new javax.swing.JLabel(
                     "<html><div style='text-align: center; margin-top: 10px;'>" +
-                    "<p style='color: #7f8c8d; font-size: 10px;'><i>" +
+                    "<p style='color: #909090; font-size: 10px;'><i>" +
                     "Ejemplo: Si selecciona 15/03/2025, se mostrarán</i></p>" +
-                    "<p style='color: #7f8c8d; font-size: 10px;'><i>" +
+                    "<p style='color: #909090; font-size: 10px;'><i>" +
                     "todos los abonos creados en Marzo 2025</i></p></div></html>"
                 );
                 gbc.gridx = 0;
