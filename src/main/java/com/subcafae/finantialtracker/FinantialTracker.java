@@ -39,13 +39,13 @@ public class FinantialTracker {
         try {
             // Intentar usar FlatLaf si está disponible
             Class<?> flatRobotoClass = Class.forName("com.formdev.flatlaf.fonts.roboto.FlatRobotoFont");
-            Class<?> flatMacDarkClass = Class.forName("com.formdev.flatlaf.themes.FlatMacDarkLaf");
+            Class<?> flatMacLightClass = Class.forName("com.formdev.flatlaf.themes.FlatMacLightLaf");
 
             // Instalar fuente Roboto
             flatRobotoClass.getMethod("install").invoke(null);
 
-            // Configurar tema FlatMacDarkLaf
-            flatMacDarkClass.getMethod("setup").invoke(null);
+            // Configurar tema FlatMacLightLaf (tema claro)
+            flatMacLightClass.getMethod("setup").invoke(null);
 
             // Obtener el nombre de la familia de fuentes
             String fontFamily = (String) flatRobotoClass.getField("FAMILY").get(null);

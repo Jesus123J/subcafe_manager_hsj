@@ -2411,4 +2411,1097 @@ public class ModelMain {
 
         viewMain.loading.setVisible(true);
     }
+
+    /**
+     * Método para editar un pago existente
+     * Permite buscar un registro por código, ver detalles completos, modificar montos,
+     * agregar nuevos préstamos/abonos y reorganizar la distribución del pago
+     */
+    @SuppressWarnings("unchecked")
+    public void editarPago() {
+        // Solicitar código de pago
+        String codigoPago = JOptionPane.showInputDialog(
+            viewMain,
+            "<html><body style='width: 350px;'>" +
+            "<h3 style='color:#2980B9;'>EDITAR PAGO</h3>" +
+            "<p>Ingrese el código del pago a editar:</p>" +
+            "<p style='color:gray;'><i>Ejemplo: P/0001-00000123</i></p>" +
+            "</body></html>",
+            "BUSCAR PAGO",
+            JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (codigoPago == null || codigoPago.trim().isEmpty()) {
+            return;
+        }
+
+        viewMain.loading.setModal(true);
+        viewMain.loading.setLocationRelativeTo(viewMain);
+
+        final String codigoFinal = codigoPago.trim();
+
+        new Thread(() -> {
+            try {
+                com.subcafae.finantialtracker.data.dao.RegistroDao registroDao =
+                    new com.subcafae.finantialtracker.data.dao.RegistroDao();
+
+                // Buscar el registro por código
+                java.util.Optional<com.subcafae.finantialtracker.data.entity.RegistroTb> registroOpt =
+                    registroDao.findByCodigo(codigoFinal);
+
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+
+                    if (!registroOpt.isPresent()) {
+                        JOptionPane.showMessageDialog(viewMain,
+                            "<html><body>" +
+                            "<h3 style='color:#E74C3C;'>PAGO NO ENCONTRADO</h3>" +
+                            "<p>No se encontró ningún pago con el código: <b>" + codigoFinal + "</b></p>" +
+                            "</body></html>",
+                            "ERROR", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+
+                    com.subcafae.finantialtracker.data.entity.RegistroTb registro = registroOpt.get();
+
+                    // Obtener detalles completos del pago
+                    java.util.Map<String, Object> detalles = registroDao.obtenerDetallesCompletoPago(registro.getId());
+                    java.util.List<Object[]> detallesPrestamos = (java.util.List<Object[]>) detalles.get("prestamos");
+                    java.util.List<Object[]> detallesAbonos = (java.util.List<Object[]>) detalles.get("abonos");
+                    String empleadoNombre = (String) detalles.get("empleadoNombre");
+                    String empleadoDni = (String) detalles.get("empleadoDni");
+                    int empleadoId = (int) detalles.get("empleadoId");
+
+                    // Calcular monto distribuido y disponible
+                    double montoDistribuido = 0;
+                    for (Object[] p : detallesPrestamos) {
+                        montoDistribuido += (double) p[4]; // amountPar
+                    }
+                    for (Object[] a : detallesAbonos) {
+                        montoDistribuido += (double) a[5]; // amountPar
+                    }
+                    double montoDisponible = registro.getAmount() - montoDistribuido;
+
+                    // Crear diálogo principal
+                    javax.swing.JDialog dialogo = new javax.swing.JDialog(viewMain, "EDITAR PAGO - " + codigoFinal, true);
+                    dialogo.setLayout(new java.awt.BorderLayout(10, 10));
+
+                    // Panel superior - Información del registro
+                    javax.swing.JPanel panelInfo = new javax.swing.JPanel(new java.awt.BorderLayout());
+                    panelInfo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                        javax.swing.BorderFactory.createTitledBorder("INFORMACIÓN DEL PAGO"),
+                        javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
+                    ));
+
+                    StringBuilder infoHtml = new StringBuilder();
+                    infoHtml.append("<html><body>");
+                    infoHtml.append("<table cellpadding='3'>");
+                    infoHtml.append("<tr><td><b>Código:</b></td><td>").append(registro.getCodigo()).append("</td>");
+                    infoHtml.append("<td width='30'></td>");
+                    infoHtml.append("<td><b>Empleado:</b></td><td>").append(empleadoNombre).append(" (").append(empleadoDni).append(")</td></tr>");
+                    infoHtml.append("<tr><td><b>Monto Total:</b></td><td style='color:#27AE60;'><b>S/ ").append(String.format("%.2f", registro.getAmount())).append("</b></td>");
+                    infoHtml.append("<td></td>");
+                    infoHtml.append("<td><b>Distribuido:</b></td><td style='color:#2980B9;'>S/ ").append(String.format("%.2f", montoDistribuido)).append("</td></tr>");
+                    infoHtml.append("<tr><td><b>Fecha:</b></td><td>").append(registro.getFechaRegistro()).append("</td>");
+                    infoHtml.append("<td></td>");
+                    if (montoDisponible > 0.01) {
+                        infoHtml.append("<td><b>Disponible:</b></td><td style='color:#E74C3C;'><b>S/ ").append(String.format("%.2f", montoDisponible)).append("</b></td></tr>");
+                    } else {
+                        infoHtml.append("<td><b>Disponible:</b></td><td style='color:#27AE60;'>S/ 0.00</td></tr>");
+                    }
+                    infoHtml.append("</table></body></html>");
+
+                    javax.swing.JLabel lblInfo = new javax.swing.JLabel(infoHtml.toString());
+                    panelInfo.add(lblInfo, java.awt.BorderLayout.CENTER);
+
+                    // Label para mostrar monto disponible (se actualiza dinámicamente)
+                    final javax.swing.JLabel lblMontoDisponible = new javax.swing.JLabel();
+                    actualizarLabelMontoDisponible(lblMontoDisponible, registro.getAmount(), montoDistribuido);
+
+                    // Panel central - Tabla de detalles
+                    javax.swing.JPanel panelTabla = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+                    panelTabla.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                        javax.swing.BorderFactory.createTitledBorder("DETALLES DEL PAGO (Cuotas asignadas)"),
+                        javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
+                    ));
+
+                    // Columnas: Sel, Tipo, Solicitud, Cuota, Debe Pagar, Total Pagado Cuota, Este Registro, Nuevo Monto, Estado
+                    String[] columnas = {"Sel", "Tipo", "Solicitud", "Cuota", "Debe Pagar", "Pagado Cuota", "Este Pago", "Nuevo Monto", "Estado"};
+
+                    // Lista para mantener referencia a los detalles originales
+                    final java.util.List<Object[]> todosDetalles = new java.util.ArrayList<>();
+                    final java.util.List<String> tiposDetalles = new java.util.ArrayList<>();
+
+                    // Agregar préstamos
+                    for (Object[] p : detallesPrestamos) {
+                        // p: [SoliNum, Dues, MonthlyFeeValue, totalPagadoCuota, amountPar, rdId, ldId, State]
+                        todosDetalles.add(new Object[]{
+                            Boolean.FALSE,                              // 0: Checkbox
+                            "PRÉSTAMO",                                 // 1: Tipo
+                            p[0],                                       // 2: SoliNum
+                            p[1],                                       // 3: Cuota
+                            String.format("%.2f", p[2]),               // 4: Debe Pagar (MonthlyFeeValue)
+                            String.format("%.2f", p[3]),               // 5: Total Pagado en Cuota
+                            String.format("%.2f", p[4]),               // 6: Este Pago (amountPar)
+                            String.format("%.2f", p[4]),               // 7: Nuevo Monto (editable)
+                            p[7],                                       // 8: Estado
+                            p[5],                                       // 9: rdId (oculto)
+                            p[6],                                       // 10: ldId (oculto)
+                            p[2],                                       // 11: MonthlyFeeValue original (oculto)
+                            p[4]                                        // 12: amountPar original (oculto)
+                        });
+                        tiposDetalles.add("PRESTAMO");
+                    }
+
+                    // Agregar abonos
+                    for (Object[] a : detallesAbonos) {
+                        // a: [SoliNum, concepto, dues, monthly, totalPagadoCuota, amountPar, rdId, adId, state]
+                        String solicitudConcepto = a[0] + " - " + a[1];
+                        todosDetalles.add(new Object[]{
+                            Boolean.FALSE,                              // 0: Checkbox
+                            "ABONO",                                    // 1: Tipo
+                            solicitudConcepto,                          // 2: SoliNum + Concepto
+                            a[2],                                       // 3: Cuota
+                            String.format("%.2f", a[3]),               // 4: Debe Pagar (monthly)
+                            String.format("%.2f", a[4]),               // 5: Total Pagado en Cuota
+                            String.format("%.2f", a[5]),               // 6: Este Pago (amountPar)
+                            String.format("%.2f", a[5]),               // 7: Nuevo Monto (editable)
+                            a[8],                                       // 8: Estado
+                            a[6],                                       // 9: rdId (oculto)
+                            a[7],                                       // 10: adId (oculto)
+                            a[3],                                       // 11: monthly original (oculto)
+                            a[5]                                        // 12: amountPar original (oculto)
+                        });
+                        tiposDetalles.add("ABONO");
+                    }
+
+                    Object[][] datosTabla = new Object[todosDetalles.size()][9];
+                    for (int i = 0; i < todosDetalles.size(); i++) {
+                        Object[] det = todosDetalles.get(i);
+                        for (int j = 0; j < 9; j++) {
+                            datosTabla[i][j] = det[j];
+                        }
+                    }
+
+                    javax.swing.table.DefaultTableModel modeloTabla = new javax.swing.table.DefaultTableModel(datosTabla, columnas) {
+                        @Override
+                        public boolean isCellEditable(int row, int column) {
+                            return column == 0 || column == 7; // Solo checkbox y nuevo monto
+                        }
+                        @Override
+                        public Class<?> getColumnClass(int columnIndex) {
+                            if (columnIndex == 0) return Boolean.class;
+                            return String.class;
+                        }
+                    };
+
+                    javax.swing.JTable tablaDetalles = new javax.swing.JTable(modeloTabla);
+                    tablaDetalles.setRowHeight(25);
+                    tablaDetalles.getTableHeader().setReorderingAllowed(false);
+
+                    // Configurar anchos de columnas
+                    tablaDetalles.getColumnModel().getColumn(0).setPreferredWidth(30);   // Sel
+                    tablaDetalles.getColumnModel().getColumn(1).setPreferredWidth(70);   // Tipo
+                    tablaDetalles.getColumnModel().getColumn(2).setPreferredWidth(120);  // Solicitud
+                    tablaDetalles.getColumnModel().getColumn(3).setPreferredWidth(50);   // Cuota
+                    tablaDetalles.getColumnModel().getColumn(4).setPreferredWidth(80);   // Debe Pagar
+                    tablaDetalles.getColumnModel().getColumn(5).setPreferredWidth(90);   // Pagado Cuota
+                    tablaDetalles.getColumnModel().getColumn(6).setPreferredWidth(80);   // Este Pago
+                    tablaDetalles.getColumnModel().getColumn(7).setPreferredWidth(90);   // Nuevo Monto
+                    tablaDetalles.getColumnModel().getColumn(8).setPreferredWidth(70);   // Estado
+
+                    // Colorear filas según estado
+                    tablaDetalles.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+                        @Override
+                        public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                                boolean isSelected, boolean hasFocus, int row, int column) {
+                            java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                            if (!isSelected) {
+                                String estado = (String) table.getValueAt(row, 8);
+                                if ("Pagado".equals(estado)) {
+                                    c.setBackground(new java.awt.Color(212, 239, 223)); // Verde claro
+                                } else if ("Parcial".equals(estado)) {
+                                    c.setBackground(new java.awt.Color(254, 249, 231)); // Amarillo claro
+                                } else {
+                                    c.setBackground(new java.awt.Color(253, 237, 236)); // Rojo claro
+                                }
+                            }
+                            return c;
+                        }
+                    });
+
+                    javax.swing.JScrollPane scrollTabla = new javax.swing.JScrollPane(tablaDetalles);
+                    scrollTabla.setPreferredSize(new java.awt.Dimension(750, 200));
+                    panelTabla.add(scrollTabla, java.awt.BorderLayout.CENTER);
+
+                    // Panel de resumen bajo la tabla
+                    javax.swing.JPanel panelResumen = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+                    panelResumen.add(lblMontoDisponible);
+                    panelTabla.add(panelResumen, java.awt.BorderLayout.SOUTH);
+
+                    // Panel de botones de acciones
+                    javax.swing.JPanel panelAcciones = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 10));
+
+                    javax.swing.JButton btnAgregarPrestamo = new javax.swing.JButton("+ Agregar Préstamo");
+                    btnAgregarPrestamo.setBackground(new java.awt.Color(52, 152, 219));
+                    btnAgregarPrestamo.setForeground(java.awt.Color.WHITE);
+
+                    javax.swing.JButton btnAgregarAbono = new javax.swing.JButton("+ Agregar Abono");
+                    btnAgregarAbono.setBackground(new java.awt.Color(155, 89, 182));
+                    btnAgregarAbono.setForeground(java.awt.Color.WHITE);
+
+                    javax.swing.JButton btnGuardar = new javax.swing.JButton("Guardar Cambios");
+                    btnGuardar.setBackground(new java.awt.Color(39, 174, 96));
+                    btnGuardar.setForeground(java.awt.Color.WHITE);
+
+                    javax.swing.JButton btnEliminar = new javax.swing.JButton("Eliminar Seleccionados");
+                    btnEliminar.setBackground(new java.awt.Color(231, 76, 60));
+                    btnEliminar.setForeground(java.awt.Color.WHITE);
+
+                    javax.swing.JButton btnCancelar = new javax.swing.JButton("Cerrar");
+
+                    panelAcciones.add(btnAgregarPrestamo);
+                    panelAcciones.add(btnAgregarAbono);
+                    panelAcciones.add(btnGuardar);
+                    panelAcciones.add(btnEliminar);
+                    panelAcciones.add(btnCancelar);
+
+                    // Agregar paneles al diálogo
+                    dialogo.add(panelInfo, java.awt.BorderLayout.NORTH);
+                    dialogo.add(panelTabla, java.awt.BorderLayout.CENTER);
+                    dialogo.add(panelAcciones, java.awt.BorderLayout.SOUTH);
+
+                    // Eventos
+                    btnCancelar.addActionListener(ev -> dialogo.dispose());
+
+                    // Botón Agregar Préstamo
+                    btnAgregarPrestamo.addActionListener(ev -> {
+                        mostrarDialogoAgregarPrestamo(dialogo, registroDao, registro.getId(), empleadoId,
+                            modeloTabla, todosDetalles, tiposDetalles, registro.getAmount(), lblMontoDisponible);
+                    });
+
+                    // Botón Agregar Abono
+                    btnAgregarAbono.addActionListener(ev -> {
+                        mostrarDialogoAgregarAbono(dialogo, registroDao, registro.getId(), empleadoId,
+                            modeloTabla, todosDetalles, tiposDetalles, registro.getAmount(), lblMontoDisponible);
+                    });
+
+                    // Botón Guardar Cambios
+                    btnGuardar.addActionListener(ev -> {
+                        try {
+                            // Calcular suma de nuevos montos
+                            double sumaMontos = 0;
+                            for (int i = 0; i < modeloTabla.getRowCount(); i++) {
+                                String montoStr = modeloTabla.getValueAt(i, 7).toString().replace(",", ".");
+                                sumaMontos += Double.parseDouble(montoStr);
+                            }
+
+                            if (sumaMontos > registro.getAmount() + 0.01) {
+                                JOptionPane.showMessageDialog(dialogo,
+                                    "<html><body>" +
+                                    "<p style='color:#E74C3C;'>La suma de los montos (S/ " + String.format("%.2f", sumaMontos) +
+                                    ") excede el monto total del registro (S/ " + String.format("%.2f", registro.getAmount()) + ")</p>" +
+                                    "</body></html>",
+                                    "ERROR DE VALIDACIÓN", JOptionPane.ERROR_MESSAGE);
+                                return;
+                            }
+
+                            String motivo = JOptionPane.showInputDialog(dialogo,
+                                "Ingrese el motivo de la edición:",
+                                "MOTIVO DE EDICIÓN",
+                                JOptionPane.QUESTION_MESSAGE);
+
+                            if (motivo == null || motivo.trim().isEmpty()) {
+                                JOptionPane.showMessageDialog(dialogo,
+                                    "Debe ingresar un motivo para la edición.",
+                                    "MOTIVO REQUERIDO", JOptionPane.WARNING_MESSAGE);
+                                return;
+                            }
+
+                            String usuario = (usser != null && usser.getUsername() != null) ? usser.getUsername() : "SISTEMA";
+                            int actualizados = 0;
+
+                            for (int i = 0; i < modeloTabla.getRowCount(); i++) {
+                                if (i >= todosDetalles.size()) continue;
+
+                                Object[] detalleOriginal = todosDetalles.get(i);
+                                String tipo = modeloTabla.getValueAt(i, 1).toString();
+
+                                // Obtener monto original y nuevo
+                                double montoOriginal = ((Number) detalleOriginal[12]).doubleValue();
+                                String montoNuevoStr = modeloTabla.getValueAt(i, 7).toString().replace(",", ".");
+                                double montoNuevo = Double.parseDouble(montoNuevoStr);
+
+                                // Solo actualizar si el monto cambió
+                                if (Math.abs(montoOriginal - montoNuevo) > 0.001) {
+                                    long rdId = ((Number) detalleOriginal[9]).longValue();
+
+                                    boolean resultado = registroDao.actualizarMontoDetallePago(
+                                        rdId,
+                                        tipo.equals("PRÉSTAMO"),
+                                        montoOriginal,
+                                        montoNuevo,
+                                        usuario,
+                                        motivo
+                                    );
+
+                                    if (resultado) {
+                                        actualizados++;
+                                        // Actualizar el valor original en la lista
+                                        detalleOriginal[12] = montoNuevo;
+                                        modeloTabla.setValueAt(String.format("%.2f", montoNuevo), i, 6);
+                                    }
+                                }
+                            }
+
+                            if (actualizados > 0) {
+                                JOptionPane.showMessageDialog(dialogo,
+                                    "<html><body>" +
+                                    "<h3 style='color:#27AE60;'>CAMBIOS GUARDADOS</h3>" +
+                                    "<p>Se actualizaron " + actualizados + " detalles de pago.</p>" +
+                                    "</body></html>",
+                                    "ÉXITO", JOptionPane.INFORMATION_MESSAGE);
+
+                                // Actualizar monto disponible
+                                double nuevoDistribuido = calcularMontoDistribuido(modeloTabla);
+                                actualizarLabelMontoDisponible(lblMontoDisponible, registro.getAmount(), nuevoDistribuido);
+                            } else {
+                                JOptionPane.showMessageDialog(dialogo,
+                                    "No se detectaron cambios en los montos.",
+                                    "SIN CAMBIOS", JOptionPane.INFORMATION_MESSAGE);
+                            }
+
+                        } catch (NumberFormatException ex) {
+                            JOptionPane.showMessageDialog(dialogo,
+                                "Error en formato de número. Verifique los montos ingresados.",
+                                "ERROR", JOptionPane.ERROR_MESSAGE);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                            JOptionPane.showMessageDialog(dialogo,
+                                "Error al guardar cambios: " + ex.getMessage(),
+                                "ERROR", JOptionPane.ERROR_MESSAGE);
+                        }
+                    });
+
+                    // Botón Eliminar Seleccionados
+                    btnEliminar.addActionListener(ev -> {
+                        java.util.List<Integer> filasSeleccionadas = new java.util.ArrayList<>();
+                        for (int i = 0; i < modeloTabla.getRowCount(); i++) {
+                            Boolean seleccionado = (Boolean) modeloTabla.getValueAt(i, 0);
+                            if (seleccionado != null && seleccionado) {
+                                filasSeleccionadas.add(i);
+                            }
+                        }
+
+                        if (filasSeleccionadas.isEmpty()) {
+                            JOptionPane.showMessageDialog(dialogo,
+                                "Debe seleccionar al menos un detalle para eliminar.",
+                                "SELECCIÓN REQUERIDA", JOptionPane.WARNING_MESSAGE);
+                            return;
+                        }
+
+                        int confirmar = JOptionPane.showConfirmDialog(dialogo,
+                            "<html><body>" +
+                            "<p style='color:#E74C3C;'>¿Está seguro de eliminar " + filasSeleccionadas.size() + " detalle(s)?</p>" +
+                            "<p><i>Esta acción revertirá el pago en las cuotas seleccionadas.</i></p>" +
+                            "</body></html>",
+                            "CONFIRMAR ELIMINACIÓN",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.WARNING_MESSAGE);
+
+                        if (confirmar != JOptionPane.YES_OPTION) {
+                            return;
+                        }
+
+                        String motivo = JOptionPane.showInputDialog(dialogo,
+                            "Ingrese el motivo de la eliminación:",
+                            "MOTIVO DE ELIMINACIÓN",
+                            JOptionPane.QUESTION_MESSAGE);
+
+                        if (motivo == null || motivo.trim().isEmpty()) {
+                            return;
+                        }
+
+                        String usuario = (usser != null && usser.getUsername() != null) ? usser.getUsername() : "SISTEMA";
+                        int eliminados = 0;
+
+                        for (int i = filasSeleccionadas.size() - 1; i >= 0; i--) {
+                            int fila = filasSeleccionadas.get(i);
+                            if (fila >= todosDetalles.size()) continue;
+
+                            Object[] detalleOriginal = todosDetalles.get(fila);
+                            String tipo = tiposDetalles.get(fila);
+                            long rdId = ((Number) detalleOriginal[9]).longValue();
+                            double monto = ((Number) detalleOriginal[12]).doubleValue();
+
+                            boolean resultado = registroDao.eliminarDetallePago(
+                                rdId,
+                                tipo.equals("PRESTAMO"),
+                                monto,
+                                usuario,
+                                motivo
+                            );
+
+                            if (resultado) {
+                                modeloTabla.removeRow(fila);
+                                todosDetalles.remove(fila);
+                                tiposDetalles.remove(fila);
+                                eliminados++;
+                            }
+                        }
+
+                        if (eliminados > 0) {
+                            JOptionPane.showMessageDialog(dialogo,
+                                "<html><body>" +
+                                "<h3 style='color:#27AE60;'>DETALLES ELIMINADOS</h3>" +
+                                "<p>Se eliminaron " + eliminados + " detalle(s) de pago.</p>" +
+                                "</body></html>",
+                                "ÉXITO", JOptionPane.INFORMATION_MESSAGE);
+
+                            // Actualizar monto disponible
+                            double nuevoDistribuido = calcularMontoDistribuido(modeloTabla);
+                            actualizarLabelMontoDisponible(lblMontoDisponible, registro.getAmount(), nuevoDistribuido);
+                        }
+                    });
+
+                    dialogo.pack();
+                    dialogo.setMinimumSize(new java.awt.Dimension(800, 500));
+                    dialogo.setLocationRelativeTo(viewMain);
+                    dialogo.setVisible(true);
+                });
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    viewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(viewMain,
+                        "Error al buscar el pago: " + ex.getMessage(),
+                        "ERROR", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
+
+        viewMain.loading.setVisible(true);
+    }
+
+    /**
+     * Actualiza el label de monto disponible
+     */
+    private void actualizarLabelMontoDisponible(javax.swing.JLabel label, double montoTotal, double montoDistribuido) {
+        double disponible = montoTotal - montoDistribuido;
+        String color = disponible > 0.01 ? "#E74C3C" : "#27AE60";
+        label.setText("<html><b>Monto Distribuido:</b> S/ " + String.format("%.2f", montoDistribuido) +
+            " | <b style='color:" + color + ";'>Disponible: S/ " + String.format("%.2f", disponible) + "</b></html>");
+    }
+
+    /**
+     * Calcula el monto distribuido sumando la columna de nuevo monto
+     */
+    private double calcularMontoDistribuido(javax.swing.table.DefaultTableModel modelo) {
+        double suma = 0;
+        for (int i = 0; i < modelo.getRowCount(); i++) {
+            String montoStr = modelo.getValueAt(i, 7).toString().replace(",", ".");
+            try {
+                suma += Double.parseDouble(montoStr);
+            } catch (NumberFormatException e) {
+                // Ignorar
+            }
+        }
+        return suma;
+    }
+
+    /**
+     * Muestra diálogo para agregar un préstamo al registro
+     * Permite buscar por código de solicitud y muestra TODAS las cuotas (incluyendo pagadas)
+     */
+    @SuppressWarnings("unchecked")
+    private void mostrarDialogoAgregarPrestamo(javax.swing.JDialog dialogoPadre,
+            com.subcafae.finantialtracker.data.dao.RegistroDao registroDao,
+            int registroId, int empleadoId,
+            javax.swing.table.DefaultTableModel modeloTabla,
+            java.util.List<Object[]> todosDetalles,
+            java.util.List<String> tiposDetalles,
+            double montoTotalRegistro,
+            javax.swing.JLabel lblMontoDisponible) {
+
+        // Crear diálogo
+        javax.swing.JDialog dialogoAgregar = new javax.swing.JDialog(dialogoPadre, "AGREGAR/TRANSFERIR PRÉSTAMO", true);
+        dialogoAgregar.setLayout(new java.awt.BorderLayout(10, 10));
+
+        // Panel superior - Búsqueda por código con autocompletado
+        javax.swing.JPanel panelBusqueda = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 5));
+        panelBusqueda.setBorder(javax.swing.BorderFactory.createTitledBorder("Buscar Préstamo"));
+
+        javax.swing.JLabel lblCodigo = new javax.swing.JLabel("Código Solicitud:");
+
+        // Usar JComboBox editable para autocompletado
+        javax.swing.JComboBox<String> cmbCodigo = new javax.swing.JComboBox<>();
+        cmbCodigo.setEditable(true);
+        cmbCodigo.setPreferredSize(new java.awt.Dimension(150, 25));
+
+        // Cargar códigos para autocompletado
+        java.util.List<String> codigosPrestamos = registroDao.obtenerCodigosSolicitudesPrestamosPorEmpleado(empleadoId);
+        cmbCodigo.addItem(""); // Opción vacía para mostrar todos
+        for (String cod : codigosPrestamos) {
+            cmbCodigo.addItem(cod);
+        }
+
+        // Configurar autocompletado con filtrado
+        JTextField editorCodigo = (JTextField) cmbCodigo.getEditor().getEditorComponent();
+        editorCodigo.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() != KeyEvent.VK_UP && e.getKeyCode() != KeyEvent.VK_DOWN
+                    && e.getKeyCode() != KeyEvent.VK_ENTER && e.getKeyCode() != KeyEvent.VK_ESCAPE) {
+                    String texto = editorCodigo.getText().toUpperCase();
+                    javax.swing.DefaultComboBoxModel<String> modelo = new javax.swing.DefaultComboBoxModel<>();
+                    modelo.addElement(""); // Siempre incluir vacío
+                    for (String cod : codigosPrestamos) {
+                        if (cod.toUpperCase().contains(texto)) {
+                            modelo.addElement(cod);
+                        }
+                    }
+                    cmbCodigo.setModel(modelo);
+                    editorCodigo.setText(texto);
+                    if (modelo.getSize() > 1) {
+                        cmbCodigo.showPopup();
+                    }
+                }
+            }
+        });
+
+        javax.swing.JButton btnBuscar = new javax.swing.JButton("Buscar");
+        btnBuscar.setBackground(new java.awt.Color(52, 152, 219));
+        btnBuscar.setForeground(java.awt.Color.WHITE);
+
+        javax.swing.JCheckBox chkMostrarTodas = new javax.swing.JCheckBox("Mostrar todas las cuotas (incluyendo pagadas)", true);
+
+        panelBusqueda.add(lblCodigo);
+        panelBusqueda.add(cmbCodigo);
+        panelBusqueda.add(btnBuscar);
+        panelBusqueda.add(chkMostrarTodas);
+
+        // Lista para mantener las cuotas actuales
+        final java.util.List<Object[]> cuotasActuales = new java.util.ArrayList<>();
+
+        // Tabla de cuotas - incluye columna de Voucher Origen
+        String[] columnas = {"Sel", "Solicitud", "Cuota", "Debe Pagar", "Ya Pagado", "Pendiente", "Monto", "Estado", "Voucher Origen"};
+        javax.swing.table.DefaultTableModel modeloCuotas = new javax.swing.table.DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 0 || column == 6;
+            }
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 0) return Boolean.class;
+                return String.class;
+            }
+        };
+
+        javax.swing.JTable tablaCuotas = new javax.swing.JTable(modeloCuotas);
+        tablaCuotas.setRowHeight(25);
+        tablaCuotas.getColumnModel().getColumn(0).setPreferredWidth(30);
+        tablaCuotas.getColumnModel().getColumn(1).setPreferredWidth(80);
+        tablaCuotas.getColumnModel().getColumn(2).setPreferredWidth(50);
+        tablaCuotas.getColumnModel().getColumn(3).setPreferredWidth(80);
+        tablaCuotas.getColumnModel().getColumn(4).setPreferredWidth(80);
+        tablaCuotas.getColumnModel().getColumn(5).setPreferredWidth(70);
+        tablaCuotas.getColumnModel().getColumn(6).setPreferredWidth(80);
+        tablaCuotas.getColumnModel().getColumn(7).setPreferredWidth(70);
+        tablaCuotas.getColumnModel().getColumn(8).setPreferredWidth(100);
+
+        // Colorear filas según estado y voucher
+        tablaCuotas.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected && row < modeloCuotas.getRowCount()) {
+                    String estado = (String) table.getValueAt(row, 7);
+                    String voucherOrigen = (String) table.getValueAt(row, 8);
+
+                    if (voucherOrigen != null && !voucherOrigen.isEmpty() && !voucherOrigen.equals("-")) {
+                        // Tiene voucher de origen - color especial
+                        c.setBackground(new java.awt.Color(230, 230, 250)); // Lavanda para transferibles
+                    } else if ("Pagado".equals(estado)) {
+                        c.setBackground(new java.awt.Color(212, 239, 223));
+                    } else if ("Parcial".equals(estado)) {
+                        c.setBackground(new java.awt.Color(254, 249, 231));
+                    } else {
+                        c.setBackground(new java.awt.Color(253, 237, 236));
+                    }
+                }
+                return c;
+            }
+        });
+
+        javax.swing.JScrollPane scroll = new javax.swing.JScrollPane(tablaCuotas);
+        scroll.setPreferredSize(new java.awt.Dimension(750, 300));
+
+        javax.swing.JPanel panelTabla = new javax.swing.JPanel(new java.awt.BorderLayout());
+        panelTabla.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            "<html>Cuotas de Préstamos <font color='purple'>(Lavanda = ya pagado en otro voucher, se puede transferir)</font></html>"));
+        panelTabla.add(scroll, java.awt.BorderLayout.CENTER);
+
+        // Cargar datos con información de voucher
+        Runnable cargarCuotas = () -> {
+            modeloCuotas.setRowCount(0);
+            cuotasActuales.clear();
+
+            String codigo = cmbCodigo.getEditor().getItem().toString().trim();
+            java.util.List<Object[]> cuotas = registroDao.buscarCuotasPrestamosConVoucher(
+                codigo.isEmpty() ? null : codigo, empleadoId, chkMostrarTodas.isSelected());
+
+            for (Object[] c : cuotas) {
+                // c: [loanDetailId, SoliNum, Dues, MonthlyFeeValue, payment, pendiente, State, voucherCodigo, voucherId, rdId, amountParVoucher]
+                cuotasActuales.add(c);
+                double pendiente = ((Number)c[5]).doubleValue();
+                String voucherOrigen = c[7] != null ? c[7].toString() : "-";
+                double montoEnVoucher = c[10] != null ? ((Number)c[10]).doubleValue() : 0;
+
+                // Si tiene voucher origen, mostrar cuánto tiene ahí; si no, mostrar pendiente
+                double montoSugerido = (voucherOrigen != null && !voucherOrigen.equals("-")) ? montoEnVoucher : pendiente;
+
+                modeloCuotas.addRow(new Object[]{
+                    Boolean.FALSE,
+                    c[1], // SoliNum
+                    c[2], // Dues
+                    String.format("%.2f", c[3]), // MonthlyFeeValue
+                    String.format("%.2f", c[4]), // payment
+                    String.format("%.2f", pendiente), // pendiente
+                    montoSugerido > 0 ? String.format("%.2f", montoSugerido) : "0.00",
+                    c[6],  // Estado
+                    voucherOrigen // Voucher origen
+                });
+            }
+
+            if (cuotas.isEmpty()) {
+                JOptionPane.showMessageDialog(dialogoAgregar,
+                    codigo.isEmpty() ? "No se encontraron préstamos para este empleado." :
+                        "No se encontró préstamo con código: " + codigo,
+                    "SIN RESULTADOS", JOptionPane.INFORMATION_MESSAGE);
+            }
+        };
+
+        // Cargar datos iniciales
+        cargarCuotas.run();
+
+        // Eventos de búsqueda
+        btnBuscar.addActionListener(ev -> cargarCuotas.run());
+        cmbCodigo.addActionListener(ev -> cargarCuotas.run());
+        chkMostrarTodas.addActionListener(ev -> cargarCuotas.run());
+
+        // Botones
+        javax.swing.JPanel panelBotones = new javax.swing.JPanel(new java.awt.FlowLayout());
+        javax.swing.JButton btnAgregar = new javax.swing.JButton("Agregar/Transferir Seleccionados");
+        btnAgregar.setBackground(new java.awt.Color(39, 174, 96));
+        btnAgregar.setForeground(java.awt.Color.WHITE);
+        javax.swing.JButton btnCancelar = new javax.swing.JButton("Cancelar");
+
+        panelBotones.add(btnAgregar);
+        panelBotones.add(btnCancelar);
+
+        dialogoAgregar.add(panelBusqueda, java.awt.BorderLayout.NORTH);
+        dialogoAgregar.add(panelTabla, java.awt.BorderLayout.CENTER);
+        dialogoAgregar.add(panelBotones, java.awt.BorderLayout.SOUTH);
+
+        btnCancelar.addActionListener(ev -> dialogoAgregar.dispose());
+
+        btnAgregar.addActionListener(ev -> {
+            String motivo = JOptionPane.showInputDialog(dialogoAgregar,
+                "Ingrese el motivo de la adición/transferencia:",
+                "MOTIVO",
+                JOptionPane.QUESTION_MESSAGE);
+
+            if (motivo == null || motivo.trim().isEmpty()) {
+                return;
+            }
+
+            String usuario = (usser != null && usser.getUsername() != null) ? usser.getUsername() : "SISTEMA";
+            int agregados = 0;
+            int transferidos = 0;
+
+            for (int i = 0; i < modeloCuotas.getRowCount(); i++) {
+                Boolean seleccionado = (Boolean) modeloCuotas.getValueAt(i, 0);
+                if (seleccionado != null && seleccionado) {
+                    Object[] cuotaOriginal = cuotasActuales.get(i);
+                    long loanDetailId = ((Number) cuotaOriginal[0]).longValue();
+                    String montoStr = modeloCuotas.getValueAt(i, 6).toString().replace(",", ".");
+                    double monto = Double.parseDouble(montoStr);
+
+                    // Verificar si es transferencia (tiene voucher origen)
+                    Long rdIdOrigen = cuotaOriginal[9] != null ? ((Number) cuotaOriginal[9]).longValue() : null;
+                    Integer voucherOrigenId = cuotaOriginal[8] != null ? ((Number) cuotaOriginal[8]).intValue() : null;
+
+                    if (monto > 0) {
+                        boolean resultado;
+
+                        if (rdIdOrigen != null && voucherOrigenId != null && voucherOrigenId != registroId) {
+                            // Es una transferencia desde otro voucher
+                            resultado = registroDao.transferirPagoPrestamoAVoucher(
+                                rdIdOrigen, loanDetailId, registroId, monto, usuario, motivo);
+                            if (resultado) transferidos++;
+                        } else {
+                            // Es una adición nueva
+                            resultado = registroDao.agregarDetallePrestamoARegistro(
+                                registroId, loanDetailId, monto, usuario, motivo);
+                            if (resultado) agregados++;
+                        }
+
+                        if (resultado) {
+                            double pagoActual = ((Number)cuotaOriginal[4]).doubleValue();
+                            double nuevoTotalPagado = pagoActual + monto;
+                            double mensual = ((Number)cuotaOriginal[3]).doubleValue();
+                            String nuevoEstado = nuevoTotalPagado >= mensual ? "Pagado" : "Parcial";
+
+                            Object[] nuevoDetalle = new Object[]{
+                                Boolean.FALSE,
+                                "PRÉSTAMO",
+                                cuotaOriginal[1],
+                                cuotaOriginal[2],
+                                String.format("%.2f", mensual),
+                                String.format("%.2f", nuevoTotalPagado),
+                                String.format("%.2f", monto),
+                                String.format("%.2f", monto),
+                                nuevoEstado,
+                                0L,
+                                loanDetailId,
+                                mensual,
+                                monto
+                            };
+                            todosDetalles.add(nuevoDetalle);
+                            tiposDetalles.add("PRESTAMO");
+                            modeloTabla.addRow(new Object[]{
+                                Boolean.FALSE, "PRÉSTAMO", cuotaOriginal[1], cuotaOriginal[2],
+                                String.format("%.2f", mensual),
+                                String.format("%.2f", nuevoTotalPagado),
+                                String.format("%.2f", monto),
+                                String.format("%.2f", monto),
+                                nuevoEstado
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (agregados > 0 || transferidos > 0) {
+                String mensaje = "";
+                if (agregados > 0) mensaje += "Se agregaron " + agregados + " cuota(s).\n";
+                if (transferidos > 0) mensaje += "Se transfirieron " + transferidos + " cuota(s) desde otros vouchers.";
+
+                JOptionPane.showMessageDialog(dialogoAgregar, mensaje.trim(), "ÉXITO", JOptionPane.INFORMATION_MESSAGE);
+
+                double nuevoDistribuido = calcularMontoDistribuido(modeloTabla);
+                actualizarLabelMontoDisponible(lblMontoDisponible, montoTotalRegistro, nuevoDistribuido);
+                dialogoAgregar.dispose();
+            } else {
+                JOptionPane.showMessageDialog(dialogoAgregar,
+                    "No se seleccionaron cuotas o los montos son 0.",
+                    "SIN CAMBIOS", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+
+        dialogoAgregar.pack();
+        dialogoAgregar.setMinimumSize(new java.awt.Dimension(850, 500));
+        dialogoAgregar.setLocationRelativeTo(dialogoPadre);
+        dialogoAgregar.setVisible(true);
+    }
+
+    /**
+     * Muestra diálogo para agregar/transferir un abono al registro
+     */
+    @SuppressWarnings("unchecked")
+    private void mostrarDialogoAgregarAbono(javax.swing.JDialog dialogoPadre,
+            com.subcafae.finantialtracker.data.dao.RegistroDao registroDao,
+            int registroId, int empleadoId,
+            javax.swing.table.DefaultTableModel modeloTabla,
+            java.util.List<Object[]> todosDetalles,
+            java.util.List<String> tiposDetalles,
+            double montoTotalRegistro,
+            javax.swing.JLabel lblMontoDisponible) {
+
+        // Crear diálogo
+        javax.swing.JDialog dialogoAgregar = new javax.swing.JDialog(dialogoPadre, "AGREGAR/TRANSFERIR ABONO", true);
+        dialogoAgregar.setLayout(new java.awt.BorderLayout(10, 10));
+
+        // Panel superior - Búsqueda por código con autocompletado
+        javax.swing.JPanel panelBusqueda = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 5));
+        panelBusqueda.setBorder(javax.swing.BorderFactory.createTitledBorder("Buscar Abono"));
+
+        javax.swing.JLabel lblCodigo = new javax.swing.JLabel("Código Solicitud:");
+
+        // Usar JComboBox editable para autocompletado
+        javax.swing.JComboBox<String> cmbCodigo = new javax.swing.JComboBox<>();
+        cmbCodigo.setEditable(true);
+        cmbCodigo.setPreferredSize(new java.awt.Dimension(150, 25));
+
+        // Cargar códigos para autocompletado
+        java.util.List<String> codigosAbonos = registroDao.obtenerCodigosSolicitudesAbonosPorEmpleado(empleadoId);
+        cmbCodigo.addItem(""); // Opción vacía para mostrar todos
+        for (String cod : codigosAbonos) {
+            cmbCodigo.addItem(cod);
+        }
+
+        // Configurar autocompletado con filtrado
+        JTextField editorCodigoAbono = (JTextField) cmbCodigo.getEditor().getEditorComponent();
+        editorCodigoAbono.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() != KeyEvent.VK_UP && e.getKeyCode() != KeyEvent.VK_DOWN
+                    && e.getKeyCode() != KeyEvent.VK_ENTER && e.getKeyCode() != KeyEvent.VK_ESCAPE) {
+                    String texto = editorCodigoAbono.getText().toUpperCase();
+                    javax.swing.DefaultComboBoxModel<String> modelo = new javax.swing.DefaultComboBoxModel<>();
+                    modelo.addElement(""); // Siempre incluir vacío
+                    for (String cod : codigosAbonos) {
+                        if (cod.toUpperCase().contains(texto)) {
+                            modelo.addElement(cod);
+                        }
+                    }
+                    cmbCodigo.setModel(modelo);
+                    editorCodigoAbono.setText(texto);
+                    if (modelo.getSize() > 1) {
+                        cmbCodigo.showPopup();
+                    }
+                }
+            }
+        });
+
+        javax.swing.JButton btnBuscar = new javax.swing.JButton("Buscar");
+        btnBuscar.setBackground(new java.awt.Color(155, 89, 182));
+        btnBuscar.setForeground(java.awt.Color.WHITE);
+
+        javax.swing.JCheckBox chkMostrarTodas = new javax.swing.JCheckBox("Mostrar todas las cuotas (incluyendo pagadas)", true);
+
+        panelBusqueda.add(lblCodigo);
+        panelBusqueda.add(cmbCodigo);
+        panelBusqueda.add(btnBuscar);
+        panelBusqueda.add(chkMostrarTodas);
+
+        // Lista para mantener las cuotas actuales
+        final java.util.List<Object[]> cuotasActuales = new java.util.ArrayList<>();
+
+        // Tabla de cuotas - incluye columna de Voucher Origen
+        String[] columnas = {"Sel", "Solicitud", "Concepto", "Cuota", "Debe Pagar", "Ya Pagado", "Pendiente", "Monto", "Estado", "Voucher Origen"};
+        javax.swing.table.DefaultTableModel modeloCuotas = new javax.swing.table.DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 0 || column == 7;
+            }
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 0) return Boolean.class;
+                return String.class;
+            }
+        };
+
+        javax.swing.JTable tablaCuotas = new javax.swing.JTable(modeloCuotas);
+        tablaCuotas.setRowHeight(25);
+        tablaCuotas.getColumnModel().getColumn(0).setPreferredWidth(30);
+        tablaCuotas.getColumnModel().getColumn(1).setPreferredWidth(70);
+        tablaCuotas.getColumnModel().getColumn(2).setPreferredWidth(100);
+        tablaCuotas.getColumnModel().getColumn(3).setPreferredWidth(45);
+        tablaCuotas.getColumnModel().getColumn(4).setPreferredWidth(75);
+        tablaCuotas.getColumnModel().getColumn(5).setPreferredWidth(75);
+        tablaCuotas.getColumnModel().getColumn(6).setPreferredWidth(70);
+        tablaCuotas.getColumnModel().getColumn(7).setPreferredWidth(75);
+        tablaCuotas.getColumnModel().getColumn(8).setPreferredWidth(65);
+        tablaCuotas.getColumnModel().getColumn(9).setPreferredWidth(100);
+
+        // Colorear filas según estado y voucher
+        tablaCuotas.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected && row < modeloCuotas.getRowCount()) {
+                    String estado = (String) table.getValueAt(row, 8);
+                    String voucherOrigen = (String) table.getValueAt(row, 9);
+
+                    if (voucherOrigen != null && !voucherOrigen.isEmpty() && !voucherOrigen.equals("-")) {
+                        c.setBackground(new java.awt.Color(230, 230, 250)); // Lavanda para transferibles
+                    } else if ("Pagado".equals(estado)) {
+                        c.setBackground(new java.awt.Color(212, 239, 223));
+                    } else if ("Parcial".equals(estado)) {
+                        c.setBackground(new java.awt.Color(254, 249, 231));
+                    } else {
+                        c.setBackground(new java.awt.Color(253, 237, 236));
+                    }
+                }
+                return c;
+            }
+        });
+
+        javax.swing.JScrollPane scroll = new javax.swing.JScrollPane(tablaCuotas);
+        scroll.setPreferredSize(new java.awt.Dimension(850, 300));
+
+        javax.swing.JPanel panelTabla = new javax.swing.JPanel(new java.awt.BorderLayout());
+        panelTabla.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            "<html>Cuotas de Abonos <font color='purple'>(Lavanda = ya pagado en otro voucher, se puede transferir)</font></html>"));
+        panelTabla.add(scroll, java.awt.BorderLayout.CENTER);
+
+        // Cargar datos con información de voucher
+        Runnable cargarCuotas = () -> {
+            modeloCuotas.setRowCount(0);
+            cuotasActuales.clear();
+
+            String codigo = cmbCodigo.getEditor().getItem().toString().trim();
+            java.util.List<Object[]> cuotas = registroDao.buscarCuotasAbonosConVoucher(
+                codigo.isEmpty() ? null : codigo, empleadoId, chkMostrarTodas.isSelected());
+
+            for (Object[] c : cuotas) {
+                // c: [abonoDetailId, SoliNum, concepto, dues, monthly, payment, pendiente, State, voucherCodigo, voucherId, rdId, amountParVoucher]
+                cuotasActuales.add(c);
+                double pendiente = ((Number)c[6]).doubleValue();
+                String voucherOrigen = c[8] != null ? c[8].toString() : "-";
+                double montoEnVoucher = c[11] != null ? ((Number)c[11]).doubleValue() : 0;
+
+                // Si tiene voucher origen, mostrar cuánto tiene ahí; si no, mostrar pendiente
+                double montoSugerido = (voucherOrigen != null && !voucherOrigen.equals("-")) ? montoEnVoucher : pendiente;
+
+                modeloCuotas.addRow(new Object[]{
+                    Boolean.FALSE,
+                    c[1], // SoliNum
+                    c[2], // concepto
+                    c[3], // dues
+                    String.format("%.2f", c[4]), // monthly
+                    String.format("%.2f", c[5]), // payment
+                    String.format("%.2f", pendiente), // pendiente
+                    montoSugerido > 0 ? String.format("%.2f", montoSugerido) : "0.00",
+                    c[7],  // Estado
+                    voucherOrigen // Voucher origen
+                });
+            }
+
+            if (cuotas.isEmpty()) {
+                JOptionPane.showMessageDialog(dialogoAgregar,
+                    codigo.isEmpty() ? "No se encontraron abonos para este empleado." :
+                        "No se encontró abono con código: " + codigo,
+                    "SIN RESULTADOS", JOptionPane.INFORMATION_MESSAGE);
+            }
+        };
+
+        // Cargar datos iniciales
+        cargarCuotas.run();
+
+        // Eventos de búsqueda
+        btnBuscar.addActionListener(ev -> cargarCuotas.run());
+        cmbCodigo.addActionListener(ev -> cargarCuotas.run());
+        chkMostrarTodas.addActionListener(ev -> cargarCuotas.run());
+
+        // Botones
+        javax.swing.JPanel panelBotones = new javax.swing.JPanel(new java.awt.FlowLayout());
+        javax.swing.JButton btnAgregar = new javax.swing.JButton("Agregar/Transferir Seleccionados");
+        btnAgregar.setBackground(new java.awt.Color(155, 89, 182));
+        btnAgregar.setForeground(java.awt.Color.WHITE);
+        javax.swing.JButton btnCancelar = new javax.swing.JButton("Cancelar");
+
+        panelBotones.add(btnAgregar);
+        panelBotones.add(btnCancelar);
+
+        dialogoAgregar.add(panelBusqueda, java.awt.BorderLayout.NORTH);
+        dialogoAgregar.add(panelTabla, java.awt.BorderLayout.CENTER);
+        dialogoAgregar.add(panelBotones, java.awt.BorderLayout.SOUTH);
+
+        btnCancelar.addActionListener(ev -> dialogoAgregar.dispose());
+
+        btnAgregar.addActionListener(ev -> {
+            String motivo = JOptionPane.showInputDialog(dialogoAgregar,
+                "Ingrese el motivo de la adición/transferencia:",
+                "MOTIVO",
+                JOptionPane.QUESTION_MESSAGE);
+
+            if (motivo == null || motivo.trim().isEmpty()) {
+                return;
+            }
+
+            String usuario = (usser != null && usser.getUsername() != null) ? usser.getUsername() : "SISTEMA";
+            int agregados = 0;
+            int transferidos = 0;
+
+            for (int i = 0; i < modeloCuotas.getRowCount(); i++) {
+                Boolean seleccionado = (Boolean) modeloCuotas.getValueAt(i, 0);
+                if (seleccionado != null && seleccionado) {
+                    Object[] cuotaOriginal = cuotasActuales.get(i);
+                    long abonoDetailId = ((Number) cuotaOriginal[0]).longValue();
+                    String montoStr = modeloCuotas.getValueAt(i, 7).toString().replace(",", ".");
+                    double monto = Double.parseDouble(montoStr);
+
+                    // Verificar si es transferencia (tiene voucher origen)
+                    Long rdIdOrigen = cuotaOriginal[10] != null ? ((Number) cuotaOriginal[10]).longValue() : null;
+                    Integer voucherOrigenId = cuotaOriginal[9] != null ? ((Number) cuotaOriginal[9]).intValue() : null;
+
+                    if (monto > 0) {
+                        boolean resultado;
+
+                        if (rdIdOrigen != null && voucherOrigenId != null && voucherOrigenId != registroId) {
+                            // Es una transferencia desde otro voucher
+                            resultado = registroDao.transferirPagoAbonoAVoucher(
+                                rdIdOrigen, abonoDetailId, registroId, monto, usuario, motivo);
+                            if (resultado) transferidos++;
+                        } else {
+                            // Es una adición nueva
+                            resultado = registroDao.agregarDetalleAbonoARegistro(
+                                registroId, abonoDetailId, monto, usuario, motivo);
+                            if (resultado) agregados++;
+                        }
+
+                        if (resultado) {
+                            double pagoActual = ((Number)cuotaOriginal[5]).doubleValue();
+                            double nuevoTotalPagado = pagoActual + monto;
+                            double mensual = ((Number)cuotaOriginal[4]).doubleValue();
+                            String nuevoEstado = nuevoTotalPagado >= mensual ? "Pagado" : "Parcial";
+
+                            String solicitudConcepto = cuotaOriginal[1] + " - " + cuotaOriginal[2];
+                            Object[] nuevoDetalle = new Object[]{
+                                Boolean.FALSE,
+                                "ABONO",
+                                solicitudConcepto,
+                                cuotaOriginal[3],
+                                String.format("%.2f", mensual),
+                                String.format("%.2f", nuevoTotalPagado),
+                                String.format("%.2f", monto),
+                                String.format("%.2f", monto),
+                                nuevoEstado,
+                                0L,
+                                abonoDetailId,
+                                mensual,
+                                monto
+                            };
+                            todosDetalles.add(nuevoDetalle);
+                            tiposDetalles.add("ABONO");
+                            modeloTabla.addRow(new Object[]{
+                                Boolean.FALSE, "ABONO", solicitudConcepto, cuotaOriginal[3],
+                                String.format("%.2f", mensual),
+                                String.format("%.2f", nuevoTotalPagado),
+                                String.format("%.2f", monto),
+                                String.format("%.2f", monto),
+                                nuevoEstado
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (agregados > 0 || transferidos > 0) {
+                String mensaje = "";
+                if (agregados > 0) mensaje += "Se agregaron " + agregados + " cuota(s).\n";
+                if (transferidos > 0) mensaje += "Se transfirieron " + transferidos + " cuota(s) desde otros vouchers.";
+
+                JOptionPane.showMessageDialog(dialogoAgregar, mensaje.trim(), "ÉXITO", JOptionPane.INFORMATION_MESSAGE);
+
+                double nuevoDistribuido = calcularMontoDistribuido(modeloTabla);
+                actualizarLabelMontoDisponible(lblMontoDisponible, montoTotalRegistro, nuevoDistribuido);
+                dialogoAgregar.dispose();
+            } else {
+                JOptionPane.showMessageDialog(dialogoAgregar,
+                    "No se seleccionaron cuotas o los montos son 0.",
+                    "SIN CAMBIOS", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+
+        dialogoAgregar.pack();
+        dialogoAgregar.setMinimumSize(new java.awt.Dimension(900, 500));
+        dialogoAgregar.setLocationRelativeTo(dialogoPadre);
+        dialogoAgregar.setVisible(true);
+    }
 }

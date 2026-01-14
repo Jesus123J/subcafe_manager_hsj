@@ -1948,4 +1948,1601 @@ public class RegistroDao {
 
         return eliminados;
     }
+
+    // ============================================
+    // MÉTODOS PARA EDITAR PAGOS
+    // ============================================
+
+    /**
+     * Obtiene los detalles de un pago para edición
+     * @param registroId ID del registro
+     * @return Map con prestamos, abonos, empleadoNombre, empleadoDni
+     */
+    public Map<String, Object> obtenerDetallesPagoParaEdicion(int registroId) {
+        Map<String, Object> resultado = new HashMap<>();
+        List<Object[]> prestamos = new ArrayList<>();
+        List<Object[]> abonos = new ArrayList<>();
+        String empleadoNombre = "";
+        String empleadoDni = "";
+
+        // Obtener información del empleado
+        String sqlEmpleado = "SELECT e.fullName, e.national_id " +
+                "FROM registro r " +
+                "INNER JOIN employees e ON r.empleado_id = e.employee_id " +
+                "WHERE r.id = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sqlEmpleado)) {
+            stmt.setInt(1, registroId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    empleadoNombre = rs.getString("fullName");
+                    empleadoDni = rs.getString("national_id");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo empleado: " + e.getMessage());
+        }
+
+        // Obtener detalles de préstamos
+        String sqlPrestamos = "SELECT l.SoliNum, ld.Dues, ld.MonthlyFeeValue, rd.amountPar, rd.id as rdId " +
+                "FROM registerdetails rd " +
+                "INNER JOIN loandetail ld ON rd.idLoanDetails = ld.ID " +
+                "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                "WHERE rd.idRegistro = ? AND rd.idLoanDetails IS NOT NULL " +
+                "ORDER BY l.SoliNum, ld.Dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sqlPrestamos)) {
+            stmt.setInt(1, registroId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[5];
+                    row[0] = rs.getString("SoliNum");
+                    row[1] = rs.getInt("Dues");
+                    row[2] = rs.getDouble("MonthlyFeeValue");
+                    row[3] = rs.getDouble("amountPar");
+                    row[4] = rs.getLong("rdId");
+                    prestamos.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo préstamos: " + e.getMessage());
+        }
+
+        // Obtener detalles de abonos
+        String sqlAbonos = "SELECT a.SoliNum, ad.dues, ad.monthly, rd.amountPar, rd.id as rdId " +
+                "FROM registerdetails rd " +
+                "INNER JOIN abonodetail ad ON rd.idBondDetails = ad.id " +
+                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                "WHERE rd.idRegistro = ? AND rd.idBondDetails IS NOT NULL " +
+                "ORDER BY a.SoliNum, ad.dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sqlAbonos)) {
+            stmt.setInt(1, registroId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[5];
+                    row[0] = rs.getString("SoliNum");
+                    row[1] = rs.getInt("dues");
+                    row[2] = rs.getDouble("monthly");
+                    row[3] = rs.getDouble("amountPar");
+                    row[4] = rs.getLong("rdId");
+                    abonos.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo abonos: " + e.getMessage());
+        }
+
+        resultado.put("prestamos", prestamos);
+        resultado.put("abonos", abonos);
+        resultado.put("empleadoNombre", empleadoNombre);
+        resultado.put("empleadoDni", empleadoDni);
+
+        return resultado;
+    }
+
+    /**
+     * Actualiza el monto de un detalle de pago
+     * @param idRegisterDetail ID del detalle en registerdetails
+     * @param esPrestamo true si es préstamo, false si es abono
+     * @param montoAnterior Monto anterior
+     * @param montoNuevo Nuevo monto
+     * @param usuario Usuario que realiza el cambio
+     * @param motivo Motivo del cambio
+     * @return true si se actualizó correctamente
+     */
+    public boolean actualizarMontoDetallePago(long idRegisterDetail, boolean esPrestamo,
+                                               double montoAnterior, double montoNuevo,
+                                               String usuario, String motivo) {
+        try {
+            conn.setAutoCommit(false);
+
+            // Obtener el ID de la cuota (loandetail o abonodetail)
+            String sqlGetDetail = "SELECT idLoanDetails, idBondDetails FROM registerdetails WHERE id = ?";
+            Long idLoanDetails = null;
+            Long idBondDetails = null;
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetDetail)) {
+                stmt.setLong(1, idRegisterDetail);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        idLoanDetails = rs.getObject("idLoanDetails") != null ? rs.getLong("idLoanDetails") : null;
+                        idBondDetails = rs.getObject("idBondDetails") != null ? rs.getLong("idBondDetails") : null;
+                    }
+                }
+            }
+
+            double diferencia = montoNuevo - montoAnterior;
+
+            // Actualizar registerdetails
+            String sqlUpdateRd = "UPDATE registerdetails SET amountPar = ? WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateRd)) {
+                stmt.setDouble(1, montoNuevo);
+                stmt.setLong(2, idRegisterDetail);
+                stmt.executeUpdate();
+            }
+
+            // Actualizar la cuota correspondiente
+            if (esPrestamo && idLoanDetails != null) {
+                String sqlUpdateLd = "UPDATE loandetail SET payment = payment + ?, " +
+                        "State = CASE " +
+                        "  WHEN payment + ? >= MonthlyFeeValue THEN 'Pagado' " +
+                        "  WHEN payment + ? > 0 THEN 'Parcial' " +
+                        "  ELSE 'Pendiente' " +
+                        "END " +
+                        "WHERE ID = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateLd)) {
+                    stmt.setDouble(1, diferencia);
+                    stmt.setDouble(2, diferencia);
+                    stmt.setDouble(3, diferencia);
+                    stmt.setLong(4, idLoanDetails);
+                    stmt.executeUpdate();
+                }
+            } else if (!esPrestamo && idBondDetails != null) {
+                String sqlUpdateAd = "UPDATE abonodetail SET payment = payment + ?, " +
+                        "state = CASE " +
+                        "  WHEN payment + ? >= monthly THEN 'Pagado' " +
+                        "  WHEN payment + ? > 0 THEN 'Parcial' " +
+                        "  ELSE 'Pendiente' " +
+                        "END " +
+                        "WHERE id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateAd)) {
+                    stmt.setDouble(1, diferencia);
+                    stmt.setDouble(2, diferencia);
+                    stmt.setDouble(3, diferencia);
+                    stmt.setLong(4, idBondDetails);
+                    stmt.executeUpdate();
+                }
+            }
+
+            // Guardar en historial
+            guardarHistorialCorreccion(
+                esPrestamo ? "EDICION_PRESTAMO" : "EDICION_ABONO",
+                String.valueOf(idRegisterDetail),
+                0,
+                montoAnterior,
+                montoNuevo,
+                usuario,
+                motivo
+            );
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error actualizando detalle de pago: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Elimina un detalle de pago y revierte el monto en la cuota
+     * @param idRegisterDetail ID del detalle en registerdetails
+     * @param esPrestamo true si es préstamo, false si es abono
+     * @param monto Monto que se va a revertir
+     * @param usuario Usuario que realiza la acción
+     * @param motivo Motivo de la eliminación
+     * @return true si se eliminó correctamente
+     */
+    public boolean eliminarDetallePago(long idRegisterDetail, boolean esPrestamo,
+                                        double monto, String usuario, String motivo) {
+        try {
+            conn.setAutoCommit(false);
+
+            // Obtener el ID de la cuota y del préstamo/abono padre
+            String sqlGetDetail = "SELECT idLoanDetails, idBondDetails FROM registerdetails WHERE id = ?";
+            Long idLoanDetails = null;
+            Long idBondDetails = null;
+            Long loanId = null;
+            Long abonoId = null;
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetDetail)) {
+                stmt.setLong(1, idRegisterDetail);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        idLoanDetails = rs.getObject("idLoanDetails") != null ? rs.getLong("idLoanDetails") : null;
+                        idBondDetails = rs.getObject("idBondDetails") != null ? rs.getLong("idBondDetails") : null;
+                    }
+                }
+            }
+
+            // Revertir el pago en la cuota
+            if (esPrestamo && idLoanDetails != null) {
+                // Obtener LoanID para actualizar estado general
+                String sqlGetLoanId = "SELECT LoanID FROM loandetail WHERE ID = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlGetLoanId)) {
+                    stmt.setLong(1, idLoanDetails);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            loanId = rs.getLong("LoanID");
+                        }
+                    }
+                }
+
+                // Actualizar loandetail
+                String sqlUpdateLd = "UPDATE loandetail SET payment = GREATEST(0, payment - ?), " +
+                        "State = CASE " +
+                        "  WHEN GREATEST(0, payment - ?) = 0 THEN 'Pendiente' " +
+                        "  WHEN GREATEST(0, payment - ?) < MonthlyFeeValue THEN 'Parcial' " +
+                        "  ELSE 'Pagado' " +
+                        "END " +
+                        "WHERE ID = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateLd)) {
+                    stmt.setDouble(1, monto);
+                    stmt.setDouble(2, monto);
+                    stmt.setDouble(3, monto);
+                    stmt.setLong(4, idLoanDetails);
+                    stmt.executeUpdate();
+                }
+
+                // Actualizar estado general del préstamo (loan)
+                if (loanId != null) {
+                    actualizarEstadoGeneralLoan(loanId);
+                }
+
+            } else if (!esPrestamo && idBondDetails != null) {
+                // Obtener AbonoID para actualizar estado general
+                String sqlGetAbonoId = "SELECT AbonoID FROM abonodetail WHERE id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlGetAbonoId)) {
+                    stmt.setLong(1, idBondDetails);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            abonoId = rs.getLong("AbonoID");
+                        }
+                    }
+                }
+
+                // Actualizar abonodetail
+                String sqlUpdateAd = "UPDATE abonodetail SET payment = GREATEST(0, payment - ?), " +
+                        "state = CASE " +
+                        "  WHEN GREATEST(0, payment - ?) = 0 THEN 'Pendiente' " +
+                        "  WHEN GREATEST(0, payment - ?) < monthly THEN 'Parcial' " +
+                        "  ELSE 'Pagado' " +
+                        "END " +
+                        "WHERE id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateAd)) {
+                    stmt.setDouble(1, monto);
+                    stmt.setDouble(2, monto);
+                    stmt.setDouble(3, monto);
+                    stmt.setLong(4, idBondDetails);
+                    stmt.executeUpdate();
+                }
+
+                // Actualizar estado general del abono
+                if (abonoId != null) {
+                    actualizarEstadoGeneralAbono(abonoId);
+                }
+            }
+
+            // Eliminar el detalle de registerdetails
+            String sqlDelete = "DELETE FROM registerdetails WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlDelete)) {
+                stmt.setLong(1, idRegisterDetail);
+                stmt.executeUpdate();
+            }
+
+            // Guardar en historial con más información
+            String solicitud = esPrestamo ?
+                (loanId != null ? "LOAN-" + loanId + "/LD-" + idLoanDetails : String.valueOf(idRegisterDetail)) :
+                (abonoId != null ? "ABONO-" + abonoId + "/AD-" + idBondDetails : String.valueOf(idRegisterDetail));
+
+            guardarHistorialCorreccion(
+                esPrestamo ? "ELIMINACION_PRESTAMO" : "ELIMINACION_ABONO",
+                solicitud,
+                0,
+                monto,
+                0,
+                usuario,
+                motivo
+            );
+
+            conn.commit();
+            System.out.println("✓ Detalle de pago eliminado: " + idRegisterDetail);
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error eliminando detalle de pago: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Actualiza el estado general del préstamo (loan) basándose en el estado de sus cuotas
+     */
+    private void actualizarEstadoGeneralLoan(long loanId) throws SQLException {
+        // Contar cuotas por estado
+        String sqlContarEstados = "SELECT " +
+                "SUM(CASE WHEN State = 'Pagado' THEN 1 ELSE 0 END) AS pagadas, " +
+                "SUM(CASE WHEN State = 'Parcial' THEN 1 ELSE 0 END) AS parciales, " +
+                "SUM(CASE WHEN State = 'Pendiente' THEN 1 ELSE 0 END) AS pendientes, " +
+                "COUNT(*) AS total " +
+                "FROM loandetail WHERE LoanID = ?";
+
+        int pagadas = 0, parciales = 0, pendientes = 0, total = 0;
+        try (PreparedStatement stmt = conn.prepareStatement(sqlContarEstados)) {
+            stmt.setLong(1, loanId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    pagadas = rs.getInt("pagadas");
+                    parciales = rs.getInt("parciales");
+                    pendientes = rs.getInt("pendientes");
+                    total = rs.getInt("total");
+                }
+            }
+        }
+
+        // Determinar estado general
+        String nuevoEstado;
+        if (pagadas == total && total > 0) {
+            nuevoEstado = "Completado";
+        } else if (pendientes == total) {
+            nuevoEstado = "En curso";
+        } else if (parciales > 0 || (pagadas > 0 && pagadas < total)) {
+            nuevoEstado = "En curso";
+        } else {
+            nuevoEstado = "En curso";
+        }
+
+        // Actualizar loan
+        String sqlUpdateLoan = "UPDATE loan SET State = ? WHERE ID = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateLoan)) {
+            stmt.setString(1, nuevoEstado);
+            stmt.setLong(2, loanId);
+            stmt.executeUpdate();
+        }
+    }
+
+    /**
+     * Actualiza el estado general del abono basándose en el estado de sus cuotas
+     */
+    private void actualizarEstadoGeneralAbono(long abonoId) throws SQLException {
+        // Contar cuotas por estado
+        String sqlContarEstados = "SELECT " +
+                "SUM(CASE WHEN state = 'Pagado' THEN 1 ELSE 0 END) AS pagadas, " +
+                "SUM(CASE WHEN state = 'Parcial' THEN 1 ELSE 0 END) AS parciales, " +
+                "SUM(CASE WHEN state = 'Pendiente' THEN 1 ELSE 0 END) AS pendientes, " +
+                "COUNT(*) AS total " +
+                "FROM abonodetail WHERE AbonoID = ?";
+
+        int pagadas = 0, parciales = 0, pendientes = 0, total = 0;
+        try (PreparedStatement stmt = conn.prepareStatement(sqlContarEstados)) {
+            stmt.setLong(1, abonoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    pagadas = rs.getInt("pagadas");
+                    parciales = rs.getInt("parciales");
+                    pendientes = rs.getInt("pendientes");
+                    total = rs.getInt("total");
+                }
+            }
+        }
+
+        // Determinar estado general
+        String nuevoEstado;
+        if (pagadas == total && total > 0) {
+            nuevoEstado = "Completado";
+        } else if (pendientes == total) {
+            nuevoEstado = "En curso";
+        } else {
+            nuevoEstado = "En curso";
+        }
+
+        // Actualizar abono
+        String sqlUpdateAbono = "UPDATE abono SET state = ? WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sqlUpdateAbono)) {
+            stmt.setString(1, nuevoEstado);
+            stmt.setLong(2, abonoId);
+            stmt.executeUpdate();
+        }
+    }
+
+    /**
+     * Busca cuotas de préstamos pendientes o parciales de un empleado
+     * @param empleadoId ID del empleado
+     * @return Lista de cuotas pendientes [loanDetailId, SoliNum, Dues, MonthlyFeeValue, payment, pendiente, State]
+     */
+    public List<Object[]> buscarCuotasPrestamosPendientesEmpleado(int empleadoId) {
+        List<Object[]> cuotas = new ArrayList<>();
+        String sql = "SELECT ld.ID, l.SoliNum, ld.Dues, ld.MonthlyFeeValue, ld.payment, " +
+                "(ld.MonthlyFeeValue - COALESCE(ld.payment, 0)) AS pendiente, ld.State " +
+                "FROM loandetail ld " +
+                "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                "WHERE l.EmployeeID = ? " +
+                "AND (ld.State = 'Pendiente' OR ld.State = 'Parcial') " +
+                "ORDER BY l.SoliNum, ld.Dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, empleadoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[7];
+                    row[0] = rs.getLong("ID");
+                    row[1] = rs.getString("SoliNum");
+                    row[2] = rs.getInt("Dues");
+                    row[3] = rs.getDouble("MonthlyFeeValue");
+                    row[4] = rs.getDouble("payment");
+                    row[5] = rs.getDouble("pendiente");
+                    row[6] = rs.getString("State");
+                    cuotas.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando cuotas préstamos pendientes: " + e.getMessage());
+        }
+        return cuotas;
+    }
+
+    /**
+     * Busca cuotas de abonos pendientes o parciales de un empleado
+     * @param empleadoId ID del empleado
+     * @return Lista de cuotas pendientes [abonoDetailId, SoliNum, concepto, dues, monthly, payment, pendiente, State]
+     */
+    public List<Object[]> buscarCuotasAbonosPendientesEmpleado(int empleadoId) {
+        List<Object[]> cuotas = new ArrayList<>();
+        String sql = "SELECT ad.id, a.SoliNum, COALESCE(sc.description, 'Sin concepto') AS concepto, " +
+                "ad.dues, ad.monthly, ad.payment, " +
+                "(ad.monthly - COALESCE(ad.payment, 0)) AS pendiente, ad.state " +
+                "FROM abonodetail ad " +
+                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                "LEFT JOIN service_concept sc ON a.service_concept_id = sc.id " +
+                "WHERE a.EmployeeID = ? " +
+                "AND (ad.state = 'Pendiente' OR ad.state = 'Parcial') " +
+                "ORDER BY a.SoliNum, ad.dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, empleadoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[8];
+                    row[0] = rs.getLong("id");
+                    row[1] = rs.getString("SoliNum");
+                    row[2] = rs.getString("concepto");
+                    row[3] = rs.getInt("dues");
+                    row[4] = rs.getDouble("monthly");
+                    row[5] = rs.getDouble("payment");
+                    row[6] = rs.getDouble("pendiente");
+                    row[7] = rs.getString("state");
+                    cuotas.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando cuotas abonos pendientes: " + e.getMessage());
+        }
+        return cuotas;
+    }
+
+    /**
+     * Busca TODAS las cuotas de un préstamo por código de solicitud (incluyendo pagadas)
+     * @param soliNum Número de solicitud del préstamo
+     * @return Lista de cuotas [loanDetailId, SoliNum, Dues, MonthlyFeeValue, payment, pendiente, State, totalCuotas]
+     */
+    public List<Object[]> buscarCuotasPrestamoPorSolicitud(String soliNum) {
+        List<Object[]> cuotas = new ArrayList<>();
+        String sql = "SELECT ld.ID, l.SoliNum, ld.Dues, ld.MonthlyFeeValue, COALESCE(ld.payment, 0) AS payment, " +
+                "(ld.MonthlyFeeValue - COALESCE(ld.payment, 0)) AS pendiente, ld.State, l.Dues AS totalCuotas " +
+                "FROM loandetail ld " +
+                "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                "WHERE l.SoliNum = ? " +
+                "ORDER BY ld.Dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, soliNum);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[8];
+                    row[0] = rs.getLong("ID");
+                    row[1] = rs.getString("SoliNum");
+                    row[2] = rs.getInt("Dues");
+                    row[3] = rs.getDouble("MonthlyFeeValue");
+                    row[4] = rs.getDouble("payment");
+                    row[5] = rs.getDouble("pendiente");
+                    row[6] = rs.getString("State");
+                    row[7] = rs.getInt("totalCuotas");
+                    cuotas.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando cuotas préstamo por solicitud: " + e.getMessage());
+        }
+        return cuotas;
+    }
+
+    /**
+     * Busca TODAS las cuotas de un abono por código de solicitud (incluyendo pagadas)
+     * @param soliNum Número de solicitud del abono
+     * @return Lista de cuotas [abonoDetailId, SoliNum, concepto, dues, monthly, payment, pendiente, State, totalCuotas]
+     */
+    public List<Object[]> buscarCuotasAbonoPorSolicitud(String soliNum) {
+        List<Object[]> cuotas = new ArrayList<>();
+        String sql = "SELECT ad.id, a.SoliNum, COALESCE(sc.description, 'Sin concepto') AS concepto, " +
+                "ad.dues, ad.monthly, COALESCE(ad.payment, 0) AS payment, " +
+                "(ad.monthly - COALESCE(ad.payment, 0)) AS pendiente, ad.state, a.dues AS totalCuotas " +
+                "FROM abonodetail ad " +
+                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                "LEFT JOIN service_concept sc ON a.service_concept_id = sc.id " +
+                "WHERE a.SoliNum = ? " +
+                "ORDER BY ad.dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, soliNum);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[9];
+                    row[0] = rs.getLong("id");
+                    row[1] = rs.getString("SoliNum");
+                    row[2] = rs.getString("concepto");
+                    row[3] = rs.getInt("dues");
+                    row[4] = rs.getDouble("monthly");
+                    row[5] = rs.getDouble("payment");
+                    row[6] = rs.getDouble("pendiente");
+                    row[7] = rs.getString("state");
+                    row[8] = rs.getInt("totalCuotas");
+                    cuotas.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando cuotas abono por solicitud: " + e.getMessage());
+        }
+        return cuotas;
+    }
+
+    /**
+     * Busca TODAS las cuotas de préstamos de un empleado (incluyendo pagadas) para edición
+     * @param empleadoId ID del empleado
+     * @return Lista de cuotas [loanDetailId, SoliNum, Dues, MonthlyFeeValue, payment, pendiente, State]
+     */
+    public List<Object[]> buscarTodasCuotasPrestamosEmpleado(int empleadoId) {
+        List<Object[]> cuotas = new ArrayList<>();
+        String sql = "SELECT ld.ID, l.SoliNum, ld.Dues, ld.MonthlyFeeValue, COALESCE(ld.payment, 0) AS payment, " +
+                "(ld.MonthlyFeeValue - COALESCE(ld.payment, 0)) AS pendiente, ld.State " +
+                "FROM loandetail ld " +
+                "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                "WHERE l.EmployeeID = ? " +
+                "ORDER BY l.SoliNum, ld.Dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, empleadoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[7];
+                    row[0] = rs.getLong("ID");
+                    row[1] = rs.getString("SoliNum");
+                    row[2] = rs.getInt("Dues");
+                    row[3] = rs.getDouble("MonthlyFeeValue");
+                    row[4] = rs.getDouble("payment");
+                    row[5] = rs.getDouble("pendiente");
+                    row[6] = rs.getString("State");
+                    cuotas.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando todas las cuotas préstamos: " + e.getMessage());
+        }
+        return cuotas;
+    }
+
+    /**
+     * Busca TODAS las cuotas de abonos de un empleado (incluyendo pagadas) para edición
+     * @param empleadoId ID del empleado
+     * @return Lista de cuotas [abonoDetailId, SoliNum, concepto, dues, monthly, payment, pendiente, State]
+     */
+    public List<Object[]> buscarTodasCuotasAbonosEmpleado(int empleadoId) {
+        List<Object[]> cuotas = new ArrayList<>();
+        String sql = "SELECT ad.id, a.SoliNum, COALESCE(sc.description, 'Sin concepto') AS concepto, " +
+                "ad.dues, ad.monthly, COALESCE(ad.payment, 0) AS payment, " +
+                "(ad.monthly - COALESCE(ad.payment, 0)) AS pendiente, ad.state " +
+                "FROM abonodetail ad " +
+                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                "LEFT JOIN service_concept sc ON a.service_concept_id = sc.id " +
+                "WHERE a.EmployeeID = ? " +
+                "ORDER BY a.SoliNum, ad.dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, empleadoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[8];
+                    row[0] = rs.getLong("id");
+                    row[1] = rs.getString("SoliNum");
+                    row[2] = rs.getString("concepto");
+                    row[3] = rs.getInt("dues");
+                    row[4] = rs.getDouble("monthly");
+                    row[5] = rs.getDouble("payment");
+                    row[6] = rs.getDouble("pendiente");
+                    row[7] = rs.getString("state");
+                    cuotas.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando todas las cuotas abonos: " + e.getMessage());
+        }
+        return cuotas;
+    }
+
+    /**
+     * Agrega un nuevo detalle de préstamo a un registro existente
+     * @param registroId ID del registro
+     * @param loanDetailId ID del detalle de préstamo
+     * @param monto Monto a aplicar
+     * @param usuario Usuario que realiza el cambio
+     * @param motivo Motivo del cambio
+     * @return true si se agregó correctamente
+     */
+    public boolean agregarDetallePrestamoARegistro(int registroId, long loanDetailId, double monto,
+                                                    String usuario, String motivo) {
+        try {
+            conn.setAutoCommit(false);
+
+            // Obtener LoanID para actualizar estado general
+            Long loanId = null;
+            String sqlGetLoanId = "SELECT LoanID FROM loandetail WHERE ID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetLoanId)) {
+                stmt.setLong(1, loanDetailId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        loanId = rs.getLong("LoanID");
+                    }
+                }
+            }
+
+            // Insertar el nuevo detalle
+            String sqlInsert = "INSERT INTO registerdetails (idRegistro, idLoanDetails, amountPar) VALUES (?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlInsert)) {
+                stmt.setInt(1, registroId);
+                stmt.setLong(2, loanDetailId);
+                stmt.setDouble(3, monto);
+                stmt.executeUpdate();
+            }
+
+            // Actualizar el pago en loandetail
+            String sqlUpdate = "UPDATE loandetail SET payment = COALESCE(payment, 0) + ?, " +
+                    "State = CASE " +
+                    "  WHEN COALESCE(payment, 0) + ? >= MonthlyFeeValue THEN 'Pagado' " +
+                    "  WHEN COALESCE(payment, 0) + ? > 0 THEN 'Parcial' " +
+                    "  ELSE 'Pendiente' " +
+                    "END " +
+                    "WHERE ID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUpdate)) {
+                stmt.setDouble(1, monto);
+                stmt.setDouble(2, monto);
+                stmt.setDouble(3, monto);
+                stmt.setLong(4, loanDetailId);
+                stmt.executeUpdate();
+            }
+
+            // Actualizar estado general del préstamo
+            if (loanId != null) {
+                actualizarEstadoGeneralLoan(loanId);
+            }
+
+            // Registrar en historial
+            guardarHistorialCorreccion("AGREGAR_PRESTAMO_REGISTRO",
+                    "REG-" + registroId + "/LOAN-" + loanId + "/LD-" + loanDetailId, 0,
+                    0, monto, usuario, motivo);
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error agregando detalle préstamo: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Agrega un nuevo detalle de abono a un registro existente
+     * @param registroId ID del registro
+     * @param abonoDetailId ID del detalle de abono
+     * @param monto Monto a aplicar
+     * @param usuario Usuario que realiza el cambio
+     * @param motivo Motivo del cambio
+     * @return true si se agregó correctamente
+     */
+    public boolean agregarDetalleAbonoARegistro(int registroId, long abonoDetailId, double monto,
+                                                 String usuario, String motivo) {
+        try {
+            conn.setAutoCommit(false);
+
+            // Obtener AbonoID para actualizar estado general
+            Long abonoId = null;
+            String sqlGetAbonoId = "SELECT AbonoID FROM abonodetail WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetAbonoId)) {
+                stmt.setLong(1, abonoDetailId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        abonoId = rs.getLong("AbonoID");
+                    }
+                }
+            }
+
+            // Insertar el nuevo detalle
+            String sqlInsert = "INSERT INTO registerdetails (idRegistro, idBondDetails, amountPar) VALUES (?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlInsert)) {
+                stmt.setInt(1, registroId);
+                stmt.setLong(2, abonoDetailId);
+                stmt.setDouble(3, monto);
+                stmt.executeUpdate();
+            }
+
+            // Actualizar el pago en abonodetail
+            String sqlUpdate = "UPDATE abonodetail SET payment = COALESCE(payment, 0) + ?, " +
+                    "state = CASE " +
+                    "  WHEN COALESCE(payment, 0) + ? >= monthly THEN 'Pagado' " +
+                    "  WHEN COALESCE(payment, 0) + ? > 0 THEN 'Parcial' " +
+                    "  ELSE 'Pendiente' " +
+                    "END " +
+                    "WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUpdate)) {
+                stmt.setDouble(1, monto);
+                stmt.setDouble(2, monto);
+                stmt.setDouble(3, monto);
+                stmt.setLong(4, abonoDetailId);
+                stmt.executeUpdate();
+            }
+
+            // Actualizar estado general del abono
+            if (abonoId != null) {
+                actualizarEstadoGeneralAbono(abonoId);
+            }
+
+            // Registrar en historial
+            guardarHistorialCorreccion("AGREGAR_ABONO_REGISTRO",
+                    "REG-" + registroId + "/ABONO-" + abonoId + "/AD-" + abonoDetailId, 0,
+                    0, monto, usuario, motivo);
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error agregando detalle abono: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Obtiene detalles completos de un pago para edición, incluyendo información de cuotas
+     * @param registroId ID del registro
+     * @return Map con toda la información del pago
+     */
+    public Map<String, Object> obtenerDetallesCompletoPago(int registroId) {
+        Map<String, Object> resultado = new HashMap<>();
+        List<Object[]> prestamos = new ArrayList<>();
+        List<Object[]> abonos = new ArrayList<>();
+        String empleadoNombre = "";
+        String empleadoDni = "";
+        int empleadoId = 0;
+
+        // Obtener información del empleado
+        String sqlEmpleado = "SELECT e.employee_id, e.fullName, e.national_id " +
+                "FROM registro r " +
+                "INNER JOIN employees e ON r.empleado_id = e.employee_id " +
+                "WHERE r.id = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sqlEmpleado)) {
+            stmt.setInt(1, registroId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    empleadoId = rs.getInt("employee_id");
+                    empleadoNombre = rs.getString("fullName");
+                    empleadoDni = rs.getString("national_id");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo empleado: " + e.getMessage());
+        }
+
+        // Obtener detalles de préstamos con información completa
+        String sqlPrestamos = "SELECT l.SoliNum, ld.Dues, ld.MonthlyFeeValue, ld.payment AS totalPagadoCuota, " +
+                "rd.amountPar, rd.id as rdId, ld.ID as ldId, ld.State " +
+                "FROM registerdetails rd " +
+                "INNER JOIN loandetail ld ON rd.idLoanDetails = ld.ID " +
+                "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                "WHERE rd.idRegistro = ? AND rd.idLoanDetails IS NOT NULL " +
+                "ORDER BY l.SoliNum, ld.Dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sqlPrestamos)) {
+            stmt.setInt(1, registroId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[8];
+                    row[0] = rs.getString("SoliNum");           // Solicitud
+                    row[1] = rs.getInt("Dues");                  // Cuota
+                    row[2] = rs.getDouble("MonthlyFeeValue");    // Monto mensual
+                    row[3] = rs.getDouble("totalPagadoCuota");   // Total pagado en la cuota
+                    row[4] = rs.getDouble("amountPar");          // Monto aplicado en este registro
+                    row[5] = rs.getLong("rdId");                 // ID registerdetails
+                    row[6] = rs.getLong("ldId");                 // ID loandetail
+                    row[7] = rs.getString("State");              // Estado
+                    prestamos.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo préstamos: " + e.getMessage());
+        }
+
+        // Obtener detalles de abonos con información completa
+        String sqlAbonos = "SELECT a.SoliNum, COALESCE(sc.description, 'Sin concepto') AS concepto, " +
+                "ad.dues, ad.monthly, ad.payment AS totalPagadoCuota, " +
+                "rd.amountPar, rd.id as rdId, ad.id as adId, ad.state " +
+                "FROM registerdetails rd " +
+                "INNER JOIN abonodetail ad ON rd.idBondDetails = ad.id " +
+                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                "LEFT JOIN service_concept sc ON a.service_concept_id = sc.id " +
+                "WHERE rd.idRegistro = ? AND rd.idBondDetails IS NOT NULL " +
+                "ORDER BY a.SoliNum, ad.dues";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sqlAbonos)) {
+            stmt.setInt(1, registroId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[9];
+                    row[0] = rs.getString("SoliNum");           // Solicitud
+                    row[1] = rs.getString("concepto");          // Concepto
+                    row[2] = rs.getInt("dues");                  // Cuota
+                    row[3] = rs.getDouble("monthly");            // Monto mensual
+                    row[4] = rs.getDouble("totalPagadoCuota");   // Total pagado en la cuota
+                    row[5] = rs.getDouble("amountPar");          // Monto aplicado en este registro
+                    row[6] = rs.getLong("rdId");                 // ID registerdetails
+                    row[7] = rs.getLong("adId");                 // ID abonodetail
+                    row[8] = rs.getString("state");              // Estado
+                    abonos.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo abonos: " + e.getMessage());
+        }
+
+        resultado.put("prestamos", prestamos);
+        resultado.put("abonos", abonos);
+        resultado.put("empleadoNombre", empleadoNombre);
+        resultado.put("empleadoDni", empleadoDni);
+        resultado.put("empleadoId", empleadoId);
+
+        return resultado;
+    }
+
+    /**
+     * Busca cuotas de préstamos con información del voucher donde están pagadas
+     * @param soliNum Código de solicitud (opcional, si es vacío busca todas)
+     * @param empleadoId ID del empleado
+     * @param mostrarTodas Si es true incluye las pagadas
+     * @return Lista [loanDetailId, SoliNum, Dues, MonthlyFeeValue, payment, pendiente, State, voucherCodigo, voucherId, rdId, amountParVoucher]
+     */
+    public List<Object[]> buscarCuotasPrestamosConVoucher(String soliNum, int empleadoId, boolean mostrarTodas) {
+        List<Object[]> cuotas = new ArrayList<>();
+
+        String sql = "SELECT ld.ID, l.SoliNum, ld.Dues, ld.MonthlyFeeValue, COALESCE(ld.payment, 0) AS payment, " +
+                "(ld.MonthlyFeeValue - COALESCE(ld.payment, 0)) AS pendiente, ld.State, " +
+                "r.codigo AS voucherCodigo, r.id AS voucherId, rd.id AS rdId, rd.amountPar " +
+                "FROM loandetail ld " +
+                "INNER JOIN loan l ON ld.LoanID = l.ID " +
+                "LEFT JOIN registerdetails rd ON rd.idLoanDetails = ld.ID " +
+                "LEFT JOIN registro r ON rd.idRegistro = r.id " +
+                "WHERE 1=1 ";
+
+        // Si hay código de solicitud, buscar por código (ignora empleadoId)
+        // Si no hay código, buscar por empleado
+        if (soliNum != null && !soliNum.trim().isEmpty()) {
+            sql += "AND l.SoliNum LIKE ? ";
+        } else {
+            sql += "AND l.EmployeeID = ? ";
+        }
+        if (!mostrarTodas) {
+            sql += "AND (ld.State != 'Pagado' OR ld.State IS NULL) ";
+        }
+        sql += "ORDER BY l.SoliNum, ld.Dues, r.fecha_registro DESC";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            if (soliNum != null && !soliNum.trim().isEmpty()) {
+                stmt.setString(1, "%" + soliNum + "%");
+            } else {
+                stmt.setInt(1, empleadoId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[11];
+                    row[0] = rs.getLong("ID");
+                    row[1] = rs.getString("SoliNum");
+                    row[2] = rs.getInt("Dues");
+                    row[3] = rs.getDouble("MonthlyFeeValue");
+                    row[4] = rs.getDouble("payment");
+                    row[5] = rs.getDouble("pendiente");
+                    row[6] = rs.getString("State");
+                    row[7] = rs.getString("voucherCodigo");   // Código del voucher donde está pagado
+                    row[8] = rs.getObject("voucherId") != null ? rs.getInt("voucherId") : null;
+                    row[9] = rs.getObject("rdId") != null ? rs.getLong("rdId") : null;
+                    row[10] = rs.getObject("amountPar") != null ? rs.getDouble("amountPar") : 0.0;
+                    cuotas.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando cuotas préstamos con voucher: " + e.getMessage());
+        }
+        return cuotas;
+    }
+
+    /**
+     * Busca cuotas de abonos con información del voucher donde están pagadas
+     * @param soliNum Código de solicitud (opcional)
+     * @param empleadoId ID del empleado
+     * @param mostrarTodas Si es true incluye las pagadas
+     * @return Lista [abonoDetailId, SoliNum, concepto, dues, monthly, payment, pendiente, State, voucherCodigo, voucherId, rdId, amountParVoucher]
+     */
+    public List<Object[]> buscarCuotasAbonosConVoucher(String soliNum, int empleadoId, boolean mostrarTodas) {
+        List<Object[]> cuotas = new ArrayList<>();
+
+        String sql = "SELECT ad.id, a.SoliNum, COALESCE(sc.description, 'Sin concepto') AS concepto, " +
+                "ad.dues, ad.monthly, COALESCE(ad.payment, 0) AS payment, " +
+                "(ad.monthly - COALESCE(ad.payment, 0)) AS pendiente, ad.state, " +
+                "r.codigo AS voucherCodigo, r.id AS voucherId, rd.id AS rdId, rd.amountPar " +
+                "FROM abonodetail ad " +
+                "INNER JOIN abono a ON ad.AbonoID = a.ID " +
+                "LEFT JOIN service_concept sc ON a.service_concept_id = sc.id " +
+                "LEFT JOIN registerdetails rd ON rd.idBondDetails = ad.id " +
+                "LEFT JOIN registro r ON rd.idRegistro = r.id " +
+                "WHERE 1=1 ";
+
+        // Si hay código de solicitud, buscar por código (ignora empleadoId)
+        // Si no hay código, buscar por empleado
+        if (soliNum != null && !soliNum.trim().isEmpty()) {
+            sql += "AND a.SoliNum LIKE ? ";
+        } else {
+            sql += "AND a.EmployeeID = ? ";
+        }
+        if (!mostrarTodas) {
+            sql += "AND (ad.state != 'Pagado' OR ad.state IS NULL) ";
+        }
+        sql += "ORDER BY a.SoliNum, ad.dues, r.fecha_registro DESC";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            if (soliNum != null && !soliNum.trim().isEmpty()) {
+                stmt.setString(1, "%" + soliNum + "%");
+            } else {
+                stmt.setInt(1, empleadoId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[12];
+                    row[0] = rs.getLong("id");
+                    row[1] = rs.getString("SoliNum");
+                    row[2] = rs.getString("concepto");
+                    row[3] = rs.getInt("dues");
+                    row[4] = rs.getDouble("monthly");
+                    row[5] = rs.getDouble("payment");
+                    row[6] = rs.getDouble("pendiente");
+                    row[7] = rs.getString("state");
+                    row[8] = rs.getString("voucherCodigo");
+                    row[9] = rs.getObject("voucherId") != null ? rs.getInt("voucherId") : null;
+                    row[10] = rs.getObject("rdId") != null ? rs.getLong("rdId") : null;
+                    row[11] = rs.getObject("amountPar") != null ? rs.getDouble("amountPar") : 0.0;
+                    cuotas.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error buscando cuotas abonos con voucher: " + e.getMessage());
+        }
+        return cuotas;
+    }
+
+    /**
+     * Transfiere un pago de préstamo de un voucher a otro
+     * @param rdIdOrigen ID del registerdetails original (a eliminar del voucher origen)
+     * @param loanDetailId ID del loandetail
+     * @param registroIdDestino ID del registro destino
+     * @param montoTransferir Monto a transferir
+     * @param usuario Usuario que realiza el cambio
+     * @param motivo Motivo del cambio
+     * @return true si se transfirió correctamente
+     */
+    public boolean transferirPagoPrestamoAVoucher(long rdIdOrigen, long loanDetailId, int registroIdDestino,
+                                                   double montoTransferir, String usuario, String motivo) {
+        try {
+            conn.setAutoCommit(false);
+
+            // Obtener información del voucher origen
+            int voucherOrigenId = 0;
+            double montoOriginal = 0;
+            String sqlGetOrigen = "SELECT idRegistro, amountPar FROM registerdetails WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetOrigen)) {
+                stmt.setLong(1, rdIdOrigen);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        voucherOrigenId = rs.getInt("idRegistro");
+                        montoOriginal = rs.getDouble("amountPar");
+                    }
+                }
+            }
+
+            if (voucherOrigenId == 0) {
+                throw new SQLException("No se encontró el pago original");
+            }
+
+            // Eliminar el detalle del voucher origen
+            String sqlDeleteOrigen = "DELETE FROM registerdetails WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlDeleteOrigen)) {
+                stmt.setLong(1, rdIdOrigen);
+                stmt.executeUpdate();
+            }
+
+            // Revertir el pago en loandetail (quitar lo que tenía)
+            String sqlRevertLoan = "UPDATE loandetail SET payment = GREATEST(0, COALESCE(payment, 0) - ?), " +
+                    "State = CASE " +
+                    "  WHEN GREATEST(0, COALESCE(payment, 0) - ?) = 0 THEN 'Pendiente' " +
+                    "  WHEN GREATEST(0, COALESCE(payment, 0) - ?) < MonthlyFeeValue THEN 'Parcial' " +
+                    "  ELSE 'Pagado' " +
+                    "END " +
+                    "WHERE ID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlRevertLoan)) {
+                stmt.setDouble(1, montoOriginal);
+                stmt.setDouble(2, montoOriginal);
+                stmt.setDouble(3, montoOriginal);
+                stmt.setLong(4, loanDetailId);
+                stmt.executeUpdate();
+            }
+
+            // Insertar en el nuevo voucher destino
+            String sqlInsertDestino = "INSERT INTO registerdetails (idRegistro, idLoanDetails, amountPar) VALUES (?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlInsertDestino)) {
+                stmt.setInt(1, registroIdDestino);
+                stmt.setLong(2, loanDetailId);
+                stmt.setDouble(3, montoTransferir);
+                stmt.executeUpdate();
+            }
+
+            // Aplicar el nuevo pago en loandetail
+            String sqlApplyLoan = "UPDATE loandetail SET payment = COALESCE(payment, 0) + ?, " +
+                    "State = CASE " +
+                    "  WHEN COALESCE(payment, 0) + ? >= MonthlyFeeValue THEN 'Pagado' " +
+                    "  WHEN COALESCE(payment, 0) + ? > 0 THEN 'Parcial' " +
+                    "  ELSE 'Pendiente' " +
+                    "END " +
+                    "WHERE ID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlApplyLoan)) {
+                stmt.setDouble(1, montoTransferir);
+                stmt.setDouble(2, montoTransferir);
+                stmt.setDouble(3, montoTransferir);
+                stmt.setLong(4, loanDetailId);
+                stmt.executeUpdate();
+            }
+
+            // Actualizar estado general del préstamo
+            Long loanId = null;
+            String sqlGetLoanId = "SELECT LoanID FROM loandetail WHERE ID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetLoanId)) {
+                stmt.setLong(1, loanDetailId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        loanId = rs.getLong("LoanID");
+                    }
+                }
+            }
+            if (loanId != null) {
+                actualizarEstadoGeneralLoan(loanId);
+            }
+
+            // Verificar si el voucher origen quedó vacío y eliminarlo
+            eliminarVoucherSiVacio(voucherOrigenId, usuario);
+
+            // Registrar en historial
+            guardarHistorialCorreccion("TRANSFERIR_PRESTAMO_VOUCHER",
+                    "ORIGEN-REG-" + voucherOrigenId + "/DESTINO-REG-" + registroIdDestino + "/LD-" + loanDetailId,
+                    0, montoOriginal, montoTransferir, usuario, motivo);
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error transfiriendo pago préstamo: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Transfiere un pago de abono de un voucher a otro
+     * @param rdIdOrigen ID del registerdetails original
+     * @param abonoDetailId ID del abonodetail
+     * @param registroIdDestino ID del registro destino
+     * @param montoTransferir Monto a transferir
+     * @param usuario Usuario que realiza el cambio
+     * @param motivo Motivo del cambio
+     * @return true si se transfirió correctamente
+     */
+    public boolean transferirPagoAbonoAVoucher(long rdIdOrigen, long abonoDetailId, int registroIdDestino,
+                                                double montoTransferir, String usuario, String motivo) {
+        try {
+            conn.setAutoCommit(false);
+
+            // Obtener información del voucher origen
+            int voucherOrigenId = 0;
+            double montoOriginal = 0;
+            String sqlGetOrigen = "SELECT idRegistro, amountPar FROM registerdetails WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetOrigen)) {
+                stmt.setLong(1, rdIdOrigen);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        voucherOrigenId = rs.getInt("idRegistro");
+                        montoOriginal = rs.getDouble("amountPar");
+                    }
+                }
+            }
+
+            if (voucherOrigenId == 0) {
+                throw new SQLException("No se encontró el pago original");
+            }
+
+            // Eliminar el detalle del voucher origen
+            String sqlDeleteOrigen = "DELETE FROM registerdetails WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlDeleteOrigen)) {
+                stmt.setLong(1, rdIdOrigen);
+                stmt.executeUpdate();
+            }
+
+            // Revertir el pago en abonodetail
+            String sqlRevertAbono = "UPDATE abonodetail SET payment = GREATEST(0, COALESCE(payment, 0) - ?), " +
+                    "state = CASE " +
+                    "  WHEN GREATEST(0, COALESCE(payment, 0) - ?) = 0 THEN 'Pendiente' " +
+                    "  WHEN GREATEST(0, COALESCE(payment, 0) - ?) < monthly THEN 'Parcial' " +
+                    "  ELSE 'Pagado' " +
+                    "END " +
+                    "WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlRevertAbono)) {
+                stmt.setDouble(1, montoOriginal);
+                stmt.setDouble(2, montoOriginal);
+                stmt.setDouble(3, montoOriginal);
+                stmt.setLong(4, abonoDetailId);
+                stmt.executeUpdate();
+            }
+
+            // Insertar en el nuevo voucher destino
+            String sqlInsertDestino = "INSERT INTO registerdetails (idRegistro, idBondDetails, amountPar) VALUES (?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlInsertDestino)) {
+                stmt.setInt(1, registroIdDestino);
+                stmt.setLong(2, abonoDetailId);
+                stmt.setDouble(3, montoTransferir);
+                stmt.executeUpdate();
+            }
+
+            // Aplicar el nuevo pago en abonodetail
+            String sqlApplyAbono = "UPDATE abonodetail SET payment = COALESCE(payment, 0) + ?, " +
+                    "state = CASE " +
+                    "  WHEN COALESCE(payment, 0) + ? >= monthly THEN 'Pagado' " +
+                    "  WHEN COALESCE(payment, 0) + ? > 0 THEN 'Parcial' " +
+                    "  ELSE 'Pendiente' " +
+                    "END " +
+                    "WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlApplyAbono)) {
+                stmt.setDouble(1, montoTransferir);
+                stmt.setDouble(2, montoTransferir);
+                stmt.setDouble(3, montoTransferir);
+                stmt.setLong(4, abonoDetailId);
+                stmt.executeUpdate();
+            }
+
+            // Actualizar estado general del abono
+            Long abonoId = null;
+            String sqlGetAbonoId = "SELECT AbonoID FROM abonodetail WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetAbonoId)) {
+                stmt.setLong(1, abonoDetailId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        abonoId = rs.getLong("AbonoID");
+                    }
+                }
+            }
+            if (abonoId != null) {
+                actualizarEstadoGeneralAbono(abonoId);
+            }
+
+            // Verificar si el voucher origen quedó vacío y eliminarlo
+            eliminarVoucherSiVacio(voucherOrigenId, usuario);
+
+            // Registrar en historial
+            guardarHistorialCorreccion("TRANSFERIR_ABONO_VOUCHER",
+                    "ORIGEN-REG-" + voucherOrigenId + "/DESTINO-REG-" + registroIdDestino + "/AD-" + abonoDetailId,
+                    0, montoOriginal, montoTransferir, usuario, motivo);
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error transfiriendo pago abono: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Verifica si un voucher (registro) quedó vacío y lo elimina si es así
+     * @param registroId ID del registro a verificar
+     * @param usuario Usuario que realiza el cambio
+     * @return true si se eliminó el voucher, false si no estaba vacío
+     */
+    public boolean eliminarVoucherSiVacio(int registroId, String usuario) {
+        try {
+            // Verificar si tiene detalles
+            String sqlContarDetalles = "SELECT COUNT(*) AS total FROM registerdetails WHERE idRegistro = ?";
+            int totalDetalles = 0;
+            try (PreparedStatement stmt = conn.prepareStatement(sqlContarDetalles)) {
+                stmt.setInt(1, registroId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        totalDetalles = rs.getInt("total");
+                    }
+                }
+            }
+
+            if (totalDetalles == 0) {
+                // Obtener información del voucher antes de eliminarlo
+                String codigoVoucher = "";
+                double montoVoucher = 0;
+                String sqlGetVoucher = "SELECT codigo, amount FROM registro WHERE id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlGetVoucher)) {
+                    stmt.setInt(1, registroId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            codigoVoucher = rs.getString("codigo");
+                            montoVoucher = rs.getDouble("amount");
+                        }
+                    }
+                }
+
+                // Eliminar el registro
+                String sqlDelete = "DELETE FROM registro WHERE id = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlDelete)) {
+                    stmt.setInt(1, registroId);
+                    stmt.executeUpdate();
+                }
+
+                // Registrar en historial
+                guardarHistorialCorreccion("ELIMINAR_VOUCHER_VACIO",
+                        "REG-" + registroId + "/COD-" + codigoVoucher,
+                        0, montoVoucher, 0, usuario, "Voucher eliminado por quedar vacío después de transferencia");
+
+                System.out.println("Voucher " + codigoVoucher + " (ID: " + registroId + ") eliminado por quedar vacío");
+                return true;
+            }
+
+            return false;
+
+        } catch (SQLException e) {
+            System.out.println("Error verificando/eliminando voucher vacío: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Elimina un voucher completo, revirtiendo todos sus pagos
+     * @param registroId ID del registro a eliminar
+     * @param usuario Usuario que realiza el cambio
+     * @param motivo Motivo de la eliminación
+     * @return true si se eliminó correctamente
+     */
+    public boolean eliminarVoucherCompleto(int registroId, String usuario, String motivo) {
+        try {
+            conn.setAutoCommit(false);
+
+            // Obtener info del voucher
+            String codigoVoucher = "";
+            double montoVoucher = 0;
+            String sqlGetVoucher = "SELECT codigo, amount FROM registro WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlGetVoucher)) {
+                stmt.setInt(1, registroId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        codigoVoucher = rs.getString("codigo");
+                        montoVoucher = rs.getDouble("amount");
+                    }
+                }
+            }
+
+            // Obtener todos los detalles para revertir
+            List<Object[]> detalles = new ArrayList<>();
+            String sqlDetalles = "SELECT id, idBondDetails, idLoanDetails, amountPar FROM registerdetails WHERE idRegistro = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlDetalles)) {
+                stmt.setInt(1, registroId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        Object[] det = new Object[4];
+                        det[0] = rs.getLong("id");
+                        det[1] = rs.getObject("idBondDetails");
+                        det[2] = rs.getObject("idLoanDetails");
+                        det[3] = rs.getDouble("amountPar");
+                        detalles.add(det);
+                    }
+                }
+            }
+
+            // Revertir cada detalle
+            for (Object[] det : detalles) {
+                Long bondId = det[1] != null ? ((Number)det[1]).longValue() : null;
+                Long loanId = det[2] != null ? ((Number)det[2]).longValue() : null;
+                double monto = (Double) det[3];
+
+                if (loanId != null) {
+                    // Revertir préstamo
+                    String sqlRevert = "UPDATE loandetail SET payment = GREATEST(0, COALESCE(payment, 0) - ?), " +
+                            "State = CASE " +
+                            "  WHEN GREATEST(0, COALESCE(payment, 0) - ?) = 0 THEN 'Pendiente' " +
+                            "  WHEN GREATEST(0, COALESCE(payment, 0) - ?) < MonthlyFeeValue THEN 'Parcial' " +
+                            "  ELSE 'Pagado' " +
+                            "END WHERE ID = ?";
+                    try (PreparedStatement stmt = conn.prepareStatement(sqlRevert)) {
+                        stmt.setDouble(1, monto);
+                        stmt.setDouble(2, monto);
+                        stmt.setDouble(3, monto);
+                        stmt.setLong(4, loanId);
+                        stmt.executeUpdate();
+                    }
+
+                    // Actualizar estado general del loan
+                    Long parentLoanId = null;
+                    String sqlGetParent = "SELECT LoanID FROM loandetail WHERE ID = ?";
+                    try (PreparedStatement stmt = conn.prepareStatement(sqlGetParent)) {
+                        stmt.setLong(1, loanId);
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            if (rs.next()) parentLoanId = rs.getLong("LoanID");
+                        }
+                    }
+                    if (parentLoanId != null) actualizarEstadoGeneralLoan(parentLoanId);
+                }
+
+                if (bondId != null) {
+                    // Revertir abono
+                    String sqlRevert = "UPDATE abonodetail SET payment = GREATEST(0, COALESCE(payment, 0) - ?), " +
+                            "state = CASE " +
+                            "  WHEN GREATEST(0, COALESCE(payment, 0) - ?) = 0 THEN 'Pendiente' " +
+                            "  WHEN GREATEST(0, COALESCE(payment, 0) - ?) < monthly THEN 'Parcial' " +
+                            "  ELSE 'Pagado' " +
+                            "END WHERE id = ?";
+                    try (PreparedStatement stmt = conn.prepareStatement(sqlRevert)) {
+                        stmt.setDouble(1, monto);
+                        stmt.setDouble(2, monto);
+                        stmt.setDouble(3, monto);
+                        stmt.setLong(4, bondId);
+                        stmt.executeUpdate();
+                    }
+
+                    // Actualizar estado general del abono
+                    Long parentAbonoId = null;
+                    String sqlGetParent = "SELECT AbonoID FROM abonodetail WHERE id = ?";
+                    try (PreparedStatement stmt = conn.prepareStatement(sqlGetParent)) {
+                        stmt.setLong(1, bondId);
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            if (rs.next()) parentAbonoId = rs.getLong("AbonoID");
+                        }
+                    }
+                    if (parentAbonoId != null) actualizarEstadoGeneralAbono(parentAbonoId);
+                }
+            }
+
+            // Eliminar todos los detalles
+            String sqlDeleteDetalles = "DELETE FROM registerdetails WHERE idRegistro = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlDeleteDetalles)) {
+                stmt.setInt(1, registroId);
+                stmt.executeUpdate();
+            }
+
+            // Eliminar el registro
+            String sqlDeleteRegistro = "DELETE FROM registro WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sqlDeleteRegistro)) {
+                stmt.setInt(1, registroId);
+                stmt.executeUpdate();
+            }
+
+            // Registrar en historial
+            guardarHistorialCorreccion("ELIMINAR_VOUCHER_COMPLETO",
+                    "REG-" + registroId + "/COD-" + codigoVoucher,
+                    0, montoVoucher, 0, usuario, motivo);
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println("Error en rollback: " + ex.getMessage());
+            }
+            System.out.println("Error eliminando voucher completo: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Error restaurando auto-commit: " + e.getMessage());
+            }
+        }
+    }
+
+    // ==================== MÉTODOS PARA AUTOCOMPLETADO ====================
+
+    /**
+     * Obtiene lista de códigos de solicitudes de préstamos para autocompletado
+     */
+    public List<String> obtenerCodigosSolicitudesPrestamos() {
+        List<String> codigos = new ArrayList<>();
+        String sql = "SELECT DISTINCT l.SoliNum FROM loan l " +
+                     "WHERE l.SoliNum IS NOT NULL AND l.SoliNum != '' " +
+                     "ORDER BY l.SoliNum";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                codigos.add(rs.getString("SoliNum"));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo códigos de préstamos: " + e.getMessage());
+        }
+        return codigos;
+    }
+
+    /**
+     * Obtiene lista de códigos de solicitudes de abonos para autocompletado
+     */
+    public List<String> obtenerCodigosSolicitudesAbonos() {
+        List<String> codigos = new ArrayList<>();
+        String sql = "SELECT DISTINCT a.SoliNum FROM abono a " +
+                     "WHERE a.SoliNum IS NOT NULL AND a.SoliNum != '' " +
+                     "ORDER BY a.SoliNum";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                codigos.add(rs.getString("SoliNum"));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo códigos de abonos: " + e.getMessage());
+        }
+        return codigos;
+    }
+
+    /**
+     * Obtiene lista de códigos de tickets/vouchers para autocompletado
+     */
+    public List<String> obtenerCodigosTickets() {
+        List<String> codigos = new ArrayList<>();
+        String sql = "SELECT DISTINCT r.codigo FROM registro r " +
+                     "WHERE r.codigo IS NOT NULL AND r.codigo != '' " +
+                     "ORDER BY r.codigo DESC " +
+                     "LIMIT 500";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                codigos.add(rs.getString("codigo"));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo códigos de tickets: " + e.getMessage());
+        }
+        return codigos;
+    }
+
+    /**
+     * Obtiene lista de códigos de préstamos para un empleado específico
+     */
+    public List<String> obtenerCodigosSolicitudesPrestamosPorEmpleado(int empleadoId) {
+        List<String> codigos = new ArrayList<>();
+        String sql = "SELECT DISTINCT l.SoliNum FROM loan l " +
+                     "WHERE l.EmployeeID = ? AND l.SoliNum IS NOT NULL AND l.SoliNum != '' " +
+                     "ORDER BY l.SoliNum";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, empleadoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    codigos.add(rs.getString("SoliNum"));
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo códigos de préstamos por empleado: " + e.getMessage());
+        }
+        return codigos;
+    }
+
+    /**
+     * Obtiene lista de códigos de abonos para un empleado específico
+     */
+    public List<String> obtenerCodigosSolicitudesAbonosPorEmpleado(int empleadoId) {
+        List<String> codigos = new ArrayList<>();
+        String sql = "SELECT DISTINCT a.SoliNum FROM abono a " +
+                     "WHERE a.EmployeeID = ? AND a.SoliNum IS NOT NULL AND a.SoliNum != '' " +
+                     "ORDER BY a.SoliNum";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, empleadoId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    codigos.add(rs.getString("SoliNum"));
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error obteniendo códigos de abonos por empleado: " + e.getMessage());
+        }
+        return codigos;
+    }
 }

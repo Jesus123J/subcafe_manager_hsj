@@ -607,6 +607,20 @@ public class ViewMain extends javax.swing.JFrame {
             javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
         ));
 
+        // Botón para editar pagos mal distribuidos - diseño moderno
+        jLabelEditarPago = new javax.swing.JLabel();
+        jLabelEditarPago.setFont(new java.awt.Font("Segoe UI", 1, 11));
+        jLabelEditarPago.setForeground(new java.awt.Color(255, 255, 255));
+        jLabelEditarPago.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelEditarPago.setText("EDITAR PAGO");
+        jLabelEditarPago.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        jLabelEditarPago.setOpaque(true);
+        jLabelEditarPago.setBackground(new java.awt.Color(41, 128, 185)); // Azul
+        jLabelEditarPago.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(52, 152, 219), 2),
+            javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+
         jDesktopPane1.setLayer(jLabel1, javax.swing.JLayeredPane.DEFAULT_LAYER);
         jDesktopPane1.setLayer(jLabel2, javax.swing.JLayeredPane.DEFAULT_LAYER);
         jDesktopPane1.setLayer(jLabelReportDesc, javax.swing.JLayeredPane.DEFAULT_LAYER);
@@ -616,6 +630,7 @@ public class ViewMain extends javax.swing.JFrame {
         jDesktopPane1.setLayer(jLabelRevertirPago, javax.swing.JLayeredPane.DEFAULT_LAYER);
         jDesktopPane1.setLayer(jLabelCorregirDuplicados, javax.swing.JLayeredPane.DEFAULT_LAYER);
         jDesktopPane1.setLayer(jLabelReorganizarPagos, javax.swing.JLayeredPane.DEFAULT_LAYER);
+        jDesktopPane1.setLayer(jLabelEditarPago, javax.swing.JLayeredPane.DEFAULT_LAYER);
 
         javax.swing.GroupLayout jDesktopPane1Layout = new javax.swing.GroupLayout(jDesktopPane1);
         jDesktopPane1.setLayout(jDesktopPane1Layout);
@@ -632,7 +647,8 @@ public class ViewMain extends javax.swing.JFrame {
                     .addComponent(jLabelReportDesc, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jLabelRevertirPago, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jLabelCorregirDuplicados, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabelReorganizarPagos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jLabelReorganizarPagos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabelEditarPago, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
         jDesktopPane1Layout.setVerticalGroup(
@@ -652,6 +668,8 @@ public class ViewMain extends javax.swing.JFrame {
                 .addComponent(jLabelCorregirDuplicados, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jLabelReorganizarPagos, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabelEditarPago, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 5, Short.MAX_VALUE)
                 .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -787,6 +805,7 @@ public class ViewMain extends javax.swing.JFrame {
     public javax.swing.JLabel jLabelRevertirPago;
     public javax.swing.JLabel jLabelCorregirDuplicados;
     public javax.swing.JLabel jLabelReorganizarPagos;
+    public javax.swing.JLabel jLabelEditarPago;
     public javax.swing.JLayeredPane jLayeredPane1;
     public javax.swing.JMenu jMenu2;
     public javax.swing.JMenuBar jMenuBar1;
