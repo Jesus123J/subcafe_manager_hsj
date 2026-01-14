@@ -1387,26 +1387,61 @@ public class ModelMain {
         // Panel personalizado para el diálogo
         javax.swing.JPanel panel = new javax.swing.JPanel();
         panel.setLayout(new java.awt.GridLayout(3, 1, 5, 10));
-        panel.setPreferredSize(new java.awt.Dimension(400, 120));
+        panel.setPreferredSize(new java.awt.Dimension(400, 140));
 
         javax.swing.JLabel lblInstrucciones = new javax.swing.JLabel(
             "<html><b style='color:#C0392B;'>⚠ ADVERTENCIA: Esta acción es irreversible</b><br/>" +
-            "Ingrese el código del recibo a revertir:</html>"
+            "Ingrese o seleccione el código del recibo a revertir:</html>"
         );
 
-        javax.swing.JTextField txtCodigoRecibo = new javax.swing.JTextField();
-        txtCodigoRecibo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
-        txtCodigoRecibo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+        // Usar JComboBox editable para autocompletado de tickets
+        com.subcafae.finantialtracker.data.dao.RegistroDao registroDaoRevertir =
+            new com.subcafae.finantialtracker.data.dao.RegistroDao();
+        java.util.List<String> codigosTickets = registroDaoRevertir.obtenerCodigosTickets();
+
+        javax.swing.JComboBox<String> cmbCodigoRecibo = new javax.swing.JComboBox<>();
+        cmbCodigoRecibo.setEditable(true);
+        cmbCodigoRecibo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+
+        cmbCodigoRecibo.addItem(""); // Opción vacía
+        for (String cod : codigosTickets) {
+            cmbCodigoRecibo.addItem(cod);
+        }
+
+        // Configurar autocompletado con filtrado
+        JTextField editorTicket = (JTextField) cmbCodigoRecibo.getEditor().getEditorComponent();
+        editorTicket.setBorder(javax.swing.BorderFactory.createCompoundBorder(
             javax.swing.BorderFactory.createLineBorder(new java.awt.Color(52, 73, 94), 2),
             javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
         ));
+        editorTicket.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() != KeyEvent.VK_UP && e.getKeyCode() != KeyEvent.VK_DOWN
+                    && e.getKeyCode() != KeyEvent.VK_ENTER && e.getKeyCode() != KeyEvent.VK_ESCAPE) {
+                    String texto = editorTicket.getText().toUpperCase();
+                    javax.swing.DefaultComboBoxModel<String> modelo = new javax.swing.DefaultComboBoxModel<>();
+                    modelo.addElement(""); // Siempre incluir vacío
+                    for (String cod : codigosTickets) {
+                        if (cod.toUpperCase().contains(texto)) {
+                            modelo.addElement(cod);
+                        }
+                    }
+                    cmbCodigoRecibo.setModel(modelo);
+                    editorTicket.setText(texto);
+                    if (modelo.getSize() > 1 && texto.length() > 0) {
+                        cmbCodigoRecibo.showPopup();
+                    }
+                }
+            }
+        });
 
         javax.swing.JLabel lblEjemplo = new javax.swing.JLabel(
-            "<html><i style='color:gray;'>Ejemplo: P/0001-00001273</i></html>"
+            "<html><i style='color:gray;'>Ejemplo: P/0001-00001273 (escriba para filtrar)</i></html>"
         );
 
         panel.add(lblInstrucciones);
-        panel.add(txtCodigoRecibo);
+        panel.add(cmbCodigoRecibo);
         panel.add(lblEjemplo);
 
         // Mostrar diálogo de confirmación inicial
