@@ -45,6 +45,7 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
         viewMain.jLabelCorregirDuplicados.addMouseListener(this);
         viewMain.jLabelReorganizarPagos.addMouseListener(this);
         viewMain.jLabelEditarPago.addMouseListener(this);
+        viewMain.jLabelRevertirUltimos.addMouseListener(this);
         viewMain.jMenuPago.addMouseListener(this);
 
         viewMain.jButtonProcesoDescuent.addActionListener(this);
@@ -218,6 +219,9 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
             }
             if (e.getSource().equals(viewMain.jLabelEditarPago)) {
                 editarPago();
+            }
+            if (e.getSource().equals(viewMain.jLabelRevertirUltimos)) {
+                revertirUltimosCambios();
             }
         } catch (Exception ex) {
             System.out.println("Error -> " + ex.getMessage());

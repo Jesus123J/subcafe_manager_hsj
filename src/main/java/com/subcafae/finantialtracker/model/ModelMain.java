@@ -1457,7 +1457,7 @@ public class ModelMain {
             return;
         }
 
-        String codigoRecibo = txtCodigoRecibo.getText().trim();
+        String codigoRecibo = cmbCodigoRecibo.getEditor().getItem().toString().trim();
         if (codigoRecibo.isEmpty()) {
             JOptionPane.showMessageDialog(viewMain,
                 "Debe ingresar un código de recibo válido",
@@ -1867,6 +1867,334 @@ public class ModelMain {
         }.execute();
 
         viewMain.loading.setVisible(true);
+    }
+
+    /**
+     * Método para revertir los últimos cambios realizados (transferencias, adiciones, etc.)
+     * Muestra un historial de cambios recientes y permite seleccionar cuáles revertir
+     */
+    public void revertirUltimosCambios() {
+        // Crear instancia del DAO
+        final com.subcafae.finantialtracker.data.dao.RegistroDao registroDao =
+            new com.subcafae.finantialtracker.data.dao.RegistroDao();
+
+        // Crear diálogo
+        javax.swing.JDialog dialogo = new javax.swing.JDialog(viewMain, "REVERTIR ÚLTIMOS CAMBIOS", true);
+        dialogo.setLayout(new java.awt.BorderLayout(10, 10));
+
+        // Panel de información
+        javax.swing.JPanel panelInfo = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+        panelInfo.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 5, 10));
+        panelInfo.add(new javax.swing.JLabel(
+            "<html><b style='color:#C0392B;'>⚠ Historial de cambios</b><br/>" +
+            "<small>Los cambios en gris no se pueden revertir (registro eliminado o ya revertido)</small></html>"
+        ));
+
+        // Obtener últimos cambios
+        java.util.List<Object[]> cambios = registroDao.obtenerUltimosCambios(100);
+
+        // Set para rastrear qué filas son revertibles
+        final java.util.Set<Integer> filasRevertibles = new java.util.HashSet<>();
+
+        // Tabla de cambios
+        String[] columnas = {"Sel", "ID", "Tipo", "Solicitud", "Cuota", "Monto Ant.", "Monto Nuevo", "Usuario", "Fecha", "Estado"};
+        javax.swing.table.DefaultTableModel modeloCambios = new javax.swing.table.DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                // Solo editable si es la columna de selección Y la fila es revertible
+                return column == 0 && filasRevertibles.contains(row);
+            }
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 0) return Boolean.class;
+                return String.class;
+            }
+        };
+
+        // Llenar tabla con TODOS los cambios
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
+        int filaActual = 0;
+        for (Object[] c : cambios) {
+            String tipo = (String) c[1];
+            String motivo = c[7] != null ? (String) c[7] : "";
+
+            // Determinar si es un tipo que teóricamente se puede revertir
+            boolean tipoRevertible = tipo.equals("TRANSFERIR_PRESTAMO_VOUCHER") ||
+                                   tipo.equals("TRANSFERIR_ABONO_VOUCHER") ||
+                                   tipo.equals("AGREGAR_PRESTAMO_REGISTRO") ||
+                                   tipo.equals("AGREGAR_ABONO_REGISTRO") ||
+                                   tipo.equals("EDICION_PRESTAMO") ||
+                                   tipo.equals("EDICION_ABONO");
+            boolean yaRevertido = motivo.contains("[REVERTIDO");
+            boolean noRevertible = motivo.contains("[NO REVERTIBLE");
+            boolean esEliminacion = tipo.contains("ELIMINACION") || tipo.contains("REVERTIR");
+
+            // Determinar estado y si se puede revertir
+            String estado;
+            boolean puedeRevertir = false;
+            if (yaRevertido) {
+                estado = "Ya revertido";
+            } else if (noRevertible) {
+                estado = "No revertible (eliminado)";
+            } else if (esEliminacion) {
+                estado = "No revertible (eliminación)";
+            } else if (tipoRevertible) {
+                estado = "Puede revertir";
+                puedeRevertir = true;
+                filasRevertibles.add(filaActual);
+            } else {
+                estado = "Solo informativo";
+            }
+
+            // Convertir tipo a legible
+            String tipoLegible = tipo.replace("TRANSFERIR_PRESTAMO_VOUCHER", "Transferir Préstamo")
+                                    .replace("TRANSFERIR_ABONO_VOUCHER", "Transferir Abono")
+                                    .replace("AGREGAR_PRESTAMO_REGISTRO", "Agregar Préstamo")
+                                    .replace("AGREGAR_ABONO_REGISTRO", "Agregar Abono")
+                                    .replace("EDICION_PRESTAMO", "Editar Préstamo")
+                                    .replace("EDICION_ABONO", "Editar Abono")
+                                    .replace("ELIMINACION_PRESTAMO", "Eliminar Préstamo")
+                                    .replace("ELIMINACION_ABONO", "Eliminar Abono")
+                                    .replace("REVERTIR_AGREGAR_PRESTAMO", "Reversión Préstamo")
+                                    .replace("REVERTIR_AGREGAR_ABONO", "Reversión Abono")
+                                    .replace("REVERTIR_EDICION_PRESTAMO", "Reversión Edición Prést.")
+                                    .replace("REVERTIR_EDICION_ABONO", "Reversión Edición Abono");
+
+            String fecha = c[8] != null ? sdf.format((java.sql.Timestamp) c[8]) : "-";
+
+            modeloCambios.addRow(new Object[]{
+                Boolean.FALSE,
+                c[0], // ID
+                tipoLegible,
+                c[2], // Solicitud
+                c[3], // Cuota
+                String.format("%.2f", c[4]), // Monto anterior
+                String.format("%.2f", c[5]), // Monto nuevo
+                c[6], // Usuario
+                fecha,
+                estado
+            });
+            filaActual++;
+        }
+
+        javax.swing.JTable tablaCambios = new javax.swing.JTable(modeloCambios);
+        tablaCambios.setRowHeight(25);
+        tablaCambios.getColumnModel().getColumn(0).setPreferredWidth(30);
+        tablaCambios.getColumnModel().getColumn(1).setPreferredWidth(50);
+        tablaCambios.getColumnModel().getColumn(2).setPreferredWidth(120);
+        tablaCambios.getColumnModel().getColumn(3).setPreferredWidth(100);
+        tablaCambios.getColumnModel().getColumn(4).setPreferredWidth(50);
+        tablaCambios.getColumnModel().getColumn(5).setPreferredWidth(80);
+        tablaCambios.getColumnModel().getColumn(6).setPreferredWidth(80);
+        tablaCambios.getColumnModel().getColumn(7).setPreferredWidth(80);
+        tablaCambios.getColumnModel().getColumn(8).setPreferredWidth(120);
+        tablaCambios.getColumnModel().getColumn(9).setPreferredWidth(150);
+
+        // Colorear filas según tipo y estado
+        tablaCambios.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected && row < modeloCambios.getRowCount()) {
+                    String tipo = (String) table.getValueAt(row, 2);
+                    String estado = (String) table.getValueAt(row, 9);
+
+                    // Si no se puede revertir, mostrar en gris
+                    if (!estado.equals("Puede revertir")) {
+                        c.setBackground(new java.awt.Color(220, 220, 220)); // Gris claro
+                        c.setForeground(new java.awt.Color(100, 100, 100)); // Texto gris
+                    } else if (tipo.contains("Transferir")) {
+                        c.setBackground(new java.awt.Color(255, 248, 220)); // Amarillo claro
+                        c.setForeground(java.awt.Color.BLACK);
+                    } else if (tipo.contains("Agregar")) {
+                        c.setBackground(new java.awt.Color(220, 255, 220)); // Verde claro
+                        c.setForeground(java.awt.Color.BLACK);
+                    } else if (tipo.contains("Editar")) {
+                        c.setBackground(new java.awt.Color(220, 230, 255)); // Azul claro
+                        c.setForeground(java.awt.Color.BLACK);
+                    } else {
+                        c.setBackground(java.awt.Color.WHITE);
+                        c.setForeground(java.awt.Color.BLACK);
+                    }
+                }
+                return c;
+            }
+        });
+
+        javax.swing.JScrollPane scroll = new javax.swing.JScrollPane(tablaCambios);
+        scroll.setPreferredSize(new java.awt.Dimension(900, 400));
+
+        javax.swing.JPanel panelTabla = new javax.swing.JPanel(new java.awt.BorderLayout());
+        panelTabla.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            "<html>Historial de Cambios <font color='#DAA520'>(Amarillo = Transferencias)</font> " +
+            "<font color='green'>(Verde = Adiciones)</font> <font color='blue'>(Azul = Ediciones)</font> " +
+            "<font color='gray'>(Gris = No revertible)</font></html>"));
+        panelTabla.add(scroll, java.awt.BorderLayout.CENTER);
+
+        // Botones
+        javax.swing.JPanel panelBotones = new javax.swing.JPanel(new java.awt.FlowLayout());
+
+        javax.swing.JButton btnSelTodos = new javax.swing.JButton("Seleccionar Todos");
+        javax.swing.JButton btnDeselTodos = new javax.swing.JButton("Deseleccionar Todos");
+        javax.swing.JButton btnRevertir = new javax.swing.JButton("REVERTIR SELECCIONADOS");
+        btnRevertir.setBackground(new java.awt.Color(192, 57, 43));
+        btnRevertir.setForeground(java.awt.Color.WHITE);
+        javax.swing.JButton btnCerrar = new javax.swing.JButton("Cerrar");
+
+        panelBotones.add(btnSelTodos);
+        panelBotones.add(btnDeselTodos);
+        panelBotones.add(btnRevertir);
+        panelBotones.add(btnCerrar);
+
+        dialogo.add(panelInfo, java.awt.BorderLayout.NORTH);
+        dialogo.add(panelTabla, java.awt.BorderLayout.CENTER);
+        dialogo.add(panelBotones, java.awt.BorderLayout.SOUTH);
+
+        // Eventos
+        btnSelTodos.addActionListener(ev -> {
+            // Solo seleccionar las filas que son revertibles
+            for (int i = 0; i < modeloCambios.getRowCount(); i++) {
+                if (filasRevertibles.contains(i)) {
+                    modeloCambios.setValueAt(Boolean.TRUE, i, 0);
+                }
+            }
+        });
+
+        btnDeselTodos.addActionListener(ev -> {
+            for (int i = 0; i < modeloCambios.getRowCount(); i++) {
+                modeloCambios.setValueAt(Boolean.FALSE, i, 0);
+            }
+        });
+
+        btnCerrar.addActionListener(ev -> dialogo.dispose());
+
+        btnRevertir.addActionListener(ev -> {
+            // Contar seleccionados
+            java.util.List<Long> idsSeleccionados = new java.util.ArrayList<>();
+            for (int i = 0; i < modeloCambios.getRowCount(); i++) {
+                if ((Boolean) modeloCambios.getValueAt(i, 0)) {
+                    idsSeleccionados.add((Long) modeloCambios.getValueAt(i, 1));
+                }
+            }
+
+            if (idsSeleccionados.isEmpty()) {
+                JOptionPane.showMessageDialog(dialogo, "Seleccione al menos un cambio para revertir.",
+                    "SIN SELECCIÓN", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // Confirmar
+            int confirmacion = JOptionPane.showConfirmDialog(dialogo,
+                "<html><b style='color:red;'>¿Está seguro de revertir " + idsSeleccionados.size() + " cambio(s)?</b><br/><br/>" +
+                "Esta acción:<br/>" +
+                "- Eliminará los pagos agregados/transferidos<br/>" +
+                "- Restaurará el estado anterior de las cuotas<br/>" +
+                "- NO se puede deshacer fácilmente</html>",
+                "CONFIRMAR REVERSIÓN",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+            if (confirmacion != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            // Ejecutar reversiones
+            String usuario = (usser != null && usser.getUsername() != null) ? usser.getUsername() : "SISTEMA";
+            int exitosos = 0;
+            int fallidos = 0;
+
+            for (Long id : idsSeleccionados) {
+                boolean exito = registroDao.revertirCambio(id, usuario);
+                if (exito) {
+                    exitosos++;
+                } else {
+                    fallidos++;
+                }
+            }
+
+            // Mostrar resultado
+            StringBuilder mensaje = new StringBuilder();
+            mensaje.append("<html><h3>Resultado de la reversión:</h3>");
+            mensaje.append("<p style='color:green;'>✓ Revertidos exitosamente: ").append(exitosos).append("</p>");
+            if (fallidos > 0) {
+                mensaje.append("<p style='color:red;'>✗ Fallidos: ").append(fallidos).append("</p>");
+            }
+            mensaje.append("</html>");
+
+            JOptionPane.showMessageDialog(dialogo, mensaje.toString(),
+                "RESULTADO", fallidos > 0 ? JOptionPane.WARNING_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
+
+            // Recargar tabla con todos los cambios
+            modeloCambios.setRowCount(0);
+            filasRevertibles.clear();
+            java.util.List<Object[]> cambiosActualizados = registroDao.obtenerUltimosCambios(100);
+            int filaIdx = 0;
+            for (Object[] c : cambiosActualizados) {
+                String tipo = (String) c[1];
+                String motivo = c[7] != null ? (String) c[7] : "";
+
+                // Determinar si es un tipo que teóricamente se puede revertir
+                boolean tipoRevertible = tipo.equals("TRANSFERIR_PRESTAMO_VOUCHER") ||
+                                       tipo.equals("TRANSFERIR_ABONO_VOUCHER") ||
+                                       tipo.equals("AGREGAR_PRESTAMO_REGISTRO") ||
+                                       tipo.equals("AGREGAR_ABONO_REGISTRO") ||
+                                       tipo.equals("EDICION_PRESTAMO") ||
+                                       tipo.equals("EDICION_ABONO");
+                boolean yaRevertido = motivo.contains("[REVERTIDO");
+                boolean noRevertible = motivo.contains("[NO REVERTIBLE");
+                boolean esEliminacion = tipo.contains("ELIMINACION") || tipo.contains("REVERTIR");
+
+                // Determinar estado y si se puede revertir
+                String estado;
+                if (yaRevertido) {
+                    estado = "Ya revertido";
+                } else if (noRevertible) {
+                    estado = "No revertible (eliminado)";
+                } else if (esEliminacion) {
+                    estado = "No revertible (eliminación)";
+                } else if (tipoRevertible) {
+                    estado = "Puede revertir";
+                    filasRevertibles.add(filaIdx);
+                } else {
+                    estado = "Solo informativo";
+                }
+
+                // Convertir tipo a legible
+                String tipoLegible = tipo.replace("TRANSFERIR_PRESTAMO_VOUCHER", "Transferir Préstamo")
+                                        .replace("TRANSFERIR_ABONO_VOUCHER", "Transferir Abono")
+                                        .replace("AGREGAR_PRESTAMO_REGISTRO", "Agregar Préstamo")
+                                        .replace("AGREGAR_ABONO_REGISTRO", "Agregar Abono")
+                                        .replace("EDICION_PRESTAMO", "Editar Préstamo")
+                                        .replace("EDICION_ABONO", "Editar Abono")
+                                        .replace("ELIMINACION_PRESTAMO", "Eliminar Préstamo")
+                                        .replace("ELIMINACION_ABONO", "Eliminar Abono")
+                                        .replace("REVERTIR_AGREGAR_PRESTAMO", "Reversión Préstamo")
+                                        .replace("REVERTIR_AGREGAR_ABONO", "Reversión Abono")
+                                        .replace("REVERTIR_EDICION_PRESTAMO", "Reversión Edición Prést.")
+                                        .replace("REVERTIR_EDICION_ABONO", "Reversión Edición Abono");
+
+                String fecha = c[8] != null ? sdf.format((java.sql.Timestamp) c[8]) : "-";
+
+                modeloCambios.addRow(new Object[]{
+                    Boolean.FALSE,
+                    c[0],
+                    tipoLegible,
+                    c[2],
+                    c[3],
+                    String.format("%.2f", c[4]),
+                    String.format("%.2f", c[5]),
+                    c[6],
+                    fecha,
+                    estado
+                });
+                filaIdx++;
+            }
+        });
+
+        dialogo.pack();
+        dialogo.setLocationRelativeTo(viewMain);
+        dialogo.setVisible(true);
     }
 
     /**
@@ -2454,17 +2782,79 @@ public class ModelMain {
      */
     @SuppressWarnings("unchecked")
     public void editarPago() {
-        // Solicitar código de pago
-        String codigoPago = JOptionPane.showInputDialog(
+        // Crear panel con autocompletado para seleccionar código de pago
+        javax.swing.JPanel panelBusqueda = new javax.swing.JPanel();
+        panelBusqueda.setLayout(new java.awt.GridLayout(3, 1, 5, 10));
+        panelBusqueda.setPreferredSize(new java.awt.Dimension(400, 140));
+
+        javax.swing.JLabel lblInstrucciones = new javax.swing.JLabel(
+            "<html><b style='color:#2980B9;'>EDITAR PAGO</b><br/>" +
+            "Ingrese o seleccione el código del pago a editar:</html>"
+        );
+
+        // Cargar códigos de tickets para autocompletado
+        com.subcafae.finantialtracker.data.dao.RegistroDao registroDaoEditar =
+            new com.subcafae.finantialtracker.data.dao.RegistroDao();
+        java.util.List<String> codigosTicketsEditar = registroDaoEditar.obtenerCodigosTickets();
+
+        javax.swing.JComboBox<String> cmbCodigoPago = new javax.swing.JComboBox<>();
+        cmbCodigoPago.setEditable(true);
+        cmbCodigoPago.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+
+        cmbCodigoPago.addItem(""); // Opción vacía
+        for (String cod : codigosTicketsEditar) {
+            cmbCodigoPago.addItem(cod);
+        }
+
+        // Configurar autocompletado con filtrado
+        JTextField editorTicketEditar = (JTextField) cmbCodigoPago.getEditor().getEditorComponent();
+        editorTicketEditar.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(41, 128, 185), 2),
+            javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        editorTicketEditar.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() != KeyEvent.VK_UP && e.getKeyCode() != KeyEvent.VK_DOWN
+                    && e.getKeyCode() != KeyEvent.VK_ENTER && e.getKeyCode() != KeyEvent.VK_ESCAPE) {
+                    String texto = editorTicketEditar.getText().toUpperCase();
+                    javax.swing.DefaultComboBoxModel<String> modelo = new javax.swing.DefaultComboBoxModel<>();
+                    modelo.addElement(""); // Siempre incluir vacío
+                    for (String cod : codigosTicketsEditar) {
+                        if (cod.toUpperCase().contains(texto)) {
+                            modelo.addElement(cod);
+                        }
+                    }
+                    cmbCodigoPago.setModel(modelo);
+                    editorTicketEditar.setText(texto);
+                    if (modelo.getSize() > 1 && texto.length() > 0) {
+                        cmbCodigoPago.showPopup();
+                    }
+                }
+            }
+        });
+
+        javax.swing.JLabel lblEjemplo = new javax.swing.JLabel(
+            "<html><i style='color:gray;'>Ejemplo: P/0001-00000123 (escriba para filtrar)</i></html>"
+        );
+
+        panelBusqueda.add(lblInstrucciones);
+        panelBusqueda.add(cmbCodigoPago);
+        panelBusqueda.add(lblEjemplo);
+
+        int opcion = JOptionPane.showConfirmDialog(
             viewMain,
-            "<html><body style='width: 350px;'>" +
-            "<h3 style='color:#2980B9;'>EDITAR PAGO</h3>" +
-            "<p>Ingrese el código del pago a editar:</p>" +
-            "<p style='color:gray;'><i>Ejemplo: P/0001-00000123</i></p>" +
-            "</body></html>",
+            panelBusqueda,
             "BUSCAR PAGO",
+            JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.QUESTION_MESSAGE
         );
+
+        if (opcion != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String codigoPago = cmbCodigoPago.getEditor().getItem().toString().trim();
 
         if (codigoPago == null || codigoPago.trim().isEmpty()) {
             return;

@@ -47,9 +47,18 @@ public class ModelManageWorker extends EmployeeDao {
     protected javax.swing.JList<String> listaSugerenciasEliminar;
     protected javax.swing.DefaultListModel<String> modeloListaEliminar;
 
+    // Filtro dinámico para el campo de documento
+    private NumericFilter documentFilter;
+
     public ModelManageWorker(ComponentManageWorker componentManageWorker, UserTb user) {
         this.componentManageWorker = componentManageWorker;
-        ((AbstractDocument) componentManageWorker.textFieldDNI.getDocument()).setDocumentFilter(new NumericFilter(8));
+
+        // Filtro inicial para DNI (8 dígitos)
+        documentFilter = new NumericFilter(8);
+        ((AbstractDocument) componentManageWorker.textFieldDNI.getDocument()).setDocumentFilter(documentFilter);
+
+        // Listener para cambiar el filtro según tipo de documento
+        componentManageWorker.comboTipoDocumento.addActionListener(e -> updateDocumentFilter());
 
         componentManageWorker.dcBirthDate.setDate(new java.util.Date());
 
@@ -59,6 +68,17 @@ public class ModelManageWorker extends EmployeeDao {
 
         // Cargar lista inicial de empleados
         loadEmployeeList();
+    }
+
+    // Actualizar el filtro según el tipo de documento seleccionado
+    private void updateDocumentFilter() {
+        int selectedIndex = componentManageWorker.comboTipoDocumento.getSelectedIndex();
+        int maxLength = (selectedIndex == 0) ? 8 : 9; // DNI = 8, CE = 9
+
+        // Limpiar el campo y aplicar nuevo filtro
+        componentManageWorker.textFieldDNI.setText("");
+        documentFilter = new NumericFilter(maxLength);
+        ((AbstractDocument) componentManageWorker.textFieldDNI.getDocument()).setDocumentFilter(documentFilter);
     }
 
     // Cargar lista de empleados para autocompletado
@@ -322,6 +342,7 @@ public class ModelManageWorker extends EmployeeDao {
     }
 
     public void cleanComponent() {
+        componentManageWorker.comboTipoDocumento.setSelectedIndex(0); // Reset a DNI
         componentManageWorker.textFieldDNI.setText("");
         componentManageWorker.textFieldName.setText("");
         componentManageWorker.dcBirthDate.setDate(new java.util.Date());
@@ -335,6 +356,13 @@ public class ModelManageWorker extends EmployeeDao {
         isEditMode = true;
         editingEmployeeDni = dni;
         editingRowIndex = rowIndex;
+
+        // Detectar tipo de documento por longitud (8=DNI, 9=CE)
+        if (dni != null && dni.length() == 9) {
+            componentManageWorker.comboTipoDocumento.setSelectedIndex(1); // Carné Extranjería
+        } else {
+            componentManageWorker.comboTipoDocumento.setSelectedIndex(0); // DNI
+        }
 
         // Poner nombre completo directamente
         componentManageWorker.textFieldName.setText(fullName);
@@ -396,11 +424,18 @@ public class ModelManageWorker extends EmployeeDao {
         if (componentManageWorker.textFieldName.getText().isBlank()
                 || componentManageWorker.textFieldDNI.getText().isBlank()) {
 
-            JOptionPane.showMessageDialog(null, "Debe de llenar los campos importantes: Nombre Completo y DNI", "GESTIÓN TRABAJADOR", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Debe de llenar los campos importantes: Nombre Completo y N° Documento", "GESTIÓN TRABAJADOR", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        if (componentManageWorker.textFieldDNI.getText().length() != 8) {
-            JOptionPane.showMessageDialog(null, "El DNI debe de contener 8 digitos", "GESTIÓN TRABAJADOR", JOptionPane.INFORMATION_MESSAGE);
+
+        // Validar según tipo de documento
+        int tipoDoc = componentManageWorker.comboTipoDocumento.getSelectedIndex();
+        int docLength = componentManageWorker.textFieldDNI.getText().length();
+        String tipoDocNombre = (tipoDoc == 0) ? "DNI" : "Carné de Extranjería";
+        int expectedLength = (tipoDoc == 0) ? 8 : 9;
+
+        if (docLength != expectedLength) {
+            JOptionPane.showMessageDialog(null, "El " + tipoDocNombre + " debe contener " + expectedLength + " dígitos", "GESTIÓN TRABAJADOR", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 

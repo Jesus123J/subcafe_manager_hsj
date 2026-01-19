@@ -36,9 +36,9 @@ public class AbonoDetailsDao {
     // Método para actualizar pagos parciales y validar si el LoanDetail debe cambiar a "Pagado"
     public void updateLoanStateByLoandetailId(Long loandetailId, double monthlyFeeValue, double newPayment) throws SQLException {
         
-        String findLoanIdQuery = "SELECT AbonoID , payment FROM abonodetail WHERE ID = ?";
-        String updateLoandetailStateQuery = "UPDATE abonodetail SET payment = ?, State = ? WHERE ID = ?";
-        String findLoandetailsStateQuery = "SELECT State FROM abonodetail WHERE AbonoID = ?";
+        String findLoanIdQuery = "SELECT AbonoID , payment FROM abonodetail WHERE id = ?";
+        String updateLoandetailStateQuery = "UPDATE abonodetail SET payment = ?, state = ? WHERE id = ?";
+        String findLoandetailsStateQuery = "SELECT state FROM abonodetail WHERE AbonoID = ?";
         String updateLoanStateQuery = "UPDATE abono SET status = ? WHERE ID = ?";
 
         try (PreparedStatement stmtFindLoanId = connection.prepareStatement(findLoanIdQuery); PreparedStatement stmtUpdateLoandetail = connection.prepareStatement(updateLoandetailStateQuery); PreparedStatement stmtFindLoandetailsState = connection.prepareStatement(findLoandetailsStateQuery); PreparedStatement stmtUpdateLoan = connection.prepareStatement(updateLoanStateQuery)) {
@@ -72,7 +72,7 @@ public class AbonoDetailsDao {
                 boolean allPaid = true;
 
                 while (rsLoandetailsState.next()) {
-                    if (!"Pagado".equals(rsLoandetailsState.getString("State"))) {
+                    if (!"Pagado".equals(rsLoandetailsState.getString("state"))) {
                         allPaid = false;
                         break;
                     }

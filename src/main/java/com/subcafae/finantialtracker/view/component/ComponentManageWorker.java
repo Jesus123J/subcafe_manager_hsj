@@ -32,6 +32,7 @@ public class ComponentManageWorker extends javax.swing.JInternalFrame {
         jPanel1 = new javax.swing.JPanel();
         textFieldName = new javax.swing.JTextField();
         textFieldLastName = new javax.swing.JTextField();
+        comboTipoDocumento = new javax.swing.JComboBox<>();
         textFieldDNI = new javax.swing.JTextField();
         dcBirthDate = new com.toedter.calendar.JDateChooser();
         jLabel1 = new javax.swing.JLabel();
@@ -69,9 +70,13 @@ public class ComponentManageWorker extends javax.swing.JInternalFrame {
         // textFieldLastName ya no se usa - se mantiene oculto para compatibilidad
         textFieldLastName.setVisible(false);
 
+        // ComboBox para tipo de documento (DNI peruano o Carné de Extranjería)
+        comboTipoDocumento.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "DNI", "CARNÉ EXTRANJERÍA" }));
+        comboTipoDocumento.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "TIPO DOC.", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0)));
+
         textFieldDNI.setBackground(new java.awt.Color(255, 255, 255));
         textFieldDNI.setForeground(new java.awt.Color(0, 0, 0));
-        textFieldDNI.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "DNI", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
+        textFieldDNI.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "N° DOCUMENTO", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 0, 12), new java.awt.Color(0, 0, 0))); // NOI18N
         textFieldDNI.setCaretColor(new java.awt.Color(0, 0, 0));
         textFieldDNI.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -177,6 +182,8 @@ public class ComponentManageWorker extends javax.swing.JInternalFrame {
                                             .addComponent(jLabel3)
                                             .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 65, javax.swing.GroupLayout.PREFERRED_SIZE)))
                                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                                        .addComponent(comboTipoDocumento, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(textFieldDNI, javax.swing.GroupLayout.PREFERRED_SIZE, 118, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                         .addComponent(jLabel4)))
@@ -240,7 +247,9 @@ public class ComponentManageWorker extends javax.swing.JInternalFrame {
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel4)
                             .addComponent(comboStatus, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addComponent(textFieldDNI, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(comboTipoDocumento, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(textFieldDNI, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButtonRegisterWorker, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -301,6 +310,7 @@ public class ComponentManageWorker extends javax.swing.JInternalFrame {
     public javax.swing.JComboBox<String> comboBoxSex;
     public com.toedter.calendar.JDateChooser comboFinaly;
     public javax.swing.JComboBox<String> comboStatus;
+    public javax.swing.JComboBox<String> comboTipoDocumento;
     public com.toedter.calendar.JDateChooser dcBirthDate;
     public javax.swing.JButton jButtoBuscarDni;
     public javax.swing.JButton jButtonBuscarforDate;
