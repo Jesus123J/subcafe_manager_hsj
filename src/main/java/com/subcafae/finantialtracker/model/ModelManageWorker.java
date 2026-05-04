@@ -448,7 +448,7 @@ public class ModelManageWorker extends EmployeeDao {
 
             if (isEditMode) {
                 // Modo edición - actualizar empleado existente (puede cambiar DNI también)
-                boolean result = updateEmployee(editingEmployeeDni, fullName, gender, status, startDate);
+                boolean result = updateEmployee(editingEmployeeDni, dni, fullName, gender, status, startDate);
                 if (result) {
                     JOptionPane.showMessageDialog(null, "Empleado actualizado correctamente", "GESTIÓN TRABAJADOR", JOptionPane.INFORMATION_MESSAGE);
                     loadEmployeeList(); // Recargar lista de autocompletado

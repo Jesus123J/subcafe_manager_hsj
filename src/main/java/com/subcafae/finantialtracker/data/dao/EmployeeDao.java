@@ -231,10 +231,14 @@ public class EmployeeDao {
         return employees;
     }
 
-    public boolean updateEmployee(String dni, String fullName, String gender, String employmentStatus, Date startDate) {
-        String sql = "UPDATE employees SET fullName = ?, gender = ?, employment_status = ?, employment_status_code = ?, start_date = ?, updated_at = CURRENT_TIMESTAMP WHERE national_id = ?";
+    public boolean updateEmployee(String originalDni, String newDni, String fullName, String gender, String employmentStatus, Date startDate) {
+        String sqlEmployee = "UPDATE employees SET national_id = ?, fullName = ?, gender = ?, employment_status = ?, employment_status_code = ?, start_date = ?, updated_at = CURRENT_TIMESTAMP WHERE national_id = ?";
+        String sqlLoanEmployee = "UPDATE loan SET EmployeeID = ? WHERE EmployeeID = ?";
+        String sqlLoanGuarantor = "UPDATE loan SET GuarantorId = ? WHERE GuarantorId = ?";
 
-        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try {
+            connection.setAutoCommit(false);
+
             // Determinar el código según el estado
             String statusCode;
             if (employmentStatus.equalsIgnoreCase("CAS")) {
@@ -245,19 +249,49 @@ public class EmployeeDao {
                 statusCode = "2028"; // Valor por defecto
             }
 
-            preparedStatement.setString(1, fullName.toUpperCase());
-            preparedStatement.setString(2, gender);
-            preparedStatement.setString(3, employmentStatus.toUpperCase());
-            preparedStatement.setString(4, statusCode);
-            preparedStatement.setDate(5, startDate);
-            preparedStatement.setString(6, dni);
+            // Actualizar employees
+            try (PreparedStatement ps = connection.prepareStatement(sqlEmployee)) {
+                ps.setString(1, newDni);
+                ps.setString(2, fullName.toUpperCase());
+                ps.setString(3, gender);
+                ps.setString(4, employmentStatus.toUpperCase());
+                ps.setString(5, statusCode);
+                ps.setDate(6, startDate);
+                ps.setString(7, originalDni);
+                ps.executeUpdate();
+            }
 
-            int affectedRows = preparedStatement.executeUpdate();
-            return affectedRows > 0;
+            // Si cambió el DNI, actualizar también en loan
+            if (!originalDni.equals(newDni)) {
+                try (PreparedStatement ps = connection.prepareStatement(sqlLoanEmployee)) {
+                    ps.setString(1, newDni);
+                    ps.setString(2, originalDni);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = connection.prepareStatement(sqlLoanGuarantor)) {
+                    ps.setString(1, newDni);
+                    ps.setString(2, originalDni);
+                    ps.executeUpdate();
+                }
+            }
+
+            connection.commit();
+            return true;
         } catch (SQLException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Error al actualizar el empleado", "GESTIÓN TRABAJADOR", JOptionPane.ERROR_MESSAGE);
             return false;
+        } finally {
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 

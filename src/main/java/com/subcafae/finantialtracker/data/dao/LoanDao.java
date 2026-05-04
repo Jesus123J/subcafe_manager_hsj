@@ -624,9 +624,8 @@ public class LoanDao extends LoanDetailsDao {
     private int insertNewLoan(LoanTb loan) throws SQLException {
         String insertSql = "INSERT INTO loan ("
                 + "EmployeeID, GuarantorId, RequestedAmount, AmountWithdrawn, Dues, PaymentDate, "
-                + "State, StateLoan, RefinanceParentID, CreatedBy, CreatedAt, ModifiedAt, ModifiedBy, Type, PaymentResponsibility, "
-                + "requested_amount"
-                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "State, StateLoan, RefinanceParentID, CreatedBy, CreatedAt, ModifiedAt, ModifiedBy, Type, PaymentResponsibility"
+                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
             setInsertParameters(stmt, loan);
@@ -660,7 +659,7 @@ public class LoanDao extends LoanDetailsDao {
     public void updateSoliNumStatus(String soliNum, String status, int userModifi) throws SQLException {
         String selectSql = "SELECT RefinanceParentId FROM loan WHERE SoliNum = ?";
         String updateParentSql = "UPDATE loan SET State = ?, ModifiedAt = ?, ModifiedBy = ? WHERE SoliNum = ?";
-        String updateChildSql = "UPDATE loan SET State = ?, ModifiedAt = ?, ModifiedBy = ? WHERE Id = ?";
+        String updateChildSql = "UPDATE loan SET State = ?, StateLoan = ?, ModifiedAt = ?, ModifiedBy = ? WHERE Id = ?";
 
         connection.setAutoCommit(false);
 
@@ -685,11 +684,15 @@ public class LoanDao extends LoanDetailsDao {
 
             // 🔹 3️⃣ Si el estado es "Cancelado", buscar préstamo refinanciado
             if (status.equalsIgnoreCase("Denegado")) {
-
+                
+                //  StateLoan   tiene que estar en pendiente
+                // como arreglar en caso  
+                
                 stmtUpdateChild.setString(1, "Aceptado");
-                stmtUpdateChild.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
-                stmtUpdateChild.setInt(3, userModifi);
-                stmtUpdateChild.setInt(4, parentId);
+                stmtUpdateChild.setString(2, "Pendiente");
+                stmtUpdateChild.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+                stmtUpdateChild.setInt(4, userModifi);
+                stmtUpdateChild.setInt(5, parentId);
 
                 int updatedChild = stmtUpdateChild.executeUpdate();
 
@@ -739,12 +742,6 @@ public class LoanDao extends LoanDetailsDao {
         stmt.setObject(13, loan.getModifiedBy(), Types.INTEGER);
         stmt.setString(14, loan.getType());
         stmt.setString(15, loan.getPaymentResponsibility() != null ? loan.getPaymentResponsibility() : "EMPLOYEE");
-        // Columna duplicada creada por Spring Boot (requested_amount en minusculas)
-        if (loan.getRequestedAmount() != null) {
-            stmt.setDouble(16, loan.getRequestedAmount());
-        } else {
-            stmt.setDouble(16, 0.0);
-        }
     }
 
     private LoanTb mapResultSetToLoan(ResultSet rs) throws SQLException {

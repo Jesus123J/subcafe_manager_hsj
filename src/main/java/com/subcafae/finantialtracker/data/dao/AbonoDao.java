@@ -222,6 +222,53 @@ public class AbonoDao {
      * @param start Fecha de inicio para filtrar (opcional, puede ser null para traer todos)
      * @return Lista de abonos que coinciden con los criterios
      */
+    public List<String> getAvailableDates(Integer idConcept, String codeEm) throws SQLException {
+        List<String> fechas = new ArrayList<>();
+        String sql = "SELECT YEAR(ab.CreatedAt) AS anio, MONTH(ab.CreatedAt) AS mes, COUNT(*) AS total "
+                + "FROM financialtracker1.abono ab "
+                + "LEFT JOIN financialtracker1.employees em ON em.employee_id = ab.Employee_id "
+                + "WHERE ab.service_concept_id = ? "
+                + "AND em.employment_status_code = ? "
+                + "GROUP BY YEAR(ab.CreatedAt), MONTH(ab.CreatedAt) "
+                + "ORDER BY anio DESC, mes DESC";
+
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setInt(1, idConcept);
+        stmt.setString(2, codeEm);
+        ResultSet rs = stmt.executeQuery();
+        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+        while (rs.next()) {
+            int anio = rs.getInt("anio");
+            int mes = rs.getInt("mes");
+            int total = rs.getInt("total");
+            fechas.add(meses[mes - 1] + " " + anio + " (" + total + " abonos)");
+        }
+        return fechas;
+    }
+
+    public List<AbonoTb> getListAbonoTByConcepAndCodeEmRange(Integer idConcept, String codeEm, Date start, Date end) throws SQLException {
+        List<AbonoTb> abonos = new ArrayList<>();
+        String sql = "SELECT ab.* FROM financialtracker1.abono ab "
+                + "LEFT JOIN financialtracker1.employees em ON em.employee_id = ab.Employee_id "
+                + "WHERE ab.service_concept_id = ? "
+                + "AND em.employment_status_code = ? "
+                + "AND DATE(ab.CreatedAt) BETWEEN ? AND ? "
+                + "ORDER BY ab.CreatedAt ASC";
+
+        PreparedStatement stmt = connection.prepareStatement(sql);
+        stmt.setInt(1, idConcept);
+        stmt.setString(2, codeEm);
+        stmt.setDate(3, start);
+        stmt.setDate(4, end);
+
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            abonos.add(mapResultSetToAbono(rs));
+        }
+        return abonos;
+    }
+
     public List<AbonoTb> getListAbonoTByConcepAndCodeEm(Integer idConcept, String codeEm, Date start) throws SQLException {
         List<AbonoTb> abonos = new ArrayList<>();
         String sql;

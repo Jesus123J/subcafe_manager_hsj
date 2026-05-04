@@ -35,12 +35,12 @@ import java.util.logging.Logger;
 
 public class LeerExcelConFileChooser {
 
-    public void method(UserTb user, ViewMain viewMain , LocalDate fecha) {
+    public void method(UserTb user, ViewMain viewMain, LocalDate fecha) {
 
         // Crear un JFileChooser para seleccionar el archivo
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Selecciona un archivo Excel");
-        
+
         int seleccion = fileChooser.showOpenDialog(null);
 
         if (seleccion == JFileChooser.APPROVE_OPTION) {
@@ -49,7 +49,8 @@ public class LeerExcelConFileChooser {
 
             // Si la lista está vacía, significa que hubo errores
             if (registros.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "❌ ERROR: El documento tiene datos incorrectos. No se guardó nada.");
+                JOptionPane.showMessageDialog(null,
+                        "❌ ERROR: El documento tiene datos incorrectos. No se guardó nada.");
             } else {
 
                 try {
@@ -62,22 +63,30 @@ public class LeerExcelConFileChooser {
                         combo.addItem(serviceConceptTb.getCodigo() + " - " + serviceConceptTb.getDescription());
                     }
 
-                    int option = JOptionPane.showConfirmDialog(null, combo, "SELECCIÓN", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+                    int option = JOptionPane.showConfirmDialog(null, combo, "SELECCIÓN", JOptionPane.OK_CANCEL_OPTION,
+                            JOptionPane.INFORMATION_MESSAGE);
 
                     if (option == JOptionPane.OK_OPTION) {
 
                         viewMain.setEnabled(false);
-                        
-                        ViewMain.loading.setVisible(true);
-                        
+
+                        ViewMain.loading.setModal(true);
+                        ViewMain.loading.setLocationRelativeTo(viewMain);
+                        ViewMain.loading.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+
+                        // Lanzar el thread ANTES de setVisible (porque modal bloquea hasta dispose)
                         new Thread(() -> {
-                            
+
                             try {
                                 List<EmployeeTb> emple = new EmployeeDao().findAll();
+                                List<String> nuevosEmpleados = new ArrayList<>();
+                                int exitosos = 0;
+
                                 for (RegistroExcel registro : registros) {
 
-                                    Optional<EmployeeTb> data = emple.stream().filter(predicate
-                                            -> predicate.getNationalId().equalsIgnoreCase(registro.getDni())).findFirst();
+                                    Optional<EmployeeTb> data = emple.stream().filter(
+                                            predicate -> predicate.getNationalId().equalsIgnoreCase(registro.getDni()))
+                                            .findFirst();
                                     System.out.println("Data -> " + data);
                                     if (!data.isPresent()) {
                                         System.out.println("No se encontro usuario");
@@ -89,18 +98,22 @@ public class LeerExcelConFileChooser {
                                         employee.setStartDate(LocalDate.now());
                                         new EmployeeDao().create(employee);
                                         emple = new EmployeeDao().findAll();
+                                        nuevosEmpleados.add(registro.getDni() + " - " + registro.getDatos());
                                     }
                                     AbonoTb abono = new AbonoTb();
 
                                     abono.setDues(registro.getCuotas());
 
-                                    abono.setEmployeeId(String.valueOf(emple.stream().filter(predicate
-                                            -> predicate.getNationalId().equalsIgnoreCase(registro.getDni())).findFirst().get().getEmployeeId()));
+                                    abono.setEmployeeId(String.valueOf(emple.stream()
+                                            .filter(predicate -> predicate.getNationalId()
+                                                    .equalsIgnoreCase(registro.getDni()))
+                                            .findFirst().get().getEmployeeId()));
 
                                     abono.setCreatedAt(fecha.toString());
                                     abono.setCreatedBy(user.getId());
                                     abono.setDiscountFrom("BOLETA DE HABERES");
-                                    abono.setServiceConceptId(String.valueOf(list.get(combo.getSelectedIndex()).getId()));
+                                    abono.setServiceConceptId(
+                                            String.valueOf(list.get(combo.getSelectedIndex()).getId()));
 
                                     abono.setMonthly(registro.getMonto());
                                     abono.setPaymentDate(fecha.withDayOfMonth(fecha.lengthOfMonth()).toString());
@@ -108,34 +121,63 @@ public class LeerExcelConFileChooser {
 
                                     Integer dataa = new AbonoDao().insertAbono(abono);
 
-                                    if (dataa != null ) {
+                                    if (dataa != null) {
                                         if (dataa != -1) {
                                             abono.setId(dataa);
                                             new AbonoDetailsDao().insertAbonoDetail(abono, user.getId());
-                                        } 
+                                            exitosos++;
+                                        }
                                     }
 
                                 }
-                            } catch (SQLException ex) {
-                                viewMain.setEnabled(true);
-                                ViewMain.loading.dispose();
-                                System.out.println("Error -> " + ex.getMessage());
-                                JOptionPane.showMessageDialog(null, "Error");
-                                return;
+
+                                final int totalExitosos = exitosos;
+                                final List<String> listaNuevos = nuevosEmpleados;
+
+                                SwingUtilities.invokeLater(() -> {
+                                    ViewMain.loading.dispose();
+                                    viewMain.setEnabled(true);
+
+                                    StringBuilder resumen = new StringBuilder();
+                                    resumen.append("Registros cargados: ").append(totalExitosos).append(" de ")
+                                            .append(registros.size()).append("\n");
+
+                                    if (!listaNuevos.isEmpty()) {
+                                        resumen.append("\nEmpleados no encontrados (se crearon nuevos):\n");
+                                        for (String nuevo : listaNuevos) {
+                                            resumen.append("  - ").append(nuevo).append("\n");
+                                        }
+                                    }
+
+                                    JOptionPane.showMessageDialog(null, resumen.toString(), "GESTIÓN DE ABONOS",
+                                            JOptionPane.INFORMATION_MESSAGE);
+                                });
+
+                            } catch (Exception ex) {
+                                Logger.getLogger(LeerExcelConFileChooser.class.getName()).log(Level.SEVERE,
+                                        "Error al procesar registros", ex);
+                                SwingUtilities.invokeLater(() -> {
+                                    ViewMain.loading.dispose();
+                                    viewMain.setEnabled(true);
+                                    JOptionPane.showMessageDialog(null,
+                                            "Error al procesar los registros:\n" + ex.getMessage(), "GESTIÓN DE ABONOS",
+                                            JOptionPane.ERROR_MESSAGE);
+                                });
                             }
 
-                            viewMain.setEnabled(true);
-                            ViewMain.loading.dispose();
-                            JOptionPane.showMessageDialog(null, "✅ Registros cargados correctamente:");
-                        
                         }).start();
-                   
+
+                        // Modal: bloquea aquí hasta que el thread llame dispose()
+                        ViewMain.loading.setVisible(true);
 
                     }
                 } catch (SQLException ex) {
+                    viewMain.setEnabled(true);
                     ViewMain.loading.dispose();
-                    System.out.println("Error -> " + ex.getMessage());
-                    JOptionPane.showMessageDialog(null, "Error");
+                    Logger.getLogger(LeerExcelConFileChooser.class.getName()).log(Level.SEVERE,
+                            "Error al cargar conceptos de servicio", ex);
+                    JOptionPane.showMessageDialog(null, "Error al cargar conceptos de servicio:\n" + ex.getMessage(),
+                            "GESTIÓN DE ABONOS", JOptionPane.ERROR_MESSAGE);
                 }
             }
         } else {
@@ -164,11 +206,18 @@ public class LeerExcelConFileChooser {
 
                     int cuotas = (int) convertirADouble(fila.getCell(3));
 
+                    // Si toda la fila está vacía, la ignoramos (fin del documento)
+                    if (dni.isEmpty() && datos.isEmpty() && monto <= 0 && cuotas <= 0) {
+                        continue;
+                    }
+
                     // Validaciones: Si algún valor es incorrecto, activamos la bandera de error
                     if (dni.isEmpty() || datos.isEmpty() || monto <= 0 || cuotas <= 0) {
-                        JOptionPane.showMessageDialog(null, "❌ ERROR en fila " + (i + 1) + ": Datos inválidos detectados.", "GESTIÓN DE ABONOS", JOptionPane.INFORMATION_MESSAGE);
+                        JOptionPane.showMessageDialog(null,
+                                "ERROR en fila " + (i + 1) + ": Datos inválidos detectados.", "GESTIÓN DE ABONOS",
+                                JOptionPane.ERROR_MESSAGE);
                         errorDetectado = true;
-                        break; // Salimos del bucle para evitar guardar datos incorrectos
+                        break;
                     }
 
                     String dniNew = dni.trim().replaceAll("[0-9]", "");
@@ -179,19 +228,21 @@ public class LeerExcelConFileChooser {
                             System.out.println(new RegistroExcel(dni, datos, monto, cuotas).toString());
                             listaRegistros.add(new RegistroExcel(dni, datos, monto, cuotas));
                         } else {
-                            JOptionPane.showMessageDialog(null, "❌ ERROR en fila " + (i + 1) + ": Datos inválidos detectados.", "GESTIÓN DE ABONOS", JOptionPane.INFORMATION_MESSAGE);
-
+                            JOptionPane.showMessageDialog(null,
+                                    "ERROR en fila " + (i + 1) + ": DNI inválido (" + dni + ").", "GESTIÓN DE ABONOS",
+                                    JOptionPane.ERROR_MESSAGE);
                             errorDetectado = true;
                             break;
                         }
 
                     } else {
-                        JOptionPane.showMessageDialog(null, "❌ ERROR en fila " + (i + 1) + ": Datos inválidos detectados.", "GESTIÓN DE ABONOS", JOptionPane.INFORMATION_MESSAGE);
+                        JOptionPane.showMessageDialog(null,
+                                "ERROR en fila " + (i + 1) + ": DNI contiene letras (" + dni + ").",
+                                "GESTIÓN DE ABONOS", JOptionPane.ERROR_MESSAGE);
                         errorDetectado = true;
                         break;
                     }
 
-                    // Agregar a la lista solo si no hubo errores
                 }
             }
         } catch (IOException e) {
@@ -234,16 +285,19 @@ public class LeerExcelConFileChooser {
                 return celda.getNumericCellValue();
             case STRING:
                 try {
-                    return Double.parseDouble(celda.getStringCellValue().trim()); // Convierte texto a número si es posible
+                    return Double.parseDouble(celda.getStringCellValue().trim()); // Convierte texto a número si es
+                                                                                  // posible
                 } catch (NumberFormatException e) {
-                    JOptionPane.showMessageDialog(null, "❌ ERROR: '" + celda.getStringCellValue() + "' no es un número válido.");
+                    JOptionPane.showMessageDialog(null,
+                            "❌ ERROR: '" + celda.getStringCellValue() + "' no es un número válido.");
                     return 0.0; // Valor por defecto si la conversión falla
                 }
             default:
                 return 0.0;
         }
     }
-    // Método para convertir índice de columna a letra (Ej: 0 -> A, 1 -> B, ..., 25 -> Z, 26 -> AA)
+    // Método para convertir índice de columna a letra (Ej: 0 -> A, 1 -> B, ..., 25
+    // -> Z, 26 -> AA)
 
     public static String convertirAColumna(int index) {
         StringBuilder columna = new StringBuilder();
