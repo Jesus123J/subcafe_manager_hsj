@@ -238,48 +238,79 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
         jLabel3.setText("<html><span style='color: #E0E0E0;'>Buscar Empleado:</span><br>" +
             "<span style='font-size: 9px; color: #A0A0A0;'>(" + totalEmpleados + " empleados disponibles - Escriba DNI o nombre)</span></html>");
 
-        // Listener de teclado
-        editor.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
-                String texto = editor.getText().trim().toLowerCase();
+        // Listener de teclado.
+        // NOTA: usamos DocumentListener (no KeyListener) para captar TODA forma
+        // de input — letras, espacio, acentos, paste, IME — uniformemente.
+        // Antes habia un bug: editor.getText().trim() removia el espacio
+        // que el usuario acababa de tipear al final, asi "JUAN DE LA TORRE"
+        // se convertia en "JUANDELATORRE". Solucion: NO usar trim() y NO
+        // sobrescribir el texto del editor.
+        ((javax.swing.text.JTextComponent) editor).getDocument().addDocumentListener(
+                new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) {}
+
+            private void onChange() {
+                SwingUtilities.invokeLater(() -> filtrarYActualizar());
+            }
+
+            private void filtrarYActualizar() {
+                String userText = editor.getText();             // preserva casing y espacios
+                String texto = userText.toLowerCase();          // solo para comparacion
                 editor.setForeground(java.awt.Color.BLACK);
 
-                if (texto.isEmpty()) {
+                if (userText.isEmpty()) {
                     jComboBox1.hidePopup();
+                    jComboBox1.setSelectedItem(null);
                     jComboBox1.setModel(new DefaultComboBoxModel<>());
-                    // Actualizar label
-                    jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>" +
-                        "<span style='font-size: 9px; color: #95a5a6;'>(" + totalEmpleados + " empleados disponibles)</span></html>");
+                    jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>"
+                            + "<span style='font-size: 9px; color: #95a5a6;'>(" + totalEmpleados + " empleados disponibles)</span></html>");
                     return;
                 }
 
-                // Filtrar empleados que coincidan
                 List<EmployeeTb> filtrados = listaFiltrada.stream()
                         .filter(emp -> emp.getFullName().toLowerCase().contains(texto)
-                        || emp.getNationalId().toLowerCase().contains(texto))
+                                || emp.getNationalId().toLowerCase().contains(texto))
                         .collect(Collectors.toList());
 
-                // Actualizar modelo con los resultados
+                // Setear el model — guardamos el caret antes para restaurarlo si setModel
+                // o el cambio de selectedItem mueven el caret del editor.
+                int caretPos = editor.getCaretPosition();
                 DefaultComboBoxModel<String> modelo = new DefaultComboBoxModel<>();
                 filtrados.forEach(emp -> modelo.addElement(emp.getNationalId() + " - " + emp.getFullName()));
+                jComboBox1.setSelectedItem(null);
                 jComboBox1.setModel(modelo);
-                editor.setText(texto);
-                editor.setCaretPosition(editor.getText().length());
 
-                // Mostrar cantidad de resultados encontrados
-                jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>" +
-                    "<span style='font-size: 9px; color: " + (filtrados.isEmpty() ? "#e74c3c" : "#27ae60") + ";'>" +
-                    "(" + filtrados.size() + " resultado" + (filtrados.size() != 1 ? "s" : "") + " encontrado" + (filtrados.size() != 1 ? "s" : "") + ")</span></html>");
+                // Restaurar texto del usuario solo si fue alterado.
+                if (!editor.getText().equals(userText)) {
+                    editor.setText(userText);
+                }
+                editor.setCaretPosition(Math.min(caretPos, userText.length()));
+
+                jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>"
+                        + "<span style='font-size: 9px; color: " + (filtrados.isEmpty() ? "#e74c3c" : "#27ae60") + ";'>"
+                        + "(" + filtrados.size() + " resultado" + (filtrados.size() != 1 ? "s" : "") + " encontrado" + (filtrados.size() != 1 ? "s" : "") + ")</span></html>");
 
                 if (!filtrados.isEmpty()) {
-                    jComboBox1.showPopup();
+                    if (!jComboBox1.isPopupVisible()) jComboBox1.showPopup();
                 } else {
                     jComboBox1.hidePopup();
                 }
+            }
+        });
 
-                // Si presiona ENTER y solo hay un resultado → selecciona ese
-                if (e.getKeyCode() == KeyEvent.VK_ENTER && filtrados.size() == 1) {
+        // ENTER en el editor: si hay un solo resultado lo selecciona.
+        editor.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() != KeyEvent.VK_ENTER) return;
+                String userText = editor.getText().toLowerCase();
+                List<EmployeeTb> filtrados = listaFiltrada.stream()
+                        .filter(emp -> emp.getFullName().toLowerCase().contains(userText)
+                                || emp.getNationalId().toLowerCase().contains(userText))
+                        .collect(Collectors.toList());
+                if (filtrados.size() == 1) {
                     seleccionarEmpleado(filtrados.get(0), editor, jComboBox1);
                 }
             }
