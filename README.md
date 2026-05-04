@@ -102,6 +102,12 @@ Una feature se mergea a `master`, y `master` se mergea a `main` para cortar rele
 
 ---
 
+## Soporte
+
+¿Encontraste un bug o querés proponer una mejora? Abrí un issue en [GitHub Issues](https://github.com/Jesus123J/subcafe_manager_hsj/issues/new/choose) usando la plantilla correspondiente (bug, feature, release).
+
+---
+
 ## Créditos
 
 - **Desarrollado por:** Subcafae
