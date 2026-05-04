@@ -120,8 +120,8 @@ public class AbonoDao {
         }
 
         String sql = "INSERT INTO abono (SoliNum, service_concept_id, Employee_id, dues, monthly, paymentDate, "
-                + "status, discount_from, createdBy, createdAt, modifiedBy, modifiedAt) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "status, discount_from, createdBy, createdAt, modifiedBy, modifiedAt, lote_id) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -137,6 +137,11 @@ public class AbonoDao {
             stmt.setString(10, abono.getCreatedAt());
             stmt.setInt(11, abono.getModifiedBy());
             stmt.setString(12, abono.getModifiedAt());
+            if (abono.getLoteId() != null) {
+                stmt.setInt(13, abono.getLoteId());
+            } else {
+                stmt.setNull(13, java.sql.Types.INTEGER);
+            }
 
             int affectedRows = stmt.executeUpdate();
 

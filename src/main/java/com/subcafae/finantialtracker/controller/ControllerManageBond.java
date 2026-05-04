@@ -73,6 +73,7 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
         componentManageBond.jTableListBonos.getSelectionModel().addListSelectionListener(this);
         componentManageBond.jTableListDetalle.getSelectionModel().addListSelectionListener(this);
         componentManageBond.jButtonRegistorAbondForExcel.addActionListener(this);
+        componentManageBond.jButtonRevertirCargaExcel.addActionListener(this);
         componentManageBond.jButtonShowList.addActionListener(this);
 
         // KeyListeners para autocompletado
@@ -119,6 +120,9 @@ public class ControllerManageBond extends ModelManageBond implements ActionListe
                     .atZone(ZoneId.systemDefault())
                     .toLocalDate();
             new LeerExcelConFileChooser().method(user, super.viewMain, localDate);
+        }
+        if (e.getSource().equals(componentManageBond.jButtonRevertirCargaExcel)) {
+            mostrarDialogoRevertirLote();
         }
         if (e.getSource().equals(componentManageBond.jButtonShowList)) {
             try {

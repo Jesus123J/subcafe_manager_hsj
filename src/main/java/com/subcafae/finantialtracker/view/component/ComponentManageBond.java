@@ -73,6 +73,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jComboBoxSearchConceptBond = new javax.swing.JComboBox<>();
         jLabelShowDNIWorker1 = new javax.swing.JLabel();
         jButtonRegistorAbondForExcel = new javax.swing.JButton();
+        jButtonRevertirCargaExcel = new javax.swing.JButton();
         dateStart1 = new com.toedter.calendar.JDateChooser();
         jLabel8 = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
@@ -409,6 +410,11 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
         jButtonRegistorAbondForExcel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconGeneral/excel.png"))); // NOI18N
         jButtonRegistorAbondForExcel.setText("REGISTRAR ABONO POR EXCEL");
 
+        jButtonRevertirCargaExcel.setBackground(new java.awt.Color(196, 65, 82));
+        jButtonRevertirCargaExcel.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jButtonRevertirCargaExcel.setForeground(new java.awt.Color(0, 0, 0));
+        jButtonRevertirCargaExcel.setText("REVERTIR CARGA EXCEL");
+
         dateStart1.setDateFormatString("yyyy-MM-dd");
         dateStart1.setPreferredSize(new java.awt.Dimension(190, 30));
 
@@ -429,7 +435,9 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 184, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jButtonRegistorAbondForExcel, javax.swing.GroupLayout.PREFERRED_SIZE, 316, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(jButtonRegistorAbondForExcel, javax.swing.GroupLayout.PREFERRED_SIZE, 316, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButtonRevertirCargaExcel, javax.swing.GroupLayout.PREFERRED_SIZE, 230, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 572, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(0, 0, Short.MAX_VALUE))
@@ -452,7 +460,8 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
                 .addGap(15, 15, 15)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButtonRegistorAbondForExcel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jButtonRegistorAbondForExcel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jButtonRevertirCargaExcel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 12, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(5, 5, 5)
@@ -813,6 +822,7 @@ public class ComponentManageBond extends javax.swing.JInternalFrame {
     public javax.swing.JButton jButtonEliminarConcept;
     public javax.swing.JButton jButtonRegisterBond;
     public javax.swing.JButton jButtonRegistorAbondForExcel;
+    public javax.swing.JButton jButtonRevertirCargaExcel;
     public javax.swing.JButton jButtonRegistroConcepto;
     public javax.swing.JButton jButtonRenunciarBono;
     public javax.swing.JButton jButtonReportBond;

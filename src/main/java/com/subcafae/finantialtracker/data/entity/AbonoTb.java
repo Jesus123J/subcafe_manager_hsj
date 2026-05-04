@@ -24,6 +24,7 @@ public class AbonoTb {
     private String createdAt;
     private int modifiedBy;
     private String modifiedAt;
+    private Integer loteId;
 
     // Getters y setters
     public int getId() {
@@ -128,6 +129,14 @@ public class AbonoTb {
 
     public void setModifiedAt(String modifiedAt) {
         this.modifiedAt = modifiedAt;
+    }
+
+    public Integer getLoteId() {
+        return loteId;
+    }
+
+    public void setLoteId(Integer loteId) {
+        this.loteId = loteId;
     }
 
     @Override

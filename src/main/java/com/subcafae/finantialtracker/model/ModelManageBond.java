@@ -7,11 +7,14 @@ package com.subcafae.finantialtracker.model;
 import com.subcafae.finantialtracker.data.dao.AbonoDao;
 import com.subcafae.finantialtracker.data.dao.AbonoDetailsDao;
 import com.subcafae.finantialtracker.data.dao.EmployeeDao;
+import com.subcafae.finantialtracker.data.dao.LoteCargaAbonoDao;
 import com.subcafae.finantialtracker.data.dao.ServiceConceptDao;
 import com.subcafae.finantialtracker.data.entity.AbonoTb;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
+import com.subcafae.finantialtracker.data.entity.LoteCargaAbonoTb;
 import com.subcafae.finantialtracker.data.entity.ServiceConceptTb;
 import com.subcafae.finantialtracker.data.entity.UserTb;
+import com.subcafae.finantialtracker.util.LoadingOverlay;
 import com.subcafae.finantialtracker.util.TextFieldValidator;
 import com.subcafae.finantialtracker.view.ViewMain;
 import com.subcafae.finantialtracker.view.component.ComponentManageBond;
@@ -25,7 +28,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -621,5 +627,150 @@ public class ModelManageBond {
         }).start();
 
         ViewMain.loading.setVisible(true);
+    }
+
+    /**
+     * Abre un dialog con la lista de lotes de carga ACTIVOS, permite al
+     * usuario elegir uno, escribir un motivo y confirmar la reversion.
+     * La carga de la lista y la reversion corren en background con
+     * LoadingOverlay para no congelar la UI.
+     */
+    public void mostrarDialogoRevertirLote() {
+        LoadingOverlay.setMessage("Cargando lotes de carga");
+        ViewMain.loading.setModal(true);
+        ViewMain.loading.setLocationRelativeTo(viewMain);
+
+        new Thread(() -> {
+            try {
+                final List<LoteCargaAbonoTb> lotes = new LoteCargaAbonoDao().findLotesActivos();
+
+                SwingUtilities.invokeLater(() -> {
+                    ViewMain.loading.dispose();
+
+                    if (lotes.isEmpty()) {
+                        JOptionPane.showMessageDialog(null,
+                                "No hay cargas masivas activas para revertir.",
+                                "REVERTIR CARGA EXCEL", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
+                    DefaultTableModel modelTabla = new DefaultTableModel(
+                            new Object[]{"#Lote", "Fecha", "Archivo", "Cantidad"}, 0) {
+                        @Override
+                        public boolean isCellEditable(int r, int c) { return false; }
+                    };
+                    for (LoteCargaAbonoTb lote : lotes) {
+                        modelTabla.addRow(new Object[]{
+                                lote.getId(),
+                                lote.getFechaCreacion(),
+                                lote.getNombreArchivo() == null ? "" : lote.getNombreArchivo(),
+                                lote.getCantidadAbonos()
+                        });
+                    }
+
+                    JTable tabla = new JTable(modelTabla);
+                    tabla.setRowHeight(26);
+                    tabla.getColumnModel().getColumn(0).setPreferredWidth(60);
+                    tabla.getColumnModel().getColumn(1).setPreferredWidth(140);
+                    tabla.getColumnModel().getColumn(2).setPreferredWidth(280);
+                    tabla.getColumnModel().getColumn(3).setPreferredWidth(80);
+                    tabla.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+                    if (tabla.getRowCount() > 0) tabla.setRowSelectionInterval(0, 0);
+                    JScrollPane scroll = new JScrollPane(tabla);
+                    scroll.setPreferredSize(new java.awt.Dimension(620, 280));
+
+                    int opt = JOptionPane.showConfirmDialog(null, scroll,
+                            "Selecciona el lote a revertir", JOptionPane.OK_CANCEL_OPTION,
+                            JOptionPane.QUESTION_MESSAGE);
+                    if (opt != JOptionPane.OK_OPTION) return;
+
+                    int row = tabla.getSelectedRow();
+                    if (row < 0) {
+                        JOptionPane.showMessageDialog(null, "Debe seleccionar un lote.",
+                                "REVERTIR CARGA EXCEL", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    int loteId = (int) modelTabla.getValueAt(row, 0);
+                    int cantidad = (int) modelTabla.getValueAt(row, 3);
+
+                    confirmarYRevertirLote(loteId, cantidad);
+                });
+            } catch (Exception ex) {
+                System.out.println("Error -> " + ex.getMessage());
+                SwingUtilities.invokeLater(() -> {
+                    ViewMain.loading.dispose();
+                    JOptionPane.showMessageDialog(null,
+                            "Error al cargar lotes: " + ex.getMessage(),
+                            "REVERTIR CARGA EXCEL", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
+
+        ViewMain.loading.setVisible(true);
+    }
+
+    private void confirmarYRevertirLote(final int loteId, final int cantidadOriginal) {
+        try {
+            final int usados = new LoteCargaAbonoDao().countAbonosUsados(loteId);
+
+            String advertencia;
+            if (usados == 0) {
+                advertencia = "Vas a borrar " + cantidadOriginal + " abonos del lote #" + loteId + ".";
+            } else {
+                advertencia = "Vas a borrar " + (cantidadOriginal - usados) + " abonos del lote #" + loteId + ".\n"
+                        + usados + " abonos ya tienen pagos parciales/pagados y NO se borraran\n"
+                        + "(quedan en la base sin lote, no se pierde el historial de pago).";
+            }
+
+            JTextField motivoField = new JTextField();
+            Object[] msg = new Object[]{
+                    advertencia,
+                    " ",
+                    "Motivo de la reversion (obligatorio):",
+                    motivoField
+            };
+            int conf = JOptionPane.showConfirmDialog(null, msg,
+                    "Confirmar reversion lote #" + loteId,
+                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (conf != JOptionPane.OK_OPTION) return;
+
+            final String motivo = motivoField.getText().trim();
+            if (motivo.isEmpty()) {
+                JOptionPane.showMessageDialog(null,
+                        "Debe escribir un motivo para revertir el lote.",
+                        "REVERTIR CARGA EXCEL", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            LoadingOverlay.setMessage("Revirtiendo lote #" + loteId);
+            ViewMain.loading.setModal(true);
+            ViewMain.loading.setLocationRelativeTo(viewMain);
+
+            new Thread(() -> {
+                try {
+                    final int borrados = new LoteCargaAbonoDao().revertirLote(loteId, user.getId(), motivo);
+                    SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
+                        JOptionPane.showMessageDialog(null,
+                                "Lote #" + loteId + " revertido.\n" + borrados + " abonos eliminados.",
+                                "REVERTIR CARGA EXCEL", JOptionPane.INFORMATION_MESSAGE);
+                    });
+                } catch (Exception ex) {
+                    System.out.println("Error -> " + ex.getMessage());
+                    SwingUtilities.invokeLater(() -> {
+                        ViewMain.loading.dispose();
+                        JOptionPane.showMessageDialog(null,
+                                "Error al revertir lote: " + ex.getMessage(),
+                                "REVERTIR CARGA EXCEL", JOptionPane.ERROR_MESSAGE);
+                    });
+                }
+            }).start();
+
+            ViewMain.loading.setVisible(true);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null,
+                    "Error consultando estado del lote: " + ex.getMessage(),
+                    "REVERTIR CARGA EXCEL", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }
