@@ -65,7 +65,17 @@ public class Conexion {
 
         // Todos los reintentos fallaron
         JOptionPane.showMessageDialog(null,
-                "No se pudo conectar a la base de datos.\nVerifique que el servidor este activo.",
+                "No se pudo conectar a la base de datos.\n\n"
+                + "Se intento:\n"
+                + " 1. Archivo database.properties (en la carpeta del JAR)\n"
+                + " 2. Servidor remoto del hospital (192.168.97.10)\n"
+                + " 3. Localhost (root / 123456)\n"
+                + " 4. Localhost (root / 123456789)\n\n"
+                + "Para usar tu BD local, crea un archivo database.properties\n"
+                + "al lado del .exe/.jar con tus credenciales:\n\n"
+                + "  db.url=jdbc:mariadb://localhost:3306/financialtracker1\n"
+                + "  db.user=root\n"
+                + "  db.password=tu_password",
                 "Error de Conexion", JOptionPane.ERROR_MESSAGE);
 
         return null;
@@ -84,24 +94,28 @@ public class Conexion {
 
     /**
      * Intenta crear una nueva conexion probando todos los origenes disponibles.
+     *
+     * Prioridad: archivo "database.properties" externo (config del usuario) gana
+     * sobre los hardcoded. Esto permite levantar la app contra una BD local
+     * sin recompilar — solo creando el archivo al lado del JAR.
      */
     private static Connection crearNuevaConexion() {
         Connection conn;
 
-        // 1. Servidor remoto
+        // 1. Archivo de propiedades externo (override del usuario)
+        conn = intentarConexionDesdeProperties();
+        if (conn != null) return conn;
+
+        // 2. Servidor remoto
         conn = intentarConexion(URL_REMOTO, USER_REMOTO, PASSWORD_REMOTO, "servidor remoto (192.168.97.10)");
         if (conn != null) return conn;
 
-        // 2. Localhost
+        // 3. Localhost
         conn = intentarConexion(URL_LOCAL, USER_LOCAL, PASSWORD_LOCAL, "localhost");
         if (conn != null) return conn;
 
-        // 3. Localhost 2
+        // 4. Localhost 2
         conn = intentarConexion(URL_LOCAL_2, USER_LOCAL_2, PASSWORD_LOCAL_2, "localhost_2");
-        if (conn != null) return conn;
-
-        // 4. Archivo de propiedades externo
-        conn = intentarConexionDesdeProperties();
         if (conn != null) return conn;
 
         return null;
