@@ -26,8 +26,122 @@ public class ViewMain extends javax.swing.JFrame {
         jInternalPagoPrestamosOtros.setSize(970, 530);
         jInternalPagoPrestamosOtros.setClosable(true);
         jInternalPagoPrestamosOtros.setResizable(false);
-       
+
         setMinimumSize(new Dimension(900, 600));
+
+        applyModernStyling();
+    }
+
+    private void applyModernStyling() {
+        java.awt.Font headerFont = new java.awt.Font("Roboto", java.awt.Font.BOLD, 12);
+
+        // Action buttons: rounded corners via FlatLaf
+        for (javax.swing.JButton b : new javax.swing.JButton[]{
+            jButton1, jButton2, jButton3, jButton4,
+            jButtonProcesoDescuent, jButtonSearchDocument
+        }) {
+            if (b == null) continue;
+            b.putClientProperty("JButton.buttonType", "roundRect");
+            if (b.getFont() != null) {
+                b.setFont(b.getFont().deriveFont(java.awt.Font.BOLD, 12f));
+            }
+        }
+
+        // Inputs and combos: rounded
+        for (javax.swing.JComponent c : new javax.swing.JComponent[]{
+            jTextFieldNumeroVoucher, jTextFieldCuentaVoucher,
+            jTextFieldChequeVoucher, jTextFieldMountVoucher,
+            jTextAreaDetalleVoucher, jComboBoxSearchClient, jComboBox1
+        }) {
+            if (c == null) continue;
+            c.putClientProperty("JComponent.roundRect", true);
+        }
+
+        // Tables: alternate rows, no grid, bold header
+        for (javax.swing.JTable t : new javax.swing.JTable[]{
+            jTableDataEncontradaFile, jTableNoEncontrado
+        }) {
+            if (t == null) continue;
+            t.putClientProperty("JTable.alternateRowColor", new java.awt.Color(248, 250, 252));
+            t.setShowGrid(false);
+            t.setRowHeight(28);
+            t.setIntercellSpacing(new java.awt.Dimension(0, 0));
+            t.setFillsViewportHeight(true);
+            if (t.getTableHeader() != null) {
+                t.getTableHeader().setFont(headerFont);
+                t.getTableHeader().setReorderingAllowed(false);
+            }
+        }
+
+        // Scroll panes: smooth, no scrollbar buttons
+        for (javax.swing.JScrollPane sp : new javax.swing.JScrollPane[]{
+            jScrollPane1, jScrollPane2, jScrollPane3
+        }) {
+            if (sp == null) continue;
+            sp.putClientProperty("JScrollPane.smoothScrolling", true);
+            if (sp.getVerticalScrollBar() != null) {
+                sp.getVerticalScrollBar().putClientProperty("JScrollBar.showButtons", false);
+            }
+            if (sp.getHorizontalScrollBar() != null) {
+                sp.getHorizontalScrollBar().putClientProperty("JScrollBar.showButtons", false);
+            }
+            sp.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        }
+
+        // Sidebar JLabel-buttons: drop hard border, add hover and pressed states
+        javax.swing.JLabel[] sidebarButtons = {
+            jLabelReportDesc, jLabelReportDeuda, jLabelHistoryPayment,
+            jLabelConstanciaEntrega, jLabelRevertirPago, jLabelCorregirDuplicados,
+            jLabelReorganizarPagos, jLabelEditarPago, jLabelRevertirUltimos
+        };
+        for (javax.swing.JLabel lbl : sidebarButtons) {
+            if (lbl == null || !lbl.isOpaque()) continue;
+            lbl.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 16, 10, 16));
+            lbl.setFont(headerFont);
+            final java.awt.Color base = lbl.getBackground();
+            if (base == null) continue;
+            final java.awt.Color hover = blendColor(base, java.awt.Color.WHITE, 0.18f);
+            final java.awt.Color pressed = blendColor(base, java.awt.Color.BLACK, 0.15f);
+            lbl.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override public void mouseEntered(java.awt.event.MouseEvent e) { lbl.setBackground(hover); }
+                @Override public void mouseExited(java.awt.event.MouseEvent e) { lbl.setBackground(base); }
+                @Override public void mousePressed(java.awt.event.MouseEvent e) { lbl.setBackground(pressed); }
+                @Override public void mouseReleased(java.awt.event.MouseEvent e) { lbl.setBackground(hover); }
+            });
+        }
+
+        // Internal frames: softer title bar
+        java.awt.Color frameBar = new java.awt.Color(244, 247, 252);
+        if (jInternalFrame1 != null) {
+            jInternalFrame1.putClientProperty("JInternalFrame.titleBarBackground", frameBar);
+        }
+        if (jInternalPagoPrestamosOtros != null) {
+            jInternalPagoPrestamosOtros.putClientProperty("JInternalFrame.titleBarBackground", frameBar);
+        }
+
+        // Menu bar: more breathing room
+        if (jMenuBar1 != null) {
+            jMenuBar1.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
+            for (int i = 0; i < jMenuBar1.getMenuCount(); i++) {
+                javax.swing.JMenu m = jMenuBar1.getMenu(i);
+                if (m != null) {
+                    m.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+                    m.setFont(headerFont);
+                }
+            }
+        }
+    }
+
+    private static java.awt.Color blendColor(java.awt.Color a, java.awt.Color b, float ratio) {
+        float ir = 1f - ratio;
+        int r = clampChannel(Math.round(a.getRed() * ir + b.getRed() * ratio));
+        int g = clampChannel(Math.round(a.getGreen() * ir + b.getGreen() * ratio));
+        int bl = clampChannel(Math.round(a.getBlue() * ir + b.getBlue() * ratio));
+        return new java.awt.Color(r, g, bl);
+    }
+
+    private static int clampChannel(int v) {
+        return Math.max(0, Math.min(255, v));
     }
 
     @SuppressWarnings("unchecked")
