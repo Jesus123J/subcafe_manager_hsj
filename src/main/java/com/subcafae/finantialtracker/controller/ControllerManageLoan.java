@@ -21,6 +21,7 @@ import com.subcafae.finantialtracker.report.descuento.ExcelTable;
 import com.subcafae.finantialtracker.report.loanReport.CompromisoPago;
 import com.subcafae.finantialtracker.report.loanReport.CompromisoPagoAval;
 import com.subcafae.finantialtracker.report.loanReport.SolicitudPrestamo;
+import com.subcafae.finantialtracker.util.LoadingOverlay;
 import com.subcafae.finantialtracker.util.TextFieldValidator;
 import com.subcafae.finantialtracker.view.ViewMain;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
@@ -773,68 +774,119 @@ public class ControllerManageLoan extends ModelManageLoan implements ActionListe
                                 }
                             }
                         } else if (loan.get().getState().equalsIgnoreCase("Aceptado") || loan.get().getState().equalsIgnoreCase("Refinanciado")) {
-                            
-                            try {
-                                Loan loann = new LoanDao().searchLoan(loan.get().getSoliNum()).get(0);
 
-                                Optional<LoanTb> showRe = new LoanDao().findLoan(soliNum);
-                                if (showRe.isPresent()) {
-                                    if (loann.getState().equalsIgnoreCase("Aceptado")) {
+                            final String soliNumFinal = soliNum;
 
-                                        if (showRe.get().getRefinanceParentId() > 0) {
+                            LoadingOverlay.setMessage("Cargando datos del préstamo");
+                            ViewMain.loading.setModal(true);
+                            ViewMain.loading.setLocationRelativeTo(componentManageLoan);
 
-                                            double monto = new LoanDao().calcularMontoPendientePorLoanId(showRe.get().getRefinanceParentId());
-                                            componentManageLoan.montoRef.setText("Prestamo refinanciado deuda anterior solicitud con numero de solicitud " + new LoanDao().findLoan(showRe.get().getRefinanceParentId()).get().getSoliNum() + " -> " + monto);
+                            new Thread(() -> {
+                                try {
+                                    // Toda la I/O contra la BD ocurre aqui, fuera del EDT.
+                                    final Loan loann = new LoanDao().searchLoan(soliNumFinal).get(0);
+                                    final Optional<LoanTb> showRe = new LoanDao().findLoan(soliNumFinal);
+
+                                    String montoRefCalc = null;
+                                    if (showRe.isPresent() && loann.getState().equalsIgnoreCase("Aceptado")) {
+                                        Integer parentId = showRe.get().getRefinanceParentId();
+                                        if (parentId != null && parentId > 0) {
+                                            double monto = new LoanDao().calcularMontoPendientePorLoanId(parentId);
+                                            montoRefCalc = "Prestamo refinanciado deuda anterior solicitud con numero de solicitud "
+                                                    + new LoanDao().findLoan(parentId).get().getSoliNum() + " -> " + monto;
                                         }
                                     }
+
+                                    final boolean isPagado = new LoanDao().findLoan(soliNumFinal).get().getStateLoan().equalsIgnoreCase("Pagado");
+                                    final List<Loan> listTableFind = new LoanDao().searchLoan(soliNumFinal);
+
+                                    // Datos para la tabla de detalles (lo que hacia methodListDeta).
+                                    final Optional<LoanTb> loanForDetails = findLoan(soliNumFinal);
+                                    final List<LoanDetailsTb> listDetails = new LoanDetailsDao().findLoanDetailsByLoanId(loanForDetails.get().getId());
+
+                                    final String montoRefText = montoRefCalc;
+
+                                    javax.swing.SwingUtilities.invokeLater(() -> {
+                                        try {
+                                            if (montoRefText != null) {
+                                                componentManageLoan.montoRef.setText(montoRefText);
+                                            }
+
+                                            if (loann.getPaymentResponsibility().equalsIgnoreCase("AVAL")) {
+                                                componentManageLoan.jLabelShowAval.setText("LOS PAGOS EN PARTES, LO HARÁ EL AVAL");
+                                                componentManageLoan.jButton1.setEnabled(false);
+                                            } else {
+                                                componentManageLoan.jLabelShowAval.setText("LOS PAGOS EN PARTES, LO HARÁ EL SOLICITANTE");
+                                                componentManageLoan.jButton1.setEnabled(true);
+                                            }
+                                            if (loann.getState().equalsIgnoreCase("Refinanciado")) {
+                                                componentManageLoan.jButton1.setEnabled(false);
+                                            }
+                                            if (isPagado) {
+                                                componentManageLoan.jButton1.setEnabled(false);
+                                            }
+                                            if (loann.getGuarantorName() == null) {
+                                                componentManageLoan.jButton1.setEnabled(false);
+                                            }
+
+                                            DefaultTableModel modelDetails = (DefaultTableModel) componentManageLoan.jTableListLoanDetails.getModel();
+                                            modelDetails.setRowCount(0);
+                                            DefaultTableModel modelMain = (DefaultTableModel) componentManageLoan.jTableLoanList1.getModel();
+                                            modelMain.setRowCount(0);
+
+                                            modelMain.addRow(new Object[]{
+                                                listTableFind.get(0).getSoliNum(),
+                                                listTableFind.get(0).getSolicitorName(),
+                                                listTableFind.get(0).getGuarantorName(),
+                                                listTableFind.get(0).getRequestedAmount(),
+                                                listTableFind.get(0).getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? listTableFind.get(0).getRequestedAmount() : listTableFind.get(0).getAmountWithdrawn(),
+                                                listTableFind.get(0).getState(),
+                                                listTableFind.get(0).getPaymentResponsibility()
+                                            });
+
+                                            // Equivalente a methodListDeta(soliNum) usando datos ya cargados.
+                                            Double montoPendiente = 0.0;
+                                            for (LoanDetailsTb d : listDetails) {
+                                                if (d.getState().equalsIgnoreCase("Pendiente")) {
+                                                    montoPendiente += d.getMonthlyFeeValue();
+                                                }
+                                                if (d.getState().equalsIgnoreCase("Parcial")) {
+                                                    montoPendiente += (d.getMonthlyFeeValue() - d.getPayment());
+                                                }
+                                                modelDetails.addRow(new Object[]{
+                                                    d.getMonthlyFeeValue(),
+                                                    d.getPayment(),
+                                                    d.getDues(),
+                                                    d.getPaymentDate().toString(),
+                                                    d.getState()
+                                                });
+                                            }
+                                            componentManageLoan.jLabelMonto.setText(String.format("%.2f", montoPendiente));
+
+                                            ViewMain.loading.dispose();
+
+                                            componentManageLoan.jDialog1.setModal(true);
+                                            componentManageLoan.jDialog1.setResizable(false);
+                                            componentManageLoan.jDialog1.setSize(980, 570);
+                                            componentManageLoan.jDialog1.setLocationRelativeTo(null);
+                                            componentManageLoan.jDialog1.setVisible(true);
+                                        } catch (Exception innerEx) {
+                                            ViewMain.loading.dispose();
+                                            System.out.println("Error UI -> " + innerEx.getMessage());
+                                        }
+                                    });
+                                } catch (Exception ex) {
+                                    javax.swing.SwingUtilities.invokeLater(() -> {
+                                        ViewMain.loading.dispose();
+                                        System.out.println("Error -> " + ex.getMessage());
+                                        JOptionPane.showMessageDialog(null,
+                                                "Error al cargar el préstamo: " + ex.getMessage(),
+                                                "GESTIÓN PRESTAMOS", JOptionPane.ERROR_MESSAGE);
+                                    });
                                 }
+                            }).start();
 
-                                if (loann.getPaymentResponsibility().equalsIgnoreCase("AVAL")) {
-                                    componentManageLoan.jLabelShowAval.setText("LOS PAGOS EN PARTES, LO HARÁ EL AVAL");
-                                    componentManageLoan.jButton1.setEnabled(false);
-                                } else if (!loann.getPaymentResponsibility().equalsIgnoreCase("AVAL")) {
-                                    componentManageLoan.jLabelShowAval.setText("LOS PAGOS EN PARTES, LO HARÁ EL SOLICITANTE");
-                                    componentManageLoan.jButton1.setEnabled(true);
-                                }
-                                if (loann.getState().equalsIgnoreCase("Refinanciado")) {
-                                    System.out.println("Bloquiando");
-                                    componentManageLoan.jButton1.setEnabled(false);
-                                }
-
-                                if (new LoanDao().findLoan(soliNum).get().getStateLoan().equalsIgnoreCase("Pagado")) {
-                                    componentManageLoan.jButton1.setEnabled(false);
-                                }
-                                if (loann.getGuarantorName() == null) {
-                                    componentManageLoan.jButton1.setEnabled(false);
-                                }
-
-                                DefaultTableModel modelList = (DefaultTableModel) componentManageLoan.jTableListLoanDetails.getModel();
-                                modelList.setRowCount(0);
-                                DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList1.getModel();
-                                model.setRowCount(0);
-
-                                List<Loan> listTableFind = new LoanDao().searchLoan(soliNum);
-
-                                model.addRow(new Object[]{
-                                    listTableFind.get(0).getSoliNum(),
-                                    listTableFind.get(0).getSolicitorName(),
-                                    listTableFind.get(0).getGuarantorName(),
-                                    listTableFind.get(0).getRequestedAmount(),
-                                    listTableFind.get(0).getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? listTableFind.get(0).getRequestedAmount() : listTableFind.get(0).getAmountWithdrawn(),
-                                    listTableFind.get(0).getState(),
-                                    listTableFind.get(0).getPaymentResponsibility()
-                                });
-
-                                methodListDeta(soliNum);
-
-                                componentManageLoan.jDialog1.setModal(true);
-                                componentManageLoan.jDialog1.setResizable(false);
-                                componentManageLoan.jDialog1.setSize(980, 570);
-                                componentManageLoan.jDialog1.setLocationRelativeTo(null);
-                                componentManageLoan.jDialog1.setVisible(true);
-                            } catch (SQLException ex) {
-                                Logger.getLogger(ControllerManageLoan.class.getName()).log(Level.SEVERE, null, ex);
-                            }
+                            ViewMain.loading.setVisible(true);
                         }
 
                     } catch (Exception ee) {
