@@ -11,12 +11,15 @@ package com.subcafae.finantialtracker.report.bond;
 import com.subcafae.finantialtracker.data.dao.AbonoDao;
 import com.subcafae.finantialtracker.data.dao.AbonoDetailsDao;
 import com.subcafae.finantialtracker.data.dao.EmployeeDao;
+import com.subcafae.finantialtracker.data.dao.LoteCargaAbonoDao;
 import com.subcafae.finantialtracker.data.dao.ServiceConceptDao;
 import com.subcafae.finantialtracker.data.entity.AbonoTb;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
+import com.subcafae.finantialtracker.data.entity.LoteCargaAbonoTb;
 import com.subcafae.finantialtracker.data.entity.ServiceConceptTb;
 import com.subcafae.finantialtracker.data.entity.User;
 import com.subcafae.finantialtracker.data.entity.UserTb;
+import com.subcafae.finantialtracker.util.LoadingOverlay;
 import com.subcafae.finantialtracker.view.ViewMain;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -70,14 +73,26 @@ public class LeerExcelConFileChooser {
 
                         viewMain.setEnabled(false);
 
+                        LoadingOverlay.setMessage("Importando abonos del Excel");
                         ViewMain.loading.setModal(true);
                         ViewMain.loading.setLocationRelativeTo(viewMain);
                         ViewMain.loading.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 
+                        final String nombreArchivo = archivoSeleccionado.getName();
+                        final int totalFilas = registros.size();
+
                         // Lanzar el thread ANTES de setVisible (porque modal bloquea hasta dispose)
                         new Thread(() -> {
 
+                            Integer loteId = null;
                             try {
+                                // Crear el lote de carga ANTES de empezar a insertar.
+                                LoteCargaAbonoTb lote = new LoteCargaAbonoTb();
+                                lote.setUsuarioId(user.getId());
+                                lote.setNombreArchivo(nombreArchivo);
+                                lote.setCantidadAbonos(totalFilas);
+                                loteId = new LoteCargaAbonoDao().crearLote(lote);
+
                                 List<EmployeeTb> emple = new EmployeeDao().findAll();
                                 List<String> nuevosEmpleados = new ArrayList<>();
                                 int exitosos = 0;
@@ -118,6 +133,7 @@ public class LeerExcelConFileChooser {
                                     abono.setMonthly(registro.getMonto());
                                     abono.setPaymentDate(fecha.withDayOfMonth(fecha.lengthOfMonth()).toString());
                                     abono.setStatus("Pendiente");
+                                    abono.setLoteId(loteId);
 
                                     Integer dataa = new AbonoDao().insertAbono(abono);
 
@@ -131,14 +147,23 @@ public class LeerExcelConFileChooser {
 
                                 }
 
+                                // Guardar el conteo real de abonos efectivamente creados.
+                                if (loteId != null) {
+                                    new LoteCargaAbonoDao().actualizarCantidad(loteId, exitosos);
+                                }
+
                                 final int totalExitosos = exitosos;
                                 final List<String> listaNuevos = nuevosEmpleados;
+                                final Integer loteIdFinal = loteId;
 
                                 SwingUtilities.invokeLater(() -> {
                                     ViewMain.loading.dispose();
                                     viewMain.setEnabled(true);
 
                                     StringBuilder resumen = new StringBuilder();
+                                    if (loteIdFinal != null) {
+                                        resumen.append("Lote #").append(loteIdFinal).append(" creado.\n");
+                                    }
                                     resumen.append("Registros cargados: ").append(totalExitosos).append(" de ")
                                             .append(registros.size()).append("\n");
 
@@ -147,6 +172,10 @@ public class LeerExcelConFileChooser {
                                         for (String nuevo : listaNuevos) {
                                             resumen.append("  - ").append(nuevo).append("\n");
                                         }
+                                    }
+                                    if (loteIdFinal != null) {
+                                        resumen.append("\nSi te equivocaste, podes revertir este lote desde el ");
+                                        resumen.append("boton \"REVERTIR CARGA EXCEL\".");
                                     }
 
                                     JOptionPane.showMessageDialog(null, resumen.toString(), "GESTIÓN DE ABONOS",
