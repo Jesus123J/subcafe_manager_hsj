@@ -55,6 +55,7 @@ El formato de tag actual del proyecto es `Subcafae-HSJvX.Y.Z`. Las versiones pre
 
 | Tag                     | Fecha       | Cambios principales                                                                                       |
 |-------------------------|-------------|-----------------------------------------------------------------------------------------------------------|
+| `Subcafae-HSJv0.0.16`   | 2026-05-04  | CI con GitHub Actions: en cada tag genera JAR + instalador `.exe` automáticamente y publica el Release.  |
 | `Subcafae-HSJv0.0.15`   | 2026-05-03  | Aceptación de DNI de extranjería, reconexión automática de BD con reintentos, limpieza del repositorio.   |
 | `v0.0.5` / `push`       | 2025-04-28  | Funciones adicionales en abonos y préstamos.                                                              |
 | `v0.0.3`                | 2025-04-21  | Versión 0.0.3 — iteración temprana.                                                                       |
