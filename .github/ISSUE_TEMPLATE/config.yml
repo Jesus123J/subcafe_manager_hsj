@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Manual de usuario
+    url: https://drive.google.com/file/d/1FQU-qOCM3dV_Tcuq0P0fzvxqizAotvnA/view?usp=drive_link
+    about: Antes de abrir un issue, revisar el manual de usuario.
+  - name: Manual técnico
+    url: https://drive.google.com/file/d/1pl6Wam6__sG9ajKH39QyH3T6nbufDuzn/view?usp=drive_link
+    about: Documentación técnica del sistema.
