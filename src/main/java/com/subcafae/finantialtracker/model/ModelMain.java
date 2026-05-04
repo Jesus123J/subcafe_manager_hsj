@@ -83,6 +83,7 @@ import javax.swing.JInternalFrame;
 import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import javax.swing.SwingWorker;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.JTextComponent;
 import net.miginfocom.swing.MigLayout;
@@ -106,6 +107,7 @@ public class ModelMain {
     public JpanelDarkUtil jpanelDarkUtil = new JpanelDarkUtil();
     public ComponentLogin componentLogin1 = new ComponentLogin();
     protected UserTb usser;
+    private javax.swing.Timer loadingDotsTimer;
 
     public ModelMain(ViewMain viewMain) {
 
@@ -188,45 +190,104 @@ public class ModelMain {
     }
 
     public void logIn() {
-        try {
-            if (new String(componentLogin.jPasswordPassword.getPassword()).isBlank()
-                    || componentLogin.jTextFieldUser.getText().isBlank()) {
-                JOptionPane.showMessageDialog(null, "Llene los datos", "MENSAJE", JOptionPane.WARNING_MESSAGE);
-                return;
+        final String username = componentLogin.jTextFieldUser.getText();
+        final String password = new String(componentLogin.jPasswordPassword.getPassword());
+
+        if (password.isBlank() || username.isBlank()) {
+            JOptionPane.showMessageDialog(null, "Llene los datos", "MENSAJE", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        final String originalText = componentLogin.jButtonIngreso.getText();
+        setLoginUiBusy(true, "Conectando con el servidor");
+
+        SwingWorker<UserTb, Void> worker = new SwingWorker<UserTb, Void>() {
+            @Override
+            protected UserTb doInBackground() throws Exception {
+                return new UserDao().getUserByUsername(username, password);
             }
-//
-            usser = new UserDao().getUserByUsername(componentLogin.jTextFieldUser.getText(), new String(componentLogin.jPasswordPassword.getPassword()));
 
-            if (usser != null) {
-                componentLogin.jLabel1.setText("");
-                if (usser.getState().equalsIgnoreCase("0")) {
-                    JOptionPane.showMessageDialog(null, "CUENTA BLOQUIADA", "MENSAJE", JOptionPane.WARNING_MESSAGE);
-                    return;
+            @Override
+            protected void done() {
+                setLoginUiBusy(false, null);
+                componentLogin.jButtonIngreso.setText(originalText);
+                try {
+                    usser = get();
+                    if (usser != null) {
+                        componentLogin.jLabel1.setText("");
+                        handleLoginSuccess();
+                    } else {
+                        componentLogin.jLabel1.setForeground(new Color(153, 0, 0));
+                        componentLogin.jLabel1.setText("ERROR REVISE EL USUARIO O CONTRASEÑA");
+                    }
+                } catch (Exception ex) {
+                    System.out.println("Error -> " + ex.getMessage());
+                    componentLogin.jLabel1.setForeground(new Color(153, 0, 0));
+                    componentLogin.jLabel1.setText("Error de conexion. Reintenta.");
+                    JOptionPane.showMessageDialog(null,
+                            "Ocurrió un problema al iniciar sesión. Verifique la conexión.",
+                            "ERROR", JOptionPane.ERROR_MESSAGE);
                 }
-                if (!usser.getRol().equals("ADMINISTRADOR")) {
-                    viewMain.jMenuManageUser.setEnabled(false);
-                } else {
-                    viewMain.jMenuManageUser.setEnabled(true);
-                }
-                if (!usser.getRol().equals("SUPER ADMINISTRADOR")) {
-                    viewMain.jMenuManageUser.setEnabled(false);
-                } else {
-                    viewMain.jMenuManageUser.setEnabled(true);
-                }
-                new ControllerManageLoan(componentManageLoan, usser);
-                new ControllerManageBond(componentManageBond, usser, viewMain);
-                new ControllerManageWorker(componentManageWorker, usser);
-                new ControllerUser(componentManageUser, usser);
-
-                viewMain.jMenuBar1.setVisible(true);
-                jpanelDarkUtil.setVisible(false);
-
-            } else {
-                componentLogin.jLabel1.setText("ERROR REVISE EL USUARIO O CONTRASEÑA");
             }
-        } catch (Exception ex) {
-            System.out.println("Error -> " + ex.getMessage());
-            JOptionPane.showMessageDialog(null, "Ocurrió un problema al iniciar sesión. Verifique la conexión.", "ERROR", JOptionPane.ERROR_MESSAGE);
+        };
+        worker.execute();
+    }
+
+    private void handleLoginSuccess() {
+        if (usser.getState().equalsIgnoreCase("0")) {
+            JOptionPane.showMessageDialog(null, "CUENTA BLOQUIADA", "MENSAJE", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!usser.getRol().equals("ADMINISTRADOR")) {
+            viewMain.jMenuManageUser.setEnabled(false);
+        } else {
+            viewMain.jMenuManageUser.setEnabled(true);
+        }
+        if (!usser.getRol().equals("SUPER ADMINISTRADOR")) {
+            viewMain.jMenuManageUser.setEnabled(false);
+        } else {
+            viewMain.jMenuManageUser.setEnabled(true);
+        }
+        new ControllerManageLoan(componentManageLoan, usser);
+        new ControllerManageBond(componentManageBond, usser, viewMain);
+        new ControllerManageWorker(componentManageWorker, usser);
+        new ControllerUser(componentManageUser, usser);
+
+        viewMain.jMenuBar1.setVisible(true);
+        jpanelDarkUtil.setVisible(false);
+    }
+
+    private void setLoginUiBusy(boolean busy, String statusText) {
+        componentLogin.jButtonIngreso.setEnabled(!busy);
+        componentLogin.jTextFieldUser.setEnabled(!busy);
+        componentLogin.jPasswordPassword.setEnabled(!busy);
+        componentLogin.setCursor(java.awt.Cursor.getPredefinedCursor(
+                busy ? java.awt.Cursor.WAIT_CURSOR : java.awt.Cursor.DEFAULT_CURSOR));
+        if (busy) {
+            componentLogin.jButtonIngreso.setText("INGRESANDO...");
+            componentLogin.jLabel1.setForeground(new Color(0, 102, 204));
+            startLoadingDotsAnimation(statusText);
+        } else {
+            stopLoadingDotsAnimation();
+        }
+    }
+
+    private void startLoadingDotsAnimation(String baseText) {
+        stopLoadingDotsAnimation();
+        final String[] suffixes = {"", ".", "..", "..."};
+        final int[] frame = {0};
+        loadingDotsTimer = new javax.swing.Timer(400, e -> {
+            componentLogin.jLabel1.setText(baseText + suffixes[frame[0]]);
+            frame[0] = (frame[0] + 1) % suffixes.length;
+        });
+        loadingDotsTimer.setInitialDelay(0);
+        loadingDotsTimer.start();
+    }
+
+    private void stopLoadingDotsAnimation() {
+        if (loadingDotsTimer != null) {
+            loadingDotsTimer.stop();
+            loadingDotsTimer = null;
         }
     }
 
