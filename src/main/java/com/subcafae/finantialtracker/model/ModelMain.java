@@ -31,6 +31,7 @@ import com.subcafae.finantialtracker.report.descuento.DatosPersona;
 import com.subcafae.finantialtracker.report.descuento.ExcelExporter;
 import com.subcafae.finantialtracker.report.deuda.ReporteDeuda;
 import com.subcafae.finantialtracker.util.JpanelDarkUtil;
+import com.subcafae.finantialtracker.util.LoadingOverlay;
 import com.subcafae.finantialtracker.util.TextFieldValidator;
 import com.subcafae.finantialtracker.view.ViewMain;
 import com.subcafae.finantialtracker.view.component.ComponentLogin;
@@ -163,8 +164,8 @@ public class ModelMain {
             }
         });
         viewMain.loading.setUndecorated(true);
-        viewMain.loading.setSize(412, 115);
         viewMain.loading.setLocationRelativeTo(null);
+        LoadingOverlay.install(viewMain.loading);
 
         //  
         viewMain.setTitle("Subcafae - HSJ");
