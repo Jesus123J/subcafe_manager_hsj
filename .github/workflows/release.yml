@@ -1,0 +1,71 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'Subcafae-HSJv*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 22
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Extract version from tag
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $appVersion = $tag -replace '^Subcafae-HSJv', ''
+          "APP_VERSION=$appVersion" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TAG_NAME=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build JAR with Maven
+        run: mvn -B package --file pom.xml
+
+      - name: Prepare jpackage input and rename JAR
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path target\jpackage-input | Out-Null
+          Copy-Item target\FinantialTracker-1.0-SNAPSHOT-jar-with-dependencies.jar `
+                    target\jpackage-input\app.jar
+          Copy-Item target\FinantialTracker-1.0-SNAPSHOT-jar-with-dependencies.jar `
+                    "target\Subcafae-HSJ-$env:APP_VERSION.jar"
+
+      - name: Build installer .exe with jpackage
+        shell: pwsh
+        run: |
+          jpackage `
+            --type exe `
+            --name Subcafae-HSJ `
+            --app-version $env:APP_VERSION `
+            --input target\jpackage-input `
+            --main-jar app.jar `
+            --main-class com.subcafae.finantialtracker.FinantialTracker `
+            --icon src\main\resources\IconGeneral\logo.ico `
+            --vendor Subcafae `
+            --description "Subcafae HSJ - Gestion financiera Hospital San Juan de Dios" `
+            --win-dir-chooser `
+            --win-menu `
+            --win-shortcut `
+            --dest dist
+
+      - name: Create GitHub Release with JAR and EXE
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: ${{ env.TAG_NAME }}
+          generate_release_notes: true
+          files: |
+            target/Subcafae-HSJ-${{ env.APP_VERSION }}.jar
+            dist/Subcafae-HSJ-${{ env.APP_VERSION }}.exe
