@@ -7,6 +7,7 @@ package com.subcafae.finantialtracker.controller;
 import com.subcafae.finantialtracker.data.entity.UserTb;
 import com.subcafae.finantialtracker.model.ModelMain;
 import com.subcafae.finantialtracker.report.concept.PaymentVoucher;
+import com.subcafae.finantialtracker.util.LoadingOverlay;
 import com.subcafae.finantialtracker.view.ViewMain;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -200,27 +201,35 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
             }
 
             if (e.getSource().equals(viewMain.jLabelHistoryPayment)) {
+                LoadingOverlay.setMessage("Generando historial de pagos");
                 historyPayment();
             }
             if (e.getSource().equals(viewMain.jLabelReportDesc)) {
+                LoadingOverlay.setMessage("Generando reporte de descuentos");
                 generateExcel();
             }
             if (e.getSource().equals(viewMain.jLabelReportDeuda)) {
+                LoadingOverlay.setMessage("Generando reporte de deuda");
                 reportDeuda();
             }
             if (e.getSource().equals(viewMain.jLabelRevertirPago)) {
+                LoadingOverlay.setMessage("Cargando registros para revertir");
                 revertirPago();
             }
             if (e.getSource().equals(viewMain.jLabelCorregirDuplicados)) {
+                LoadingOverlay.setMessage("Buscando pagos duplicados");
                 corregirPagosDuplicados();
             }
             if (e.getSource().equals(viewMain.jLabelReorganizarPagos)) {
+                LoadingOverlay.setMessage("Buscando pagos huerfanos");
                 reorganizarPagosHuerfanos();
             }
             if (e.getSource().equals(viewMain.jLabelEditarPago)) {
+                LoadingOverlay.setMessage("Cargando datos del pago");
                 editarPago();
             }
             if (e.getSource().equals(viewMain.jLabelRevertirUltimos)) {
+                LoadingOverlay.setMessage("Cargando ultimos cambios");
                 revertirUltimosCambios();
             }
         } catch (Exception ex) {

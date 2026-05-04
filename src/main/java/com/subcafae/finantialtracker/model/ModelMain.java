@@ -109,6 +109,8 @@ public class ModelMain {
     public ComponentLogin componentLogin1 = new ComponentLogin();
     protected UserTb usser;
     private javax.swing.Timer loadingDotsTimer;
+    private volatile List<EmployeeTb> cachedEmployees;
+    private volatile List<PaymentVoucher> cachedVouchers;
 
     public ModelMain(ViewMain viewMain) {
 
@@ -438,6 +440,7 @@ public class ModelMain {
 
     public void historyPayment() {
 
+        LoadingOverlay.setMessage("Generando historial de pagos");
         viewMain.loading.setModal(true);
         viewMain.loading.setLocationRelativeTo(viewMain);
 
@@ -487,6 +490,7 @@ public class ModelMain {
             return;
         }
 
+        LoadingOverlay.setMessage("Generando reporte de descuentos");
         viewMain.loading.setModal(true);
         viewMain.loading.setLocationRelativeTo(viewMain);
 
@@ -721,6 +725,7 @@ public class ModelMain {
 
     public void reportDeuda() {
 
+        LoadingOverlay.setMessage("Generando reporte de deuda");
         viewMain.loading.setModal(true);
         viewMain.loading.setLocationRelativeTo(viewMain);
 
@@ -792,146 +797,149 @@ public class ModelMain {
     }
 
     public void combo() {
-        JTextField textField = (JTextField) viewMain.jComboBoxSearchClient.getEditor().getEditorComponent();
-        viewMain.jComboBoxSearchClient.getEditor().getEditorComponent().addKeyListener(new KeyAdapter() {
+        // === Autocomplete de busqueda de cliente (jComboBoxSearchClient) ===
+        // Refactor: uso DocumentListener (no KeyListener) para captar TODA
+        // forma de input — letras, espacio, acentos (a, e, n), backspace,
+        // paste, IME — uniformemente. Lista cacheada para no consultar SQL
+        // en cada tecla. No se manipula el texto del editor (sin auto-select)
+        // asi el cursor queda donde el usuario espera.
+        final JTextField textField = (JTextField) viewMain.jComboBoxSearchClient.getEditor().getEditorComponent();
+
+        textField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getSource().equals(viewMain.jComboBoxSearchClient.getEditor().getEditorComponent())) {
-                    if (e.getKeyCode() == KeyEvent.VK_UP) {
-                        System.out.println("presionó flecha arriba - remitente");
-                    }
-                    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                        System.out.println("presionó flecha abajo - remitente");
+                if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN) {
+                    if (!viewMain.jComboBoxSearchClient.isPopupVisible()
+                            && viewMain.jComboBoxSearchClient.getItemCount() > 0) {
+                        viewMain.jComboBoxSearchClient.showPopup();
                     }
                 }
             }
 
             @Override
             public void keyReleased(KeyEvent evt) {
-                String inputString = viewMain.jComboBoxSearchClient.getEditor().getItem().toString();
-
                 if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
                     String name = (String) viewMain.jComboBoxSearchClient.getSelectedItem();
                     if (name != null) {
                         System.out.println("clienteRemitente -> " + name.split(" - ")[0]);
-                    } else {
-
-                    }
-                }
-
-                if ((evt.getKeyCode() >= KeyEvent.VK_A && evt.getKeyCode() <= KeyEvent.VK_Z) // Letras
-                        || (evt.getKeyCode() >= KeyEvent.VK_0 && evt.getKeyCode() <= KeyEvent.VK_9) // Números
-                        || (evt.getKeyCode() >= KeyEvent.VK_NUMPAD0 && evt.getKeyCode() <= KeyEvent.VK_NUMPAD9) // Teclado numérico
-                        || evt.getKeyCode() == KeyEvent.VK_BACK_SPACE // Borrar
-                        || evt.getKeyCode() == KeyEvent.VK_SPACE) { // Espacio
-
-                    System.out.println("Insertando ----------- ");
-
-                    List<EmployeeTb> employees;
-                    try {
-                        employees = new EmployeeDao().findAll();
-                    } catch (SQLException ex) {
-
-                        JOptionPane.showMessageDialog(null, "Ocurrio un error", "GESTIÓN DE DEUDAS", JOptionPane.WARNING_MESSAGE);
-                        System.out.println("Error en la lista -> " + ex.getMessage());
-                        return;
-                        //  Logger.getLogger(ModelMain.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-
-                    String cadena = textField.getText();
-
-                    actualizarComboBox(viewMain.jComboBoxSearchClient, cadena, employees);
-
-                    textField.setText(cadena);
-
-                    if (viewMain.jComboBoxSearchClient.getItemCount() > 0) {
-                        viewMain.jComboBoxSearchClient.showPopup();
-                        if (evt.getKeyCode() != 8) {
-                            ((JTextComponent) viewMain.jComboBoxSearchClient.getEditor().getEditorComponent())
-                                    .select(inputString.length(), viewMain.jComboBoxSearchClient.getEditor().getItem().toString().length());
-                        } else {
-                            viewMain.jComboBoxSearchClient.getEditor().setItem(inputString);
-                        }
-                    } else {
-                        viewMain.jComboBoxSearchClient.addItem(inputString);
                     }
                 }
             }
         });
 
-        JTextField textField1 = (JTextField) viewMain.jComboBox1.getEditor().getEditorComponent();
-        viewMain.jComboBox1.getEditor().getEditorComponent().addKeyListener(new KeyAdapter() {
+        textField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) {}
+
+            private void onChange() {
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    String cadena = textField.getText();
+                    actualizarComboBox(viewMain.jComboBoxSearchClient, cadena, getCachedEmployees());
+                    if (viewMain.jComboBoxSearchClient.getItemCount() > 0) {
+                        if (!viewMain.jComboBoxSearchClient.isPopupVisible()) {
+                            viewMain.jComboBoxSearchClient.showPopup();
+                        }
+                    } else {
+                        viewMain.jComboBoxSearchClient.hidePopup();
+                    }
+                });
+            }
+        });
+
+        // === Autocomplete de busqueda de voucher (jComboBox1) ===
+        final JTextField textField1 = (JTextField) viewMain.jComboBox1.getEditor().getEditorComponent();
+
+        textField1.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getSource().equals(viewMain.jComboBox1.getEditor().getEditorComponent())) {
-                    if (e.getKeyCode() == KeyEvent.VK_UP) {
-                        System.out.println("presionó flecha arriba - remitente");
-                    }
-                    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                        System.out.println("presionó flecha abajo - remitente");
+                if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN) {
+                    if (!viewMain.jComboBox1.isPopupVisible()
+                            && viewMain.jComboBox1.getItemCount() > 0) {
+                        viewMain.jComboBox1.showPopup();
                     }
                 }
             }
 
             @Override
             public void keyReleased(KeyEvent evt) {
-                String inputString = viewMain.jComboBox1.getEditor().getItem().toString();
+                if (evt.getKeyCode() != KeyEvent.VK_ENTER) return;
+                String name = (String) viewMain.jComboBox1.getSelectedItem();
+                if (name == null || name.split(" - ")[0].isBlank()) return;
 
-                if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
-                    String name = (String) viewMain.jComboBox1.getSelectedItem();
-                    if (name != null) {
-                        if (!name.split(" - ")[0].isBlank()) {
-                            PaymentVoucher.cleanUnusedVouchers();
-                            viewMain.jButton1.setText("EDITAR");
-                            viewMain.jButton2.setEnabled(false);
-                            viewMain.jButton3.setEnabled(false);
-                            viewMain.jButton4.setEnabled(true);
-                            String num = name.split(" - ")[0];
-                            PaymentVoucher paymentVoucher = new PaymentVoucher();
-                            PaymentVoucher paymentVoucher1 = paymentVoucher.list().stream().filter(predicate -> predicate.getNumVoucher().equalsIgnoreCase(num)).findFirst().get();
-                            viewMain.jTextFieldNumeroVoucher.setText(paymentVoucher1.getNumVoucher());
-                            viewMain.jTextFieldCuentaVoucher.setText(paymentVoucher1.getNumAccount());
-                            viewMain.jTextFieldChequeVoucher.setText(paymentVoucher1.getNumCheck());
-                            viewMain.jTextFieldMountVoucher.setText(String.valueOf(paymentVoucher1.getAmount()));
-                            viewMain.jTextAreaDetalleVoucher.setText(paymentVoucher1.getDetails());
-                            viewMain.cbConRegDateStartVoucher.setDate(Date.from(paymentVoucher1.getDateEntry().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-                            viewMain.jComboBoxSearchClient.addItem(paymentVoucher1.getNameLastName() + " - " + paymentVoucher1.getDocumentDni());
-                        }
-                    } else {
+                PaymentVoucher.cleanUnusedVouchers();
+                viewMain.jButton1.setText("EDITAR");
+                viewMain.jButton2.setEnabled(false);
+                viewMain.jButton3.setEnabled(false);
+                viewMain.jButton4.setEnabled(true);
+                String num = name.split(" - ")[0];
+                PaymentVoucher pv = getCachedVouchers().stream()
+                        .filter(predicate -> predicate.getNumVoucher().equalsIgnoreCase(num))
+                        .findFirst().orElse(null);
+                if (pv == null) return;
 
-                    }
-                }
-
-                if ((evt.getKeyCode() >= KeyEvent.VK_A && evt.getKeyCode() <= KeyEvent.VK_Z) // Letras
-                        || (evt.getKeyCode() >= KeyEvent.VK_0 && evt.getKeyCode() <= KeyEvent.VK_9) // Números
-                        || (evt.getKeyCode() >= KeyEvent.VK_NUMPAD0 && evt.getKeyCode() <= KeyEvent.VK_NUMPAD9) // Teclado numérico
-                        || evt.getKeyCode() == KeyEvent.VK_BACK_SPACE // Borrar
-                        || evt.getKeyCode() == KeyEvent.VK_SPACE) { // Espacio
-
-                    System.out.println("Insertando ----------- ");
-                    PaymentVoucher paymentVoucher = new PaymentVoucher();
-
-                    List<PaymentVoucher> listVoucher = paymentVoucher.list();
-                    String cadena = textField1.getText();
-
-                    actualizarComboBoxVoucher(viewMain.jComboBox1, cadena, listVoucher);
-
-                    textField1.setText(cadena);
-
-                    if (viewMain.jComboBox1.getItemCount() > 0) {
-                        viewMain.jComboBox1.showPopup();
-                        if (evt.getKeyCode() != 8) {
-                            ((JTextComponent) viewMain.jComboBox1.getEditor().getEditorComponent())
-                                    .select(inputString.length(), viewMain.jComboBox1.getEditor().getItem().toString().length());
-                        } else {
-                            viewMain.jComboBox1.getEditor().setItem(inputString);
-                        }
-                    } else {
-                        viewMain.jComboBox1.addItem(inputString);
-                    }
-                }
+                viewMain.jTextFieldNumeroVoucher.setText(pv.getNumVoucher());
+                viewMain.jTextFieldCuentaVoucher.setText(pv.getNumAccount());
+                viewMain.jTextFieldChequeVoucher.setText(pv.getNumCheck());
+                viewMain.jTextFieldMountVoucher.setText(String.valueOf(pv.getAmount()));
+                viewMain.jTextAreaDetalleVoucher.setText(pv.getDetails());
+                viewMain.cbConRegDateStartVoucher.setDate(Date.from(pv.getDateEntry().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+                viewMain.jComboBoxSearchClient.addItem(pv.getNameLastName() + " - " + pv.getDocumentDni());
             }
         });
+
+        textField1.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) {}
+
+            private void onChange() {
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    String cadena = textField1.getText();
+                    actualizarComboBoxVoucher(viewMain.jComboBox1, cadena, getCachedVouchers());
+                    if (viewMain.jComboBox1.getItemCount() > 0) {
+                        if (!viewMain.jComboBox1.isPopupVisible()) {
+                            viewMain.jComboBox1.showPopup();
+                        }
+                    } else {
+                        viewMain.jComboBox1.hidePopup();
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Devuelve la lista de empleados cacheada. La primera vez consulta la
+     * BD; las siguientes invocaciones usan el cache. Llamar
+     * invalidateCachedEmployees() despues de crear/modificar/borrar empleados
+     * para forzar recarga.
+     */
+    private List<EmployeeTb> getCachedEmployees() {
+        if (cachedEmployees == null) {
+            try {
+                cachedEmployees = new EmployeeDao().findAll();
+            } catch (SQLException ex) {
+                System.out.println("Error cargando empleados: " + ex.getMessage());
+                return java.util.Collections.emptyList();
+            }
+        }
+        return cachedEmployees;
+    }
+
+    public void invalidateCachedEmployees() {
+        cachedEmployees = null;
+    }
+
+    private List<PaymentVoucher> getCachedVouchers() {
+        if (cachedVouchers == null) {
+            cachedVouchers = new PaymentVoucher().list();
+        }
+        return cachedVouchers;
+    }
+
+    public void invalidateCachedVouchers() {
+        cachedVouchers = null;
     }
 
     private void actualizarComboBox(JComboBox<String> comboBox, String text, List<EmployeeTb> employees) {
