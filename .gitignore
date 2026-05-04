@@ -1,1 +1,15 @@
 /nbproject/
+
+# Build output
+/target/
+
+# IDE / tooling
+/.claude/settings.local.json
+/.vscode/
+/.idea/
+
+# JVM crash logs
+hs_err_pid*.log
+
+# Claude tmp files
+tmpclaude-*-cwd
