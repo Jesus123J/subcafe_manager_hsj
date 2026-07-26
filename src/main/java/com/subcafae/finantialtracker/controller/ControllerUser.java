@@ -142,6 +142,23 @@ public class ControllerUser implements ActionListener {
                 return;
             }
             try {
+                String usernameObjetivo = componentUser.jTextFieldUserBlock.getText().trim();
+
+                // Proteccion: las cuentas con rol de administrador no se
+                // pueden bloquear ni editar desde la lista de usuarios.
+                boolean esAdministrador = new UserDao().getAllUsers().stream()
+                        .filter(u -> u.getUsername() != null
+                                && u.getUsername().equalsIgnoreCase(usernameObjetivo))
+                        .anyMatch(u -> u.getRol() != null
+                                && u.getRol().toUpperCase().contains("ADMINISTRADOR"));
+                if (esAdministrador) {
+                    JOptionPane.showMessageDialog(null,
+                            "NO SE PUEDE BLOQUEAR NI EDITAR A UN ADMINISTRADOR",
+                            "GESTIÓN USUARIO", JOptionPane.WARNING_MESSAGE);
+                    componentUser.jTextFieldUserBlock.setText("");
+                    return;
+                }
+
                 boolean ver = new UserDao().toggleUserState(componentUser.jTextFieldUserBlock.getText());
                 if (ver) {
                     JOptionPane.showMessageDialog(null, "SE CAMBIO DE ESTADO", "MENSAJE", JOptionPane.INFORMATION_MESSAGE);
