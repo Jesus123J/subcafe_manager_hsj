@@ -194,6 +194,7 @@ public final class ApiBackend {
             throws IOException, InterruptedException {
         cargarConfig();
         verificarCircuito();
+        long inicio = System.currentTimeMillis();
         HttpResponse<String> resp = enviarRequest(metodo, path, body, obtenerToken());
         if (resp.statusCode() == 401) {
             // token vencido: relogin una vez
@@ -202,6 +203,10 @@ public final class ApiBackend {
             }
             resp = enviarRequest(metodo, path, body, obtenerToken());
         }
+        // Log de consumo: cada llamada del escritorio a la API queda visible
+        // en consola con su estado y duracion.
+        System.out.println("[API] " + metodo + " " + path + " -> HTTP "
+                + resp.statusCode() + " (" + (System.currentTimeMillis() - inicio) + " ms)");
         if (resp.statusCode() == 404) {
             throw new NoEncontradoException("No encontrado: " + path);
         }
