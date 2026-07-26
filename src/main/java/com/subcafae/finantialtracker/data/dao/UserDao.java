@@ -55,6 +55,8 @@ public class UserDao {
                 String motivo = textoDe(data, "motivo");
                 if ("SUPER_ADMIN".equals(motivo)) {
                     JOptionPane.showMessageDialog(null, "No se puede bloquiar a una cuenta super administrador");
+                } else if ("ADMINISTRADOR".equals(motivo)) {
+                    JOptionPane.showMessageDialog(null, "NO SE PUEDE BLOQUEAR NI EDITAR A UN ADMINISTRADOR");
                 } else if ("NO_ENCONTRADO".equals(motivo)) {
                     JOptionPane.showMessageDialog(null, "No se encontró usuario");
                 } else {

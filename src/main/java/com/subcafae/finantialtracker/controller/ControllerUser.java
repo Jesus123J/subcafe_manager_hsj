@@ -93,6 +93,12 @@ public class ControllerUser implements ActionListener {
             model.setRowCount(0);
 
             for (User user1 : list) {
+                // Los administradores no se muestran en la lista (el backend
+                // ya los filtra; este chequeo cubre el fallback directo).
+                if ((user1.getRol() != null && user1.getRol().toUpperCase().contains("ADMINISTRADOR"))
+                        || "9".equalsIgnoreCase(user1.getState())) {
+                    continue;
+                }
                 model.addRow(new Object[]{
                     user1.getUsername(),
                     user1.getEmployeeName(),
