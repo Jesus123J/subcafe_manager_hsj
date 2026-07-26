@@ -4,7 +4,11 @@
  */
 package com.subcafae.finantialtracker.report.concept;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.subcafae.finantialtracker.data.conexion.ApiBackend;
 import com.subcafae.finantialtracker.data.conexion.Conexion;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,7 +27,17 @@ import javax.swing.JOptionPane;
  */
 public class PaymentVoucher {
 
-    private final Connection conn = Conexion.getConnection();
+    // Conexion perezosa: solo se abre si algun metodo JDBC la necesita.
+    // Asi construir PaymentVoucher con datos que vienen del backend REST
+    // no dispara una conexion directa a la BD.
+    private Connection conn;
+
+    private Connection conn() {
+        if (conn == null) {
+            conn = Conexion.getConnection();
+        }
+        return conn;
+    }
 
     // Payment has to be made up front
     // Data
@@ -103,18 +117,68 @@ public class PaymentVoucher {
             + "name_lastname = ? "
             + "WHERE num_voucher = ?";
 
+    /**
+     * Guarda el voucher: primero via backend (POST /integracion/ft/vouchers,
+     * que confirma voucher_temp e inserta voucher en una transaccion
+     * server-side); si el backend no responde, fallback al JDBC original.
+     * La UI (JOptionPane + impresion) se comporta igual en ambos caminos.
+     */
     public void generateVoucher() {
+        Integer rowsAffected = null;
+        try {
+            rowsAffected = generarVoucherBackend();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+
+        if (rowsAffected == null) {
+            generateVoucherDirecto();
+            return;
+        }
+
+        if (rowsAffected > 0) {
+            JOptionPane.showMessageDialog(null, "Registro de voucher guardado", "Inserción", JOptionPane.INFORMATION_MESSAGE);
+            imprintVoucher();
+        } else {
+            JOptionPane.showMessageDialog(null, "Error de guardado", "Inserción", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    /** POST al backend; devuelve las filas afectadas por el INSERT. */
+    private Integer generarVoucherBackend() throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.post("/integracion/ft/vouchers", jsonVoucher());
+        return resp.getAsJsonObject("data").get("filasAfectadas").getAsInt();
+    }
+
+    /** Body JSON compartido por crear (POST) y actualizar (PUT). */
+    private JsonObject jsonVoucher() {
+        JsonObject body = new JsonObject();
+        body.addProperty("numVoucher", getNumVoucher());
+        body.addProperty("numAccount", getNumAccount());
+        body.addProperty("numCheck", getNumCheck());
+        body.addProperty("bank", getBank());
+        body.addProperty("dateEntry", getDateEntry() == null ? null : getDateEntry().toString());
+        body.addProperty("amount", getAmount());
+        body.addProperty("details", getDetails());
+        body.addProperty("documentDni", getDocumentDni());
+        body.addProperty("nameLastname", getNameLastName());
+        body.addProperty("userId", getUserId());
+        return body;
+    }
+
+    // Fallback: logica JDBC original, sin cambios.
+    private void generateVoucherDirecto() {
 
         try {
             String updateSQL = "UPDATE voucher_temp SET status = 'CONFIRMED' WHERE num_voucher = ?";
-            PreparedStatement pstmtUpdate = conn.prepareStatement(updateSQL);
+            PreparedStatement pstmtUpdate = conn().prepareStatement(updateSQL);
             pstmtUpdate.setString(1, getNumVoucher());
             pstmtUpdate.executeUpdate();
 
-            conn.setAutoCommit(false);
+            conn().setAutoCommit(false);
 
             // Insertar en base de datos
-            PreparedStatement pstmt = conn.prepareStatement(INSERT_SQL);
+            PreparedStatement pstmt = conn().prepareStatement(INSERT_SQL);
             pstmt.setString(1, getNumVoucher());
             pstmt.setString(2, getNumAccount());
             pstmt.setString(3, getNumCheck());
@@ -126,7 +190,7 @@ public class PaymentVoucher {
             pstmt.setString(9, getNameLastName());
             pstmt.setString(10, getUserId().toString());
             int rowsAffected = pstmt.executeUpdate();
-            conn.commit();
+            conn().commit();
 
             if (rowsAffected > 0) {
 
@@ -143,7 +207,24 @@ public class PaymentVoucher {
         }
     }
 
+    /**
+     * Limpia reservas PENDING: primero via backend
+     * (DELETE /integracion/ft/vouchers/temp-pendientes), fallback JDBC.
+     */
     public static void cleanUnusedVouchers() {
+        try {
+            JsonObject resp = ApiBackend.delete("/integracion/ft/vouchers/temp-pendientes");
+            int rowsDeleted = resp.getAsJsonObject("data").get("eliminados").getAsInt();
+            System.out.println("Se eliminaron " + rowsDeleted + " vouchers no usados.");
+            return;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        cleanUnusedVouchersDirecto();
+    }
+
+    // Fallback: logica JDBC original, sin cambios.
+    private static void cleanUnusedVouchersDirecto() {
         String deleteSQL = "DELETE FROM voucher_temp WHERE status = 'PENDING'";
         Connection conn = Conexion.getConnection();
 
@@ -156,7 +237,22 @@ public class PaymentVoucher {
         }
     }
 
+    /**
+     * Reserva el siguiente correlativo: primero via backend
+     * (POST /integracion/ft/vouchers/reservar), fallback JDBC.
+     */
     public static String generateAndReserveVoucher() {
+        try {
+            JsonObject resp = ApiBackend.post("/integracion/ft/vouchers/reservar", null);
+            return resp.getAsJsonObject("data").get("numVoucher").getAsString();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return generateAndReserveVoucherDirecto();
+    }
+
+    // Fallback: logica JDBC original, sin cambios.
+    private static String generateAndReserveVoucherDirecto() {
         String getMaxSQL = "SELECT MAX(CAST(SUBSTRING(num_voucher, 5) AS UNSIGNED)) FROM voucher_temp";
         String insertSQL = "INSERT INTO voucher_temp (num_voucher) VALUES (?)";
         Connection conn = Conexion.getConnection();
@@ -180,9 +276,27 @@ public class PaymentVoucher {
         }
     }
 
+    /**
+     * Actualiza el voucher: primero via backend
+     * (PUT /integracion/ft/vouchers/{numVoucher}), fallback JDBC.
+     */
     public boolean updateVoucher() {
         try {
-            PreparedStatement pstmt = conn.prepareStatement(UPDATE_SQL);
+            JsonObject resp = ApiBackend.put(
+                    "/integracion/ft/vouchers/" + getNumVoucher(), jsonVoucher());
+            return resp.get("success").getAsBoolean();
+        } catch (ApiBackend.NoEncontradoException e) {
+            return false; // el backend confirmo que el voucher no existe
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return updateVoucherDirecto();
+    }
+
+    // Fallback: logica JDBC original, sin cambios.
+    private boolean updateVoucherDirecto() {
+        try {
+            PreparedStatement pstmt = conn().prepareStatement(UPDATE_SQL);
             
             pstmt.setString(1, getNumAccount());
             pstmt.setString(2, getNumCheck());
@@ -201,11 +315,60 @@ public class PaymentVoucher {
         }
     }
 
+    /**
+     * Lista vouchers: primero via backend (GET /integracion/ft/vouchers,
+     * mismo endpoint que usa ModelMain.cargarVouchersBackendODao), fallback
+     * al SELECT directo original.
+     */
     public List<PaymentVoucher> list() {
+        try {
+            return listBackend();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return listDirecto();
+    }
+
+    private List<PaymentVoucher> listBackend() throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get("/integracion/ft/vouchers?limite=500");
+        List<PaymentVoucher> lista = new ArrayList<>();
+        for (JsonElement el : resp.getAsJsonArray("data")) {
+            JsonObject o = el.getAsJsonObject();
+            PaymentVoucher voucher = new PaymentVoucher();
+            voucher.setNumVoucher(textoJson(o, "numVoucher"));
+            voucher.setNumAccount(textoJson(o, "numCuenta"));
+            voucher.setNumCheck(textoJson(o, "numCheque"));
+            voucher.setBank(textoJson(o, "banco"));
+            String fecha = textoJson(o, "fecha");
+            if (fecha != null && fecha.length() >= 10) {
+                try {
+                    voucher.setDateEntry(LocalDate.parse(fecha.substring(0, 10)));
+                } catch (Exception ignored) {
+                }
+            }
+            JsonElement monto = o.get("monto");
+            if (monto != null && !monto.isJsonNull()) {
+                voucher.setAmount(monto.getAsDouble());
+            }
+            voucher.setDetails(textoJson(o, "detalle"));
+            voucher.setDocumentDni(textoJson(o, "dni"));
+            voucher.setNameLastName(textoJson(o, "beneficiario"));
+            lista.add(voucher);
+        }
+        return lista;
+    }
+
+    private static String textoJson(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? null : v.getAsString();
+    }
+
+    // Fallback: logica JDBC original, sin cambios.
+    private List<PaymentVoucher> listDirecto() {
         List<PaymentVoucher> listaVouchers = new ArrayList<>();
         String SELECT_SQL = "SELECT * FROM voucher";
 
-        try (PreparedStatement pstmt = conn.prepareStatement(SELECT_SQL)) {
+        try (PreparedStatement pstmt = conn().prepareStatement(SELECT_SQL)) {
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {

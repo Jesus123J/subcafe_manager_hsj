@@ -270,11 +270,7 @@ public class ReporteConcepto {
             document.add(cheque);
 
             document.close();
-            try {
-                Desktop.getDesktop().open(new File(destino));
-            } catch (IOException ex) {
-                //  Logger.getLogger(TabbedPane.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            imprimirOAbrirPdf(destino);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(ReporteConcepto.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -285,6 +281,44 @@ public class ReporteConcepto {
             } catch (IOException ex) {
                 Logger.getLogger(ReporteConcepto.class.getName()).log(Level.SEVERE, null, ex);
             }
+        }
+    }
+
+    /**
+     * Envia el voucher a la impresora predeterminada de Windows sin
+     * dialogos. Si no hay impresora configurada o el trabajo falla, el
+     * PDF queda guardado en Documents y se abre para impresion manual.
+     */
+    private static void imprimirOAbrirPdf(String destino) {
+        java.io.File pdf = new java.io.File(destino);
+        javax.print.PrintService impresora = javax.print.PrintServiceLookup.lookupDefaultPrintService();
+
+        if (impresora != null) {
+            try (org.apache.pdfbox.pdmodel.PDDocument doc = org.apache.pdfbox.Loader.loadPDF(pdf)) {
+                java.awt.print.PrinterJob job = java.awt.print.PrinterJob.getPrinterJob();
+                job.setPrintService(impresora);
+                job.setPageable(new org.apache.pdfbox.printing.PDFPageable(doc));
+                job.setJobName("Voucher de pago - " + pdf.getName());
+                job.print();
+                javax.swing.JOptionPane.showMessageDialog(null,
+                        "Voucher enviado a la impresora: " + impresora.getName()
+                        + "\nCopia PDF guardada en:\n" + destino,
+                        "IMPRESION DE VOUCHER", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                return;
+            } catch (Exception ex) {
+                System.out.println("No se pudo imprimir directo: " + ex.getMessage());
+            }
+        }
+
+        // Sin impresora (o fallo el trabajo): queda solo el PDF guardado.
+        javax.swing.JOptionPane.showMessageDialog(null,
+                "No se encontro impresora disponible."
+                + "\nEl voucher quedo guardado como PDF en:\n" + destino,
+                "IMPRESION DE VOUCHER", javax.swing.JOptionPane.WARNING_MESSAGE);
+        try {
+            Desktop.getDesktop().open(pdf);
+        } catch (IOException ex) {
+            // sin visor de PDF instalado — el archivo queda en Documents
         }
     }
 

@@ -208,6 +208,7 @@ public class ViewMain extends javax.swing.JFrame {
         jMenuMangeLoan = new javax.swing.JMenu();
         jMenuMangeBond = new javax.swing.JMenu();
         jMenuPago = new javax.swing.JMenu();
+        jMenuEstadisticas = new javax.swing.JMenu();
         jMenu2 = new javax.swing.JMenu();
 
         jInternalFrame1.setVisible(true);
@@ -854,6 +855,9 @@ public class ViewMain extends javax.swing.JFrame {
         jMenuPago.setText("PAGOS PRESTAMOS Y OTROS");
         jMenuBar1.add(jMenuPago);
 
+        jMenuEstadisticas.setText("ESTADISTICAS EMPLEADO");
+        jMenuBar1.add(jMenuEstadisticas);
+
         jMenu2.setText("CERRAR SESION");
         jMenuBar1.add(jMenu2);
 
@@ -946,6 +950,7 @@ public class ViewMain extends javax.swing.JFrame {
     public javax.swing.JMenu jMenuManageWorker;
     public javax.swing.JMenu jMenuMangeBond;
     public javax.swing.JMenu jMenuMangeLoan;
+    public javax.swing.JMenu jMenuEstadisticas;
     public javax.swing.JMenu jMenuPago;
     public javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel12;

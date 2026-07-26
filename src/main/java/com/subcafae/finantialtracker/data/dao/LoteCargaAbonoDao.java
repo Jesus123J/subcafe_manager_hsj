@@ -1,5 +1,9 @@
 package com.subcafae.finantialtracker.data.dao;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.subcafae.finantialtracker.data.conexion.ApiBackend;
 import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.LoteCargaAbonoTb;
 import java.sql.Connection;
@@ -16,6 +20,9 @@ import java.util.List;
 /**
  * DAO para la tabla lote_carga_abono. Permite registrar lotes de cargas
  * masivas (Excel) y revertirlos.
+ *
+ * Fuente primaria: el backend REST (/integracion/ft/lotes-abono). Fallback:
+ * JDBC directo, para que la app siga funcionando sin backend.
  */
 public class LoteCargaAbonoDao {
 
@@ -25,10 +32,138 @@ public class LoteCargaAbonoDao {
         this.connection = Conexion.getConnection();
     }
 
+    // ═══ Backend primero, fallback a JDBC directo ══════════════════════
+
     /**
      * Crea un nuevo lote ACTIVO. Devuelve el id generado.
      */
     public Integer crearLote(LoteCargaAbonoTb lote) throws SQLException {
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("fechaCreacion", lote.getFechaCreacion());
+            if (lote.getUsuarioId() != null) {
+                body.addProperty("usuarioId", lote.getUsuarioId());
+            }
+            body.addProperty("nombreArchivo", lote.getNombreArchivo());
+            body.addProperty("cantidadAbonos", lote.getCantidadAbonos());
+            JsonObject data = ApiBackend
+                    .post("/integracion/ft/lotes-abono", body)
+                    .getAsJsonObject("data");
+            JsonElement id = data.get("id");
+            return id == null || id.isJsonNull() ? null : id.getAsInt();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return crearLoteDirecto(lote);
+    }
+
+    /**
+     * Actualiza el contador de abonos efectivamente insertados.
+     */
+    public void actualizarCantidad(int loteId, int cantidad) throws SQLException {
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("cantidad", cantidad);
+            ApiBackend.put("/integracion/ft/lotes-abono/" + loteId + "/cantidad", body);
+            return;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        actualizarCantidadDirecto(loteId, cantidad);
+    }
+
+    /**
+     * Lista los lotes ACTIVOS ordenados por fecha desc, mostrando los mas
+     * recientes primero. Limita a 50 para no abrumar la UI.
+     */
+    public List<LoteCargaAbonoTb> findLotesActivos() throws SQLException {
+        try {
+            JsonArray data = ApiBackend
+                    .get("/integracion/ft/lotes-abono/activos")
+                    .getAsJsonArray("data");
+            List<LoteCargaAbonoTb> result = new ArrayList<>();
+            for (JsonElement el : data) {
+                result.add(jsonToLote(el.getAsJsonObject()));
+            }
+            return result;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findLotesActivosDirecto();
+    }
+
+    /**
+     * Cuenta cuantos abonos del lote tienen pagos parciales o pagados
+     * (no se pueden borrar limpiamente).
+     */
+    public int countAbonosUsados(int loteId) throws SQLException {
+        try {
+            JsonObject data = ApiBackend
+                    .get("/integracion/ft/lotes-abono/" + loteId + "/abonos-usados")
+                    .getAsJsonObject("data");
+            return data.get("usados").getAsInt();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return countAbonosUsadosDirecto(loteId);
+    }
+
+    /**
+     * Revierte un lote: borra los abonodetail y abono asociados, marca el
+     * lote como REVERTIDO con motivo. NO borra abonos que ya tengan pagos
+     * (parcial o pagado) — esos quedan huerfanos sin lote_id (NULL).
+     *
+     * Devuelve cuantos abonos efectivamente borrados.
+     */
+    public int revertirLote(int loteId, int usuarioId, String motivo) throws SQLException {
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("usuarioId", usuarioId);
+            body.addProperty("motivo", motivo);
+            JsonObject data = ApiBackend
+                    .post("/integracion/ft/lotes-abono/" + loteId + "/revertir", body)
+                    .getAsJsonObject("data");
+            return data.get("abonosBorrados").getAsInt();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return revertirLoteDirecto(loteId, usuarioId, motivo);
+    }
+
+    // ─── Mapeo del JSON del backend a entidades ────────────────────────
+
+    private static LoteCargaAbonoTb jsonToLote(JsonObject o) {
+        LoteCargaAbonoTb lote = new LoteCargaAbonoTb();
+        lote.setId(entero(o, "id"));
+        lote.setFechaCreacion(texto(o, "fechaCreacion"));
+        lote.setUsuarioId(enteroNulable(o, "usuarioId"));
+        lote.setNombreArchivo(texto(o, "nombreArchivo"));
+        lote.setCantidadAbonos(entero(o, "cantidadAbonos"));
+        lote.setState(texto(o, "state"));
+        lote.setMotivoReversion(texto(o, "motivoReversion"));
+        lote.setFechaReversion(texto(o, "fechaReversion"));
+        lote.setRevertidoPor(enteroNulable(o, "revertidoPor"));
+        return lote;
+    }
+
+    private static String texto(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? null : v.getAsString();
+    }
+
+    private static int entero(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? 0 : v.getAsInt();
+    }
+
+    private static Integer enteroNulable(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? null : v.getAsInt();
+    }
+
+    // ═══ Fallback: JDBC directo (logica original, NO borrar) ═══════════
+
+    private Integer crearLoteDirecto(LoteCargaAbonoTb lote) throws SQLException {
         String sql = "INSERT INTO lote_carga_abono "
                 + "(fecha_creacion, usuario_id, nombre_archivo, cantidad_abonos, state) "
                 + "VALUES (?, ?, ?, ?, 'ACTIVO')";
@@ -53,10 +188,7 @@ public class LoteCargaAbonoDao {
         }
     }
 
-    /**
-     * Actualiza el contador de abonos efectivamente insertados.
-     */
-    public void actualizarCantidad(int loteId, int cantidad) throws SQLException {
+    private void actualizarCantidadDirecto(int loteId, int cantidad) throws SQLException {
         String sql = "UPDATE lote_carga_abono SET cantidad_abonos = ? WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, cantidad);
@@ -65,11 +197,7 @@ public class LoteCargaAbonoDao {
         }
     }
 
-    /**
-     * Lista los lotes ACTIVOS ordenados por fecha desc, mostrando los mas
-     * recientes primero. Limita a 50 para no abrumar la UI.
-     */
-    public List<LoteCargaAbonoTb> findLotesActivos() throws SQLException {
+    private List<LoteCargaAbonoTb> findLotesActivosDirecto() throws SQLException {
         String sql = "SELECT id, fecha_creacion, usuario_id, nombre_archivo, cantidad_abonos, "
                 + "state, motivo_reversion, fecha_reversion, revertido_por "
                 + "FROM lote_carga_abono "
@@ -86,11 +214,7 @@ public class LoteCargaAbonoDao {
         return result;
     }
 
-    /**
-     * Cuenta cuantos abonos del lote tienen pagos parciales o pagados
-     * (no se pueden borrar limpiamente).
-     */
-    public int countAbonosUsados(int loteId) throws SQLException {
+    private int countAbonosUsadosDirecto(int loteId) throws SQLException {
         String sql = "SELECT COUNT(DISTINCT a.id) "
                 + "FROM abono a "
                 + "JOIN abonodetail ad ON ad.Abono_id = a.id "
@@ -104,14 +228,7 @@ public class LoteCargaAbonoDao {
         }
     }
 
-    /**
-     * Revierte un lote: borra los abonodetail y abono asociados, marca el
-     * lote como REVERTIDO con motivo. NO borra abonos que ya tengan pagos
-     * (parcial o pagado) — esos quedan huerfanos sin lote_id (NULL).
-     *
-     * Devuelve cuantos abonos efectivamente borrados.
-     */
-    public int revertirLote(int loteId, int usuarioId, String motivo) throws SQLException {
+    private int revertirLoteDirecto(int loteId, int usuarioId, String motivo) throws SQLException {
         boolean prevAuto = connection.getAutoCommit();
         try {
             connection.setAutoCommit(false);

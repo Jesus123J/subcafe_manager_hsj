@@ -34,6 +34,7 @@ import com.subcafae.finantialtracker.util.JpanelDarkUtil;
 import com.subcafae.finantialtracker.util.LoadingOverlay;
 import com.subcafae.finantialtracker.util.TextFieldValidator;
 import com.subcafae.finantialtracker.view.ViewMain;
+import com.subcafae.finantialtracker.view.component.ComponentEmployeeStats;
 import com.subcafae.finantialtracker.view.component.ComponentLogin;
 import com.subcafae.finantialtracker.view.component.ComponentManageBond;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
@@ -207,6 +208,11 @@ public class ModelMain {
         SwingWorker<UserTb, Void> worker = new SwingWorker<UserTb, Void>() {
             @Override
             protected UserTb doInBackground() throws Exception {
+                // MODO ESTRICTO: el ingreso requiere el backend encendido.
+                // Sin servicio no se valida el login (ni por conexion directa).
+                if (!com.subcafae.finantialtracker.data.conexion.ApiBackend.servicioDisponible()) {
+                    throw new IllegalStateException("SERVICIO_APAGADO");
+                }
                 return new UserDao().getUserByUsername(username, password);
             }
 
@@ -226,10 +232,19 @@ public class ModelMain {
                 } catch (Exception ex) {
                     System.out.println("Error -> " + ex.getMessage());
                     componentLogin.jLabel1.setForeground(new Color(153, 0, 0));
-                    componentLogin.jLabel1.setText("Error de conexion. Reintenta.");
-                    JOptionPane.showMessageDialog(null,
-                            "Ocurrió un problema al iniciar sesión. Verifique la conexión.",
-                            "ERROR", JOptionPane.ERROR_MESSAGE);
+                    if (ex.getMessage() != null && ex.getMessage().contains("SERVICIO_APAGADO")) {
+                        componentLogin.jLabel1.setText("SERVICIO APAGADO - CONTACTE A SOPORTE");
+                        JOptionPane.showMessageDialog(null,
+                                "EL SERVICIO DEL SISTEMA (BACKEND) ESTA APAGADO.\n\n"
+                                + "No es posible iniciar sesion hasta que el servicio\n"
+                                + "este encendido. Contacte a soporte.",
+                                "SERVICIO APAGADO", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        componentLogin.jLabel1.setText("Error de conexion. Reintenta.");
+                        JOptionPane.showMessageDialog(null,
+                                "Ocurrió un problema al iniciar sesión. Verifique la conexión.",
+                                "ERROR", JOptionPane.ERROR_MESSAGE);
+                    }
                 }
             }
         };
@@ -402,6 +417,84 @@ public class ModelMain {
         });
     }
 
+    /**
+     * Pide el empleado con un combo autocompletable (filtra por nombre o
+     * DNI mientras se tipea — mismo patron DocumentListener + cache que
+     * jComboBoxSearchClient) y abre el dashboard de estadisticas. La
+     * carga de datos corre en background dentro del componente.
+     */
+    public void showEstadisticasEmpleado() {
+        final List<EmployeeTb> empleados = getCachedEmployees();
+        if (empleados.isEmpty()) {
+            JOptionPane.showMessageDialog(viewMain,
+                    "No se pudo cargar la lista de empleados.",
+                    "Estadisticas de empleado", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        final JComboBox<String> combo = new JComboBox<>();
+        combo.setEditable(true);
+        combo.setPreferredSize(new java.awt.Dimension(360, 28));
+        for (EmployeeTb e : empleados) {
+            combo.addItem(e.getFullName() + " - " + e.getNationalId());
+        }
+        combo.setSelectedIndex(-1);
+
+        final JTextField editor = (JTextField) combo.getEditor().getEditorComponent();
+        instalarAutocomplete(combo, () -> empleados.stream()
+                .map(e -> e.getFullName() + " - " + e.getNationalId())
+                .collect(Collectors.toList()));
+
+        javax.swing.JPanel mensaje = new javax.swing.JPanel(new java.awt.BorderLayout(0, 8));
+        mensaje.add(new javax.swing.JLabel("Busque al empleado por nombre o DNI:"), java.awt.BorderLayout.NORTH);
+        mensaje.add(combo, java.awt.BorderLayout.CENTER);
+
+        int opcion = JOptionPane.showConfirmDialog(viewMain, mensaje,
+                "Estadisticas de empleado", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+        if (opcion != JOptionPane.OK_OPTION) return;
+
+        String texto = editor.getText().trim();
+        if (texto.isEmpty()) {
+            JOptionPane.showMessageDialog(viewMain,
+                    "Seleccione o escriba un empleado.",
+                    "Estadisticas de empleado", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String dni = resolverDniEmpleado(texto, empleados);
+        if (dni == null) {
+            JOptionPane.showMessageDialog(viewMain,
+                    "No se encontro empleado que coincida con: " + texto,
+                    "Estadisticas de empleado", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        ComponentEmployeeStats panel = new ComponentEmployeeStats(dni, viewMain);
+        centerInternalComponent(panel);
+    }
+
+    /**
+     * Resuelve el texto del combo a un DNI: item completo "NOMBRE - DNI",
+     * DNI exacto, o coincidencia parcial unica por nombre/DNI. Null si
+     * no matchea nada o la coincidencia es ambigua.
+     */
+    private String resolverDniEmpleado(String texto, List<EmployeeTb> empleados) {
+        for (EmployeeTb e : empleados) {
+            if (texto.equalsIgnoreCase(e.getFullName() + " - " + e.getNationalId())) {
+                return e.getNationalId();
+            }
+        }
+        for (EmployeeTb e : empleados) {
+            if (texto.equalsIgnoreCase(e.getNationalId())) {
+                return e.getNationalId();
+            }
+        }
+        List<EmployeeTb> parciales = empleados.stream()
+                .filter(e -> e.getFullName().toLowerCase().contains(texto.toLowerCase())
+                        || e.getNationalId().toLowerCase().contains(texto.toLowerCase()))
+                .collect(Collectors.toList());
+        return parciales.size() == 1 ? parciales.get(0).getNationalId() : null;
+    }
+
     public void centerInternalComponent(JInternalFrame jInternalFrame) {
 
         boolean existeVentana = false;
@@ -446,8 +539,8 @@ public class ModelMain {
 
         new Thread(() -> {
             try {
-                EmployeeDao empleadoDao = new EmployeeDao();
-                List<EmployeeTb> employees = empleadoDao.findAll();
+                // Backend primero (fallback DAO adentro del helper)
+                List<EmployeeTb> employees = getCachedEmployees();
 
                 javax.swing.SwingUtilities.invokeLater(() -> {
                     viewMain.loading.dispose();
@@ -475,20 +568,23 @@ public class ModelMain {
 
     public void generateExcel() {
 
+        // Botones directos en vez de input dialog con dropdown: un solo
+        // click para elegir el tipo, centrado sobre la ventana principal.
         String[] contractTypeOptions = {"CAS", "Nombrado"};
-
-        String contractType = (String) JOptionPane.showInputDialog(
-                null,
-                "Selecciona el tipo de trabajador:",
-                "Tipo de Trabajador",
+        int seleccionTipo = JOptionPane.showOptionDialog(
+                viewMain,
+                "¿Para que tipo de trabajador generar el reporte de descuento?",
+                "Reporte de descuento",
+                JOptionPane.DEFAULT_OPTION,
                 JOptionPane.QUESTION_MESSAGE,
                 null,
                 contractTypeOptions,
                 contractTypeOptions[0]
         );
-        if (contractType == null) {
+        if (seleccionTipo == JOptionPane.CLOSED_OPTION) {
             return;
         }
+        String contractType = contractTypeOptions[seleccionTipo];
 
         LoadingOverlay.setMessage("Generando reporte de descuentos");
         viewMain.loading.setModal(true);
@@ -731,7 +827,8 @@ public class ModelMain {
 
         new Thread(() -> {
             try {
-                List<EmployeeTb> listEmployee = new EmployeeDao().findAll();
+                // Backend primero (fallback DAO adentro del helper)
+                List<EmployeeTb> listEmployee = getCachedEmployees();
 
                 javax.swing.SwingUtilities.invokeLater(() -> {
                     viewMain.loading.dispose();
@@ -787,80 +884,27 @@ public class ModelMain {
         if (viewMain.jComboBoxSearchClient.getItemCount() == 0 || viewMain.jComboBoxSearchClient.getSelectedItem() == null) {
             return false;
         }
-        try {
-            return new EmployeeDao().findAll().stream().anyMatch(predicate -> viewMain.jComboBoxSearchClient.getSelectedItem().toString().equalsIgnoreCase(predicate.getFullName() + " - " + predicate.getNationalId()));
-        } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(null, "No se registro", "REGISTRO DE VOUCHER", JOptionPane.INFORMATION_MESSAGE);
-            return false;
-        }
-
+        // Valida contra la lista cacheada (backend primero, fallback DAO)
+        return getCachedEmployees().stream().anyMatch(predicate -> viewMain.jComboBoxSearchClient.getSelectedItem().toString().equalsIgnoreCase(predicate.getFullName() + " - " + predicate.getNationalId()));
     }
 
     public void combo() {
         // === Autocomplete de busqueda de cliente (jComboBoxSearchClient) ===
-        // Refactor: uso DocumentListener (no KeyListener) para captar TODA
-        // forma de input — letras, espacio, acentos (a, e, n), backspace,
-        // paste, IME — uniformemente. Lista cacheada para no consultar SQL
-        // en cada tecla. No se manipula el texto del editor (sin auto-select)
-        // asi el cursor queda donde el usuario espera.
-        final JTextField textField = (JTextField) viewMain.jComboBoxSearchClient.getEditor().getEditorComponent();
-
-        textField.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN) {
-                    if (!viewMain.jComboBoxSearchClient.isPopupVisible()
-                            && viewMain.jComboBoxSearchClient.getItemCount() > 0) {
-                        viewMain.jComboBoxSearchClient.showPopup();
-                    }
-                }
-            }
-
-            @Override
-            public void keyReleased(KeyEvent evt) {
-                if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
-                    String name = (String) viewMain.jComboBoxSearchClient.getSelectedItem();
-                    if (name != null) {
-                        System.out.println("clienteRemitente -> " + name.split(" - ")[0]);
-                    }
-                }
-            }
-        });
-
-        textField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
-            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
-            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) {}
-
-            private void onChange() {
-                javax.swing.SwingUtilities.invokeLater(() -> {
-                    String cadena = textField.getText();
-                    actualizarComboBox(viewMain.jComboBoxSearchClient, cadena, getCachedEmployees());
-                    if (viewMain.jComboBoxSearchClient.getItemCount() > 0) {
-                        if (!viewMain.jComboBoxSearchClient.isPopupVisible()) {
-                            viewMain.jComboBoxSearchClient.showPopup();
-                        }
-                    } else {
-                        viewMain.jComboBoxSearchClient.hidePopup();
-                    }
-                });
-            }
-        });
+        // Mismo patron corregido que showEstadisticasEmpleado (ver
+        // instalarAutocomplete): sin el loop removeAllItems<->DocumentListener
+        // que congelaba la UI y no dejaba seleccionar.
+        instalarAutocomplete(viewMain.jComboBoxSearchClient, () -> getCachedEmployees().stream()
+                .map(e -> e.getFullName() + " - " + e.getNationalId())
+                .collect(Collectors.toList()));
 
         // === Autocomplete de busqueda de voucher (jComboBox1) ===
+        instalarAutocomplete(viewMain.jComboBox1, () -> getCachedVouchers().stream()
+                .map(pv -> pv.getNumVoucher() + " - " + pv.getNameLastName())
+                .collect(Collectors.toList()));
+
+        // ENTER en el voucher: cargar los datos del voucher elegido al form.
         final JTextField textField1 = (JTextField) viewMain.jComboBox1.getEditor().getEditorComponent();
-
         textField1.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN) {
-                    if (!viewMain.jComboBox1.isPopupVisible()
-                            && viewMain.jComboBox1.getItemCount() > 0) {
-                        viewMain.jComboBox1.showPopup();
-                    }
-                }
-            }
-
             @Override
             public void keyReleased(KeyEvent evt) {
                 if (evt.getKeyCode() != KeyEvent.VK_ENTER) return;
@@ -887,44 +931,133 @@ public class ModelMain {
                 viewMain.jComboBoxSearchClient.addItem(pv.getNameLastName() + " - " + pv.getDocumentDni());
             }
         });
+    }
 
-        textField1.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+    /**
+     * Instala autocompletado con debounce en un combo editable. Patron
+     * compartido por estadisticas, busqueda de cliente y de voucher:
+     * - Guarda anti-reentrada: mutar el modelo de un combo editable toca
+     *   el Document del editor y re-dispara el listener en loop (esto
+     *   congelaba la UI y no dejaba seleccionar).
+     * - Rebuild con UN solo setModel en vez de removeAllItems + addItem
+     *   por item (cientos de eventos Swing por tecla).
+     * - Debounce de 150ms: filtra recien cuando el usuario deja de tipear.
+     * - Preserva el texto tipeado y no reabre el popup tras elegir item.
+     */
+    private void instalarAutocomplete(final JComboBox<String> combo,
+            final java.util.function.Supplier<List<String>> itemsSupplier) {
+        final JTextField editor = (JTextField) combo.getEditor().getEditorComponent();
+        combo.setMaximumRowCount(12);
+
+        final boolean[] actualizandoModelo = {false};
+
+        final javax.swing.Timer filtroTimer = new javax.swing.Timer(150, ev -> {
+            actualizandoModelo[0] = true;
+            try {
+                String textoActual = editor.getText();
+                String filtro = textoActual.toLowerCase();
+                javax.swing.DefaultComboBoxModel<String> modelo = new javax.swing.DefaultComboBoxModel<>();
+                for (String item : itemsSupplier.get()) {
+                    if (item.toLowerCase().contains(filtro)) {
+                        modelo.addElement(item);
+                    }
+                }
+                combo.setModel(modelo);
+                combo.setSelectedIndex(-1);
+                // setModel/setSelectedIndex pisan el texto del editor;
+                // restaurar lo que el usuario tipeo.
+                if (!editor.getText().equals(textoActual)) {
+                    editor.setText(textoActual);
+                }
+                // Si el texto ya es exactamente el item elegido (acaba de
+                // seleccionar con Enter/click), no reabrir el popup.
+                boolean seleccionHecha = modelo.getSize() == 1
+                        && textoActual.equalsIgnoreCase(modelo.getElementAt(0));
+                if (combo.isShowing()) {
+                    combo.hidePopup();
+                    if (modelo.getSize() > 0 && !seleccionHecha) {
+                        combo.showPopup();
+                    }
+                }
+            } finally {
+                actualizandoModelo[0] = false;
+            }
+        });
+        filtroTimer.setRepeats(false);
+
+        editor.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN) {
+                    if (!combo.isPopupVisible() && combo.getItemCount() > 0) {
+                        combo.showPopup();
+                    }
+                }
+            }
+        });
+
+        editor.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
             @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
             @Override public void changedUpdate(javax.swing.event.DocumentEvent e) {}
 
             private void onChange() {
-                javax.swing.SwingUtilities.invokeLater(() -> {
-                    String cadena = textField1.getText();
-                    actualizarComboBoxVoucher(viewMain.jComboBox1, cadena, getCachedVouchers());
-                    if (viewMain.jComboBox1.getItemCount() > 0) {
-                        if (!viewMain.jComboBox1.isPopupVisible()) {
-                            viewMain.jComboBox1.showPopup();
-                        }
-                    } else {
-                        viewMain.jComboBox1.hidePopup();
-                    }
-                });
+                if (!actualizandoModelo[0]) {
+                    filtroTimer.restart();
+                }
             }
         });
     }
 
     /**
-     * Devuelve la lista de empleados cacheada. La primera vez consulta la
-     * BD; las siguientes invocaciones usan el cache. Llamar
-     * invalidateCachedEmployees() despues de crear/modificar/borrar empleados
-     * para forzar recarga.
+     * Devuelve la lista de empleados cacheada. La primera vez la pide al
+     * backend REST (o JDBC directo como fallback); las siguientes
+     * invocaciones usan el cache. Llamar invalidateCachedEmployees()
+     * despues de crear/modificar/borrar empleados para forzar recarga.
      */
     private List<EmployeeTb> getCachedEmployees() {
         if (cachedEmployees == null) {
-            try {
-                cachedEmployees = new EmployeeDao().findAll();
-            } catch (SQLException ex) {
-                System.out.println("Error cargando empleados: " + ex.getMessage());
-                return java.util.Collections.emptyList();
-            }
+            cachedEmployees = cargarEmpleadosBackendODao();
         }
         return cachedEmployees;
+    }
+
+    /**
+     * Fuente primaria: backend (GET /integracion/ft/empleados) — la
+     * conexion a la BD vive alla. Fallback: EmployeeDao con JDBC directo
+     * para cuando el backend no esta corriendo.
+     */
+    private List<EmployeeTb> cargarEmpleadosBackendODao() {
+        try {
+            com.google.gson.JsonObject resp =
+                    com.subcafae.finantialtracker.data.conexion.ApiBackend.get("/integracion/ft/empleados");
+            List<EmployeeTb> lista = new ArrayList<>();
+            for (com.google.gson.JsonElement el : resp.getAsJsonArray("data")) {
+                com.google.gson.JsonObject o = el.getAsJsonObject();
+                EmployeeTb e = new EmployeeTb();
+                if (o.has("id") && !o.get("id").isJsonNull()) {
+                    e.setEmployeeId(o.get("id").getAsInt());
+                }
+                e.setNationalId(o.get("dni").getAsString());
+                e.setFullName(o.get("nombre_completo").getAsString());
+                if (o.has("estado_empleo") && !o.get("estado_empleo").isJsonNull()) {
+                    e.setEmploymentStatus(o.get("estado_empleo").getAsString());
+                }
+                if (o.has("codigo_estado") && !o.get("codigo_estado").isJsonNull()) {
+                    e.setEmploymentStatusCode(o.get("codigo_estado").getAsString());
+                }
+                lista.add(e);
+            }
+            return lista;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        try {
+            return new EmployeeDao().findAll();
+        } catch (SQLException ex) {
+            System.out.println("Error cargando empleados: " + ex.getMessage());
+            return java.util.Collections.emptyList();
+        }
     }
 
     public void invalidateCachedEmployees() {
@@ -933,7 +1066,7 @@ public class ModelMain {
 
     private List<PaymentVoucher> getCachedVouchers() {
         if (cachedVouchers == null) {
-            cachedVouchers = new PaymentVoucher().list();
+            cachedVouchers = cargarVouchersBackendODao();
         }
         return cachedVouchers;
     }
@@ -942,33 +1075,47 @@ public class ModelMain {
         cachedVouchers = null;
     }
 
-    private void actualizarComboBox(JComboBox<String> comboBox, String text, List<EmployeeTb> employees) {
-        comboBox.removeAllItems();  // Limpia la lista, pero NO modifica el textField
-
-        for (EmployeeTb item : employees) {
-            if (item.getFullName().toLowerCase().contains(text.toLowerCase())
-                    || item.getNationalId().toLowerCase().contains(text.toLowerCase())) {
-                comboBox.addItem(item.getFullName() + " - " + item.getNationalId());
+    /**
+     * Vouchers: primero via backend (GET /integracion/ft/vouchers),
+     * fallback a SELECT directo con PaymentVoucher.list().
+     */
+    private List<PaymentVoucher> cargarVouchersBackendODao() {
+        try {
+            com.google.gson.JsonObject resp = com.subcafae.finantialtracker.data.conexion.ApiBackend
+                    .get("/integracion/ft/vouchers?limite=500");
+            List<PaymentVoucher> lista = new ArrayList<>();
+            for (com.google.gson.JsonElement el : resp.getAsJsonArray("data")) {
+                com.google.gson.JsonObject o = el.getAsJsonObject();
+                PaymentVoucher pv = new PaymentVoucher();
+                pv.setNumVoucher(textoJson(o, "numVoucher"));
+                pv.setNumAccount(textoJson(o, "numCuenta"));
+                pv.setNumCheck(textoJson(o, "numCheque"));
+                pv.setBank(textoJson(o, "banco"));
+                String fecha = textoJson(o, "fecha");
+                if (fecha != null && fecha.length() >= 10) {
+                    try {
+                        pv.setDateEntry(LocalDate.parse(fecha.substring(0, 10)));
+                    } catch (Exception ignored) {
+                    }
+                }
+                if (o.has("monto") && !o.get("monto").isJsonNull()) {
+                    pv.setAmount(o.get("monto").getAsDouble());
+                }
+                pv.setDetails(textoJson(o, "detalle"));
+                pv.setDocumentDni(textoJson(o, "dni"));
+                pv.setNameLastName(textoJson(o, "beneficiario"));
+                lista.add(pv);
             }
+            return lista;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
         }
-
-        if (comboBox.getItemCount() > 0) {
-            comboBox.setSelectedIndex(-1);  // No selecciona nada automáticamente
-        }
+        return new PaymentVoucher().list();
     }
 
-    private void actualizarComboBoxVoucher(JComboBox<String> comboBox, String text, List<PaymentVoucher> voucher) {
-        comboBox.removeAllItems();  // Limpia la lista, pero NO modifica el textField
-
-        for (PaymentVoucher item : voucher) {
-            if (item.getNumVoucher().toLowerCase().contains(text.toLowerCase())) {
-                comboBox.addItem(item.getNumVoucher() + " - " + item.getNameLastName());
-            }
-        }
-
-        if (comboBox.getItemCount() > 0) {
-            comboBox.setSelectedIndex(-1);  // No selecciona nada automáticamente
-        }
+    private static String textoJson(com.google.gson.JsonObject o, String campo) {
+        com.google.gson.JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? null : v.getAsString();
     }
 
     public boolean esTxt(String archivo) {

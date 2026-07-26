@@ -1,11 +1,18 @@
 package com.subcafae.finantialtracker.data.dao;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.subcafae.finantialtracker.data.conexion.ApiBackend;
 import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.AbonoDetailsTb;
 import com.subcafae.finantialtracker.data.entity.LoanDetailsTb;
 import com.subcafae.finantialtracker.data.entity.RegistroDetailsModel;
 import com.subcafae.finantialtracker.data.entity.RegistroTb;
 import com.subcafae.finantialtracker.report.HistoryPayment.ModelPaymentAndLoan;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,6 +20,15 @@ import java.util.List;
 import java.util.Map;
 import javax.swing.JOptionPane;
 
+/**
+ * Acceso al modulo de REGISTRO DE PAGOS.
+ *
+ * Fuente primaria: el backend REST (/integracion/ft/pagos), que centraliza
+ * la conexion a financialtracker1 y ejecuta los flujos multi-paso (registro
+ * + registerdetails + abonodetail/loandetail + historial) en UNA transaccion
+ * server-side. Fallback: el JDBC directo original (metodos *Directo), para
+ * que la app siga funcionando cuando el backend no esta corriendo.
+ */
 public class RegistroDao {
 
     private final Connection conn;
@@ -21,7 +37,84 @@ public class RegistroDao {
         this.conn = Conexion.getConnection();
     }
 
+    // ─── Helpers backend (Gson) ────────────────────────────────────────
+
+    private static final String BASE = "/integracion/ft/pagos";
+
+    private static String enc(String v) {
+        return URLEncoder.encode(v == null ? "" : v, StandardCharsets.UTF_8);
+    }
+
+    private static JsonObject dataObj(JsonObject resp) {
+        return resp.getAsJsonObject("data");
+    }
+
+    private static JsonArray dataArr(JsonObject resp) {
+        return resp.getAsJsonArray("data");
+    }
+
+    private static boolean esNulo(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull();
+    }
+
+    private static String textoDe(JsonObject o, String campo) {
+        return esNulo(o, campo) ? null : o.get(campo).getAsString();
+    }
+
+    private static Integer enteroONulo(JsonObject o, String campo) {
+        return esNulo(o, campo) ? null : o.get(campo).getAsInt();
+    }
+
+    private static Long largoONulo(JsonObject o, String campo) {
+        return esNulo(o, campo) ? null : o.get(campo).getAsLong();
+    }
+
+    private static java.math.BigDecimal decimalONulo(JsonObject o, String campo) {
+        return esNulo(o, campo) ? null : o.get(campo).getAsBigDecimal();
+    }
+
+    private static double dobleDe(JsonObject o, String campo) {
+        return esNulo(o, campo) ? 0.0 : o.get(campo).getAsDouble();
+    }
+
+    /** El backend manda Timestamp.toString() ("yyyy-MM-dd HH:mm:ss.S"). */
+    private static Timestamp timestampDe(JsonObject o, String campo) {
+        String v = textoDe(o, campo);
+        return v == null ? null : Timestamp.valueOf(v);
+    }
+
+    /** El backend manda Date.toString() ("yyyy-MM-dd"). */
+    private static Date sqlFechaDe(JsonObject o, String campo) {
+        String v = textoDe(o, campo);
+        return v == null ? null : Date.valueOf(v);
+    }
+
     public boolean insertRegisterDetail(Integer idRegistro, Long idBondDetails, Long idLoanDetails, Double amountPar) {
+        try {
+            return insertRegisterDetailDesdeBackend(idRegistro, idBondDetails, idLoanDetails, amountPar);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return insertRegisterDetailDirecto(idRegistro, idBondDetails, idLoanDetails, amountPar);
+    }
+
+    private boolean insertRegisterDetailDesdeBackend(Integer idRegistro, Long idBondDetails, Long idLoanDetails, Double amountPar)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("idRegistro", idRegistro);
+        if (idBondDetails != null) {
+            body.addProperty("idBondDetails", idBondDetails);
+        }
+        if (idLoanDetails != null) {
+            body.addProperty("idLoanDetails", idLoanDetails);
+        }
+        body.addProperty("amountPar", amountPar);
+        JsonObject resp = ApiBackend.post(BASE + "/register-detail", body);
+        return dataObj(resp).get("insertado").getAsBoolean();
+    }
+
+    private boolean insertRegisterDetailDirecto(Integer idRegistro, Long idBondDetails, Long idLoanDetails, Double amountPar) {
         String sql = "INSERT INTO registerdetails (idRegistro, idBondDetails, idLoanDetails, amountPar) VALUES (?, ?, ?, ?)";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -55,6 +148,37 @@ public class RegistroDao {
     }
 
     public List<RegistroDetailsModel> findRegisterDetailsByEmployeeId(String employeeId) {
+        try {
+            return findRegisterDetailsByEmployeeIdDesdeBackend(employeeId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findRegisterDetailsByEmployeeIdDirecto(employeeId);
+    }
+
+    private List<RegistroDetailsModel> findRegisterDetailsByEmployeeIdDesdeBackend(String employeeId)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/detalles-empleado?employeeId=" + enc(employeeId));
+        List<RegistroDetailsModel> registros = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            JsonObject o = el.getAsJsonObject();
+            RegistroDetailsModel registro = new RegistroDetailsModel();
+            registro.setFechaRegistro(textoDe(o, "fechaRegistro"));
+            registro.setCodigo(textoDe(o, "codigo"));
+            registro.setAmount(decimalONulo(o, "amount"));
+            registro.setConceptLoan(textoDe(o, "conceptLoan"));
+            registro.setConceptBond(textoDe(o, "conceptBond"));
+            registro.setFechaVLoan(textoDe(o, "fechaVLoan"));
+            registro.setFechaVBond(textoDe(o, "fechaVBond"));
+            registro.setAmountPar(decimalONulo(o, "amountPar"));
+            registro.setMontoLoan(decimalONulo(o, "montoLoan"));
+            registro.setMontoBond(decimalONulo(o, "montoBond"));
+            registros.add(registro);
+        }
+        return registros;
+    }
+
+    private List<RegistroDetailsModel> findRegisterDetailsByEmployeeIdDirecto(String employeeId) {
         String sql = "SELECT DATE_FORMAT(rs.fecha_registro, '%Y-%m-%d') AS fecha_registro, rs.codigo, rs.amount, "
                 + "CONCAT('Préstamo', '-', loan.SoliNum, ' ', loan.Dues, '/', ld.Dues) AS conceptLoan, "
                 + "CONCAT(ser.description, '-', bon.SoliNum, ' ', bon.dues, '/', abDe.dues) AS conceptBond, "
@@ -100,6 +224,40 @@ public class RegistroDao {
     }
 
     public boolean insertarRegistroCompleto(RegistroTb registro, LoanDetailsTb prestamo, AbonoDetailsTb bonos, Double monto) {
+        try {
+            return insertarRegistroCompletoDesdeBackend(registro, prestamo, bonos, monto);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return insertarRegistroCompletoDirecto(registro, prestamo, bonos, monto);
+    }
+
+    private boolean insertarRegistroCompletoDesdeBackend(RegistroTb registro, LoanDetailsTb prestamo, AbonoDetailsTb bonos, Double monto)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("empleadoId", registro.getEmpleadoId());
+        body.addProperty("amount", registro.getAmount());
+        JsonArray prestamosArr = new JsonArray();
+        if (prestamo != null) {
+            JsonObject c = new JsonObject();
+            c.addProperty("id", prestamo.getId());
+            c.addProperty("monto", monto);
+            prestamosArr.add(c);
+        }
+        JsonArray bonosArr = new JsonArray();
+        if (bonos != null) {
+            JsonObject c = new JsonObject();
+            c.addProperty("id", bonos.getId());
+            c.addProperty("monto", monto);
+            bonosArr.add(c);
+        }
+        body.add("prestamos", prestamosArr);
+        body.add("bonos", bonosArr);
+        JsonObject resp = ApiBackend.post(BASE + "/registro-completo", body);
+        return dataObj(resp).get("resultado").getAsInt() == 1;
+    }
+
+    private boolean insertarRegistroCompletoDirecto(RegistroTb registro, LoanDetailsTb prestamo, AbonoDetailsTb bonos, Double monto) {
 
         String sqlRegistro = "CALL InsertarRegistro(?,?);";
         String sqlObtenerID = "SELECT LAST_INSERT_ID()"; // Obtener el último ID insertado
@@ -127,12 +285,12 @@ public class RegistroDao {
             // 3. Insertar en la tabla prestamo si existen préstamos
 
             if (prestamo != null) {
-                insertRegisterDetail(idRegistro, null, prestamo.getId(), monto);
+                insertRegisterDetailDirecto(idRegistro, null, prestamo.getId(), monto);
             }
 
             // 4. Insertar en la tabla bono si existen bonos
             if (bonos != null) {
-                insertRegisterDetail(idRegistro, bonos.getId(), null, monto);
+                insertRegisterDetailDirecto(idRegistro, bonos.getId(), null, monto);
             }
 
             // 5. Confirmar la transacción
@@ -163,11 +321,58 @@ public class RegistroDao {
 
     //  Método para insertar un nuevo registro y sus detalles de préstamo y bono
     public int insertarRegistroCompleto(RegistroTb registro, List<LoanDetailsTb> prestamos, List<AbonoDetailsTb> bonos) {
-        
         if (prestamos.isEmpty() && bonos.isEmpty()) {
             return 4;
         }
-        
+        try {
+            return insertarRegistroCompletoDesdeBackend(registro, prestamos, bonos, null);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return insertarRegistroCompletoDirecto(registro, prestamos, bonos);
+    }
+
+    /**
+     * Pago completo transaccional en el backend. Con loteId null usa
+     * /registro-completo; con loteId usa /registro-completo-lote (mismo
+     * codigo P/xxxx-xxxxxxxx del DAO original). Devuelve los codigos del
+     * DAO: 1 = ok, 3 = error SQL en el backend.
+     */
+    private int insertarRegistroCompletoDesdeBackend(RegistroTb registro, List<LoanDetailsTb> prestamos,
+            List<AbonoDetailsTb> bonos, Integer loteId) throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("empleadoId", registro.getEmpleadoId());
+        body.addProperty("amount", registro.getAmount());
+        if (loteId != null) {
+            body.addProperty("loteId", loteId);
+        }
+        JsonArray prestamosArr = new JsonArray();
+        for (LoanDetailsTb p : prestamos) {
+            JsonObject c = new JsonObject();
+            c.addProperty("id", p.getId());
+            c.addProperty("monto", p.getMonto());
+            prestamosArr.add(c);
+        }
+        JsonArray bonosArr = new JsonArray();
+        for (AbonoDetailsTb b : bonos) {
+            JsonObject c = new JsonObject();
+            c.addProperty("id", b.getId());
+            c.addProperty("monto", b.getMonto());
+            bonosArr.add(c);
+        }
+        body.add("prestamos", prestamosArr);
+        body.add("bonos", bonosArr);
+        String path = loteId != null ? "/registro-completo-lote" : "/registro-completo";
+        JsonObject resp = ApiBackend.post(BASE + path, body);
+        return dataObj(resp).get("resultado").getAsInt();
+    }
+
+    private int insertarRegistroCompletoDirecto(RegistroTb registro, List<LoanDetailsTb> prestamos, List<AbonoDetailsTb> bonos) {
+
+        if (prestamos.isEmpty() && bonos.isEmpty()) {
+            return 4;
+        }
+
         System.out.println("Prestamoms " + prestamos.toString());
         System.out.println("Prestamoms " + bonos.toString());
         
@@ -198,7 +403,7 @@ public class RegistroDao {
                 System.out.println("Id de registro / " + idRegistro);
 
                 for (LoanDetailsTb p : prestamos) {
-                    insertRegisterDetail(idRegistro, null, p.getId(), p.getMonto());
+                    insertRegisterDetailDirecto(idRegistro, null, p.getId(), p.getMonto());
 //                    stmtPrestamo.setInt(1, idRegistro);
 //                    stmtPrestamo.setString(2, "");
 //                    stmtPrestamo.setLong(3, p.getId());
@@ -211,7 +416,7 @@ public class RegistroDao {
             if (!bonos.isEmpty()) {
 
                 for (AbonoDetailsTb b : bonos) {
-                    insertRegisterDetail(idRegistro, b.getId(), null, b.getMonto());
+                    insertRegisterDetailDirecto(idRegistro, b.getId(), null, b.getMonto());
 //                    stmtBono.setInt(1, idRegistro);
 //                    stmtBono.setString(2, "");
 //                    stmtBono.setLong(3, b.getId());
@@ -249,6 +454,18 @@ public class RegistroDao {
      * Método para insertar un registro asociado a un lote de carga masiva
      */
     public int insertarRegistroCompletoConLote(RegistroTb registro, List<LoanDetailsTb> prestamos, List<AbonoDetailsTb> bonos, int loteId) {
+        if (prestamos.isEmpty() && bonos.isEmpty()) {
+            return 4;
+        }
+        try {
+            return insertarRegistroCompletoDesdeBackend(registro, prestamos, bonos, loteId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return insertarRegistroCompletoConLoteDirecto(registro, prestamos, bonos, loteId);
+    }
+
+    private int insertarRegistroCompletoConLoteDirecto(RegistroTb registro, List<LoanDetailsTb> prestamos, List<AbonoDetailsTb> bonos, int loteId) {
 
         if (prestamos.isEmpty() && bonos.isEmpty()) {
             return 4;
@@ -288,14 +505,14 @@ public class RegistroDao {
             // 3. Insertar detalles de préstamos
             if (!prestamos.isEmpty()) {
                 for (LoanDetailsTb p : prestamos) {
-                    insertRegisterDetail(idRegistro, null, p.getId(), p.getMonto());
+                    insertRegisterDetailDirecto(idRegistro, null, p.getId(), p.getMonto());
                 }
             }
 
             // 4. Insertar detalles de bonos
             if (!bonos.isEmpty()) {
                 for (AbonoDetailsTb b : bonos) {
-                    insertRegisterDetail(idRegistro, b.getId(), null, b.getMonto());
+                    insertRegisterDetailDirecto(idRegistro, b.getId(), null, b.getMonto());
                 }
             }
 
@@ -322,6 +539,33 @@ public class RegistroDao {
 
     // Método para obtener registros completos por ID de empleado, agrupados por código
     public List<ModelPaymentAndLoan> obtenerRegistrosPorEmpleado(int empleadoId) {
+        try {
+            return obtenerRegistrosPorEmpleadoDesdeBackend(empleadoId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerRegistrosPorEmpleadoDirecto(empleadoId);
+    }
+
+    private List<ModelPaymentAndLoan> obtenerRegistrosPorEmpleadoDesdeBackend(int empleadoId)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/registros-empleado?empleadoId=" + empleadoId);
+        List<ModelPaymentAndLoan> registros = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            JsonObject o = el.getAsJsonObject();
+            ModelPaymentAndLoan registro = new ModelPaymentAndLoan();
+            registro.setId(o.get("id").getAsInt());
+            registro.setCodigo(textoDe(o, "codigo"));
+            registro.setFechaRegistro(timestampDe(o, "fechaRegistro"));
+            registro.setAmount(dobleDe(o, "amount"));
+            registro.setBonos(textoDe(o, "bonos"));
+            registro.setPrestamos(textoDe(o, "prestamos"));
+            registros.add(registro);
+        }
+        return registros;
+    }
+
+    private List<ModelPaymentAndLoan> obtenerRegistrosPorEmpleadoDirecto(int empleadoId) {
         List<ModelPaymentAndLoan> registros = new ArrayList<>();
         String sql = "SELECT r.id, r.codigo, r.fecha_registro, r.amount, "
                 + " GROUP_CONCAT(DISTINCT p.id_prestamoDetails ORDER BY p.id_prestamoDetails SEPARATOR ', ') AS prestamos, "
@@ -373,6 +617,30 @@ public class RegistroDao {
      * @return Optional con el RegistroTb si existe, vacío si no
      */
     public java.util.Optional<RegistroTb> findByCodigo(String codigo) {
+        try {
+            return findByCodigoDesdeBackend(codigo);
+        } catch (ApiBackend.NoEncontradoException e) {
+            return java.util.Optional.empty(); // el backend confirmo que el codigo no existe
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findByCodigoDirecto(codigo);
+    }
+
+    private java.util.Optional<RegistroTb> findByCodigoDesdeBackend(String codigo)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/registro?codigo=" + enc(codigo.trim()));
+        JsonObject o = dataObj(resp);
+        RegistroTb registro = new RegistroTb();
+        registro.setId(o.get("id").getAsInt());
+        registro.setCodigo(textoDe(o, "codigo"));
+        registro.setEmpleadoId(o.get("empleadoId").getAsInt());
+        registro.setFechaRegistro(timestampDe(o, "fechaRegistro"));
+        registro.setAmount(dobleDe(o, "amount"));
+        return java.util.Optional.of(registro);
+    }
+
+    private java.util.Optional<RegistroTb> findByCodigoDirecto(String codigo) {
         String sql = "SELECT id, codigo, empleado_id, fecha_registro, amount FROM registro WHERE codigo = ?";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -402,6 +670,21 @@ public class RegistroDao {
      * @return String con los detalles formateados en HTML
      */
     public String obtenerDetallesPagoParaRevertir(int registroId) {
+        try {
+            return obtenerDetallesPagoParaRevertirDesdeBackend(registroId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerDetallesPagoParaRevertirDirecto(registroId);
+    }
+
+    private String obtenerDetallesPagoParaRevertirDesdeBackend(int registroId)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/detalle-reversion?registroId=" + registroId);
+        return dataObj(resp).get("html").getAsString();
+    }
+
+    private String obtenerDetallesPagoParaRevertirDirecto(int registroId) {
         StringBuilder detalles = new StringBuilder();
         detalles.append("<html><body style='width: 350px;'>");
 
@@ -512,6 +795,29 @@ public class RegistroDao {
      * @return true si se revirtió correctamente, false si hubo error
      */
     public boolean revertirPago(int registroId, String usuarioReversion, String motivoReversion) {
+        try {
+            return revertirPagoDesdeBackend(registroId, usuarioReversion, motivoReversion);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return revertirPagoDirecto(registroId, usuarioReversion, motivoReversion);
+    }
+
+    private boolean revertirPagoDesdeBackend(int registroId, String usuarioReversion, String motivoReversion)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("registroId", registroId);
+        if (usuarioReversion != null) {
+            body.addProperty("usuario", usuarioReversion);
+        }
+        if (motivoReversion != null) {
+            body.addProperty("motivo", motivoReversion);
+        }
+        JsonObject resp = ApiBackend.post(BASE + "/reversion", body);
+        return dataObj(resp).get("revertido").getAsBoolean();
+    }
+
+    private boolean revertirPagoDirecto(int registroId, String usuarioReversion, String motivoReversion) {
         try {
             conn.setAutoCommit(false);
 
@@ -748,6 +1054,26 @@ public class RegistroDao {
      * @return ID del lote creado, o -1 si hubo error
      */
     public int crearLoteCarga(String nombreArchivo, String mes, String anio, String usuarioCarga) {
+        try {
+            return crearLoteCargaDesdeBackend(nombreArchivo, mes, anio, usuarioCarga);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return crearLoteCargaDirecto(nombreArchivo, mes, anio, usuarioCarga);
+    }
+
+    private int crearLoteCargaDesdeBackend(String nombreArchivo, String mes, String anio, String usuarioCarga)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("nombreArchivo", nombreArchivo);
+        body.addProperty("mes", mes);
+        body.addProperty("anio", anio);
+        body.addProperty("usuarioCarga", usuarioCarga);
+        JsonObject resp = ApiBackend.post(BASE + "/lotes", body);
+        return dataObj(resp).get("loteId").getAsInt();
+    }
+
+    private int crearLoteCargaDirecto(String nombreArchivo, String mes, String anio, String usuarioCarga) {
         String sql = "INSERT INTO lote_carga (nombre_archivo, mes_proceso, anio_proceso, usuario_carga) VALUES (?, ?, ?, ?)";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -777,6 +1103,25 @@ public class RegistroDao {
      * @param montoTotal Monto total del lote
      */
     public void actualizarEstadisticasLote(int loteId, int cantidadRegistros, double montoTotal) {
+        try {
+            actualizarEstadisticasLoteDesdeBackend(loteId, cantidadRegistros, montoTotal);
+            return;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        actualizarEstadisticasLoteDirecto(loteId, cantidadRegistros, montoTotal);
+    }
+
+    private void actualizarEstadisticasLoteDesdeBackend(int loteId, int cantidadRegistros, double montoTotal)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("loteId", loteId);
+        body.addProperty("cantidadRegistros", cantidadRegistros);
+        body.addProperty("montoTotal", montoTotal);
+        ApiBackend.put(BASE + "/lotes/estadisticas", body);
+    }
+
+    private void actualizarEstadisticasLoteDirecto(int loteId, int cantidadRegistros, double montoTotal) {
         String sql = "UPDATE lote_carga SET cantidad_registros = ?, monto_total = ? WHERE id = ?";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -793,6 +1138,25 @@ public class RegistroDao {
      * Inserta un registro asociado a un lote
      */
     public int insertarRegistroConLote(int empleadoId, double amount, int loteId) {
+        try {
+            return insertarRegistroConLoteDesdeBackend(empleadoId, amount, loteId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return insertarRegistroConLoteDirecto(empleadoId, amount, loteId);
+    }
+
+    private int insertarRegistroConLoteDesdeBackend(int empleadoId, double amount, int loteId)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("empleadoId", empleadoId);
+        body.addProperty("amount", amount);
+        body.addProperty("loteId", loteId);
+        JsonObject resp = ApiBackend.post(BASE + "/registro-con-lote", body);
+        return dataObj(resp).get("idRegistro").getAsInt();
+    }
+
+    private int insertarRegistroConLoteDirecto(int empleadoId, double amount, int loteId) {
         String sql = "INSERT INTO registro (empleado_id, amount, lote_id) VALUES (?, ?, ?)";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -819,6 +1183,34 @@ public class RegistroDao {
      * @return Lista de lotes activos formateados
      */
     public List<String[]> obtenerLotesActivos() {
+        try {
+            return obtenerLotesActivosDesdeBackend();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerLotesActivosDirecto();
+    }
+
+    private List<String[]> obtenerLotesActivosDesdeBackend() throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/lotes-activos");
+        List<String[]> lotes = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            JsonObject o = el.getAsJsonObject();
+            String[] lote = new String[8];
+            lote[0] = String.valueOf(o.get("id").getAsInt());
+            lote[1] = textoDe(o, "nombreArchivo");
+            lote[2] = textoDe(o, "mesProceso");
+            lote[3] = textoDe(o, "anioProceso");
+            lote[4] = String.valueOf(o.get("cantidadRegistros").getAsInt());
+            lote[5] = String.format("%.2f", dobleDe(o, "montoTotal"));
+            lote[6] = textoDe(o, "fechaCarga");
+            lote[7] = textoDe(o, "usuarioCarga");
+            lotes.add(lote);
+        }
+        return lotes;
+    }
+
+    private List<String[]> obtenerLotesActivosDirecto() {
         List<String[]> lotes = new ArrayList<>();
         String sql = "SELECT id, nombre_archivo, mes_proceso, anio_proceso, cantidad_registros, " +
                 "monto_total, fecha_carga, usuario_carga " +
@@ -850,6 +1242,21 @@ public class RegistroDao {
      * @return String con los detalles formateados en HTML
      */
     public String obtenerDetalleLoteParaRevertir(int loteId) {
+        try {
+            return obtenerDetalleLoteParaRevertirDesdeBackend(loteId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerDetalleLoteParaRevertirDirecto(loteId);
+    }
+
+    private String obtenerDetalleLoteParaRevertirDesdeBackend(int loteId)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/lotes/detalle-reversion?loteId=" + loteId);
+        return dataObj(resp).get("html").getAsString();
+    }
+
+    private String obtenerDetalleLoteParaRevertirDirecto(int loteId) {
         StringBuilder detalles = new StringBuilder();
         detalles.append("<html><body style='width: 450px;'>");
 
@@ -911,6 +1318,29 @@ public class RegistroDao {
      * @return true si se revirtió correctamente
      */
     public boolean revertirLoteCarga(int loteId, String usuarioReversion, String motivoReversion) {
+        try {
+            return revertirLoteCargaDesdeBackend(loteId, usuarioReversion, motivoReversion);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return revertirLoteCargaDirecto(loteId, usuarioReversion, motivoReversion);
+    }
+
+    private boolean revertirLoteCargaDesdeBackend(int loteId, String usuarioReversion, String motivoReversion)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("loteId", loteId);
+        if (usuarioReversion != null) {
+            body.addProperty("usuario", usuarioReversion);
+        }
+        if (motivoReversion != null) {
+            body.addProperty("motivo", motivoReversion);
+        }
+        JsonObject resp = ApiBackend.post(BASE + "/lotes/reversion", body);
+        return dataObj(resp).get("revertido").getAsBoolean();
+    }
+
+    private boolean revertirLoteCargaDirecto(int loteId, String usuarioReversion, String motivoReversion) {
         try {
             conn.setAutoCommit(false);
 
@@ -1146,6 +1576,35 @@ public class RegistroDao {
      * @return Lista de Object[] con: SoliNum, Dues, Payment, MonthlyFeeValue, ID, TipoDuplicado, CantidadRegistros
      */
     public List<Object[]> buscarPagosDuplicadosPrestamos() {
+        try {
+            return buscarPagosDuplicadosDesdeBackend("/duplicados/prestamos");
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarPagosDuplicadosPrestamosDirecto();
+    }
+
+    /** Filas de duplicados (prestamos o abonos): mismo Object[7] del DAO. */
+    private List<Object[]> buscarPagosDuplicadosDesdeBackend(String path)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + path);
+        List<Object[]> duplicados = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[7];
+            row[0] = textoDe(o, "soliNum");
+            row[1] = o.get("dues").getAsInt();
+            row[2] = dobleDe(o, "pagado");
+            row[3] = dobleDe(o, "monto");
+            row[4] = o.get("id").getAsLong();
+            row[5] = textoDe(o, "tipoDuplicado");
+            row[6] = o.get("cantRegistros").getAsInt();
+            duplicados.add(row);
+        }
+        return duplicados;
+    }
+
+    private List<Object[]> buscarPagosDuplicadosPrestamosDirecto() {
         List<Object[]> duplicados = new ArrayList<>();
 
         // 1. Buscar cuotas con payment > MonthlyFeeValue
@@ -1212,6 +1671,15 @@ public class RegistroDao {
      * @return Lista de Object[] con: SoliNum, Dues, Payment, Monthly, ID, TipoDuplicado, CantidadRegistros
      */
     public List<Object[]> buscarPagosDuplicadosAbonos() {
+        try {
+            return buscarPagosDuplicadosDesdeBackend("/duplicados/abonos");
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarPagosDuplicadosAbonosDirecto();
+    }
+
+    private List<Object[]> buscarPagosDuplicadosAbonosDirecto() {
         List<Object[]> duplicados = new ArrayList<>();
 
         // 1. Buscar cuotas con payment > monthly
@@ -1280,6 +1748,24 @@ public class RegistroDao {
      * @return Cantidad de cuotas corregidas
      */
     public int corregirPagosDuplicadosPrestamos(String usuario, String motivo) {
+        try {
+            return corregirPagosDuplicadosDesdeBackend("/correccion/prestamos", usuario, motivo);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return corregirPagosDuplicadosPrestamosDirecto(usuario, motivo);
+    }
+
+    private int corregirPagosDuplicadosDesdeBackend(String path, String usuario, String motivo)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("usuario", usuario);
+        body.addProperty("motivo", motivo);
+        JsonObject resp = ApiBackend.post(BASE + path, body);
+        return dataObj(resp).get("corregidos").getAsInt();
+    }
+
+    private int corregirPagosDuplicadosPrestamosDirecto(String usuario, String motivo) {
         int corregidos = 0;
 
         try {
@@ -1379,6 +1865,15 @@ public class RegistroDao {
      * @return Cantidad de cuotas corregidas
      */
     public int corregirPagosDuplicadosAbonos(String usuario, String motivo) {
+        try {
+            return corregirPagosDuplicadosDesdeBackend("/correccion/abonos", usuario, motivo);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return corregirPagosDuplicadosAbonosDirecto(usuario, motivo);
+    }
+
+    private int corregirPagosDuplicadosAbonosDirecto(String usuario, String motivo) {
         int corregidos = 0;
 
         try {
@@ -1521,6 +2016,32 @@ public class RegistroDao {
      * @return Lista de Object[] con: empleado_id, dni, nombre, cantidad_registros_huerfanos, monto_total_huerfano
      */
     public List<Object[]> buscarEmpleadosConRegistrosHuerfanos() {
+        try {
+            return buscarEmpleadosConRegistrosHuerfanosDesdeBackend();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarEmpleadosConRegistrosHuerfanosDirecto();
+    }
+
+    private List<Object[]> buscarEmpleadosConRegistrosHuerfanosDesdeBackend()
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/huerfanos/empleados");
+        List<Object[]> empleados = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[5];
+            row[0] = o.get("empleadoId").getAsInt();
+            row[1] = textoDe(o, "nationalId");
+            row[2] = textoDe(o, "fullName");
+            row[3] = o.get("cantidadHuerfanos").getAsInt();
+            row[4] = dobleDe(o, "montoHuerfano");
+            empleados.add(row);
+        }
+        return empleados;
+    }
+
+    private List<Object[]> buscarEmpleadosConRegistrosHuerfanosDirecto() {
         List<Object[]> empleados = new ArrayList<>();
 
         String sql = "SELECT r.empleado_id, e.national_id, e.fullName, " +
@@ -1556,6 +2077,74 @@ public class RegistroDao {
      * @return Object[] con info del empleado y sus registros/cuotas pendientes
      */
     public Map<String, Object> obtenerDetalleEmpleadoParaReorganizar(int empleadoId) {
+        try {
+            return obtenerDetalleEmpleadoParaReorganizarDesdeBackend(empleadoId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerDetalleEmpleadoParaReorganizarDirecto(empleadoId);
+    }
+
+    private Map<String, Object> obtenerDetalleEmpleadoParaReorganizarDesdeBackend(int empleadoId)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/huerfanos/detalle-empleado?empleadoId=" + empleadoId);
+        JsonObject data = dataObj(resp);
+
+        Map<String, Object> detalle = new HashMap<>();
+        detalle.put("dni", textoDe(data, "dni"));
+        detalle.put("nombre", textoDe(data, "nombre"));
+
+        List<Object[]> registrosHuerfanos = new ArrayList<>();
+        for (JsonElement el : data.getAsJsonArray("registrosHuerfanos")) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] reg = new Object[4];
+            reg[0] = o.get("id").getAsInt();
+            reg[1] = textoDe(o, "codigo");
+            reg[2] = timestampDe(o, "fechaRegistro");
+            reg[3] = dobleDe(o, "amount");
+            registrosHuerfanos.add(reg);
+        }
+        detalle.put("registrosHuerfanos", registrosHuerfanos);
+
+        List<Object[]> cuotasPrestamos = new ArrayList<>();
+        for (JsonElement el : data.getAsJsonArray("cuotasPrestamos")) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] cuota = new Object[9];
+            cuota[0] = o.get("id").getAsLong();
+            cuota[1] = textoDe(o, "soliNum");
+            cuota[2] = o.get("dues").getAsInt();
+            cuota[3] = o.get("totalDues").getAsInt();
+            cuota[4] = dobleDe(o, "monthlyFeeValue");
+            cuota[5] = dobleDe(o, "payment");
+            cuota[6] = dobleDe(o, "pendiente");
+            cuota[7] = sqlFechaDe(o, "paymentDate");
+            cuota[8] = textoDe(o, "state");
+            cuotasPrestamos.add(cuota);
+        }
+        detalle.put("cuotasPrestamos", cuotasPrestamos);
+
+        List<Object[]> cuotasAbonos = new ArrayList<>();
+        for (JsonElement el : data.getAsJsonArray("cuotasAbonos")) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] cuota = new Object[10];
+            cuota[0] = o.get("id").getAsLong();
+            cuota[1] = textoDe(o, "soliNum");
+            cuota[2] = o.get("dues").getAsInt();
+            cuota[3] = o.get("totalDues").getAsInt();
+            cuota[4] = dobleDe(o, "monthly");
+            cuota[5] = dobleDe(o, "payment");
+            cuota[6] = dobleDe(o, "pendiente");
+            cuota[7] = sqlFechaDe(o, "paymentDate");
+            cuota[8] = textoDe(o, "state");
+            cuota[9] = textoDe(o, "concepto");
+            cuotasAbonos.add(cuota);
+        }
+        detalle.put("cuotasAbonos", cuotasAbonos);
+
+        return detalle;
+    }
+
+    private Map<String, Object> obtenerDetalleEmpleadoParaReorganizarDirecto(int empleadoId) {
         Map<String, Object> detalle = new HashMap<>();
 
         // Info del empleado
@@ -1676,14 +2265,33 @@ public class RegistroDao {
      * @param motivo Motivo de la reorganización
      * @return Cantidad de registros reorganizados
      */
-    @SuppressWarnings("unchecked")
     public int reorganizarPagosEmpleado(int empleadoId, String usuario, String motivo) {
+        try {
+            return reorganizarPagosEmpleadoDesdeBackend(empleadoId, usuario, motivo);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return reorganizarPagosEmpleadoDirecto(empleadoId, usuario, motivo);
+    }
+
+    private int reorganizarPagosEmpleadoDesdeBackend(int empleadoId, String usuario, String motivo)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("empleadoId", empleadoId);
+        body.addProperty("usuario", usuario);
+        body.addProperty("motivo", motivo);
+        JsonObject resp = ApiBackend.post(BASE + "/huerfanos/reorganizar", body);
+        return dataObj(resp).get("reorganizados").getAsInt();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int reorganizarPagosEmpleadoDirecto(int empleadoId, String usuario, String motivo) {
         int reorganizados = 0;
 
         try {
             conn.setAutoCommit(false);
 
-            Map<String, Object> detalle = obtenerDetalleEmpleadoParaReorganizar(empleadoId);
+            Map<String, Object> detalle = obtenerDetalleEmpleadoParaReorganizarDirecto(empleadoId);
             List<Object[]> registrosHuerfanos = (List<Object[]>) detalle.get("registrosHuerfanos");
             List<Object[]> cuotasPrestamos = (List<Object[]>) detalle.get("cuotasPrestamos");
             List<Object[]> cuotasAbonos = (List<Object[]>) detalle.get("cuotasAbonos");
@@ -1924,6 +2532,20 @@ public class RegistroDao {
      * @return Cantidad de registros eliminados
      */
     public int eliminarRegistrosVacios() {
+        try {
+            return eliminarRegistrosVaciosDesdeBackend();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return eliminarRegistrosVaciosDirecto();
+    }
+
+    private int eliminarRegistrosVaciosDesdeBackend() throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.post(BASE + "/registros-vacios/limpiar", null);
+        return dataObj(resp).get("eliminados").getAsInt();
+    }
+
+    private int eliminarRegistrosVaciosDirecto() {
         int eliminados = 0;
 
         String sqlSelect = "SELECT r.id, r.codigo FROM registro r " +
@@ -1981,6 +2603,52 @@ public class RegistroDao {
      * @return Map con prestamos, abonos, empleadoNombre, empleadoDni
      */
     public Map<String, Object> obtenerDetallesPagoParaEdicion(int registroId) {
+        try {
+            return obtenerDetallesPagoParaEdicionDesdeBackend(registroId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerDetallesPagoParaEdicionDirecto(registroId);
+    }
+
+    private Map<String, Object> obtenerDetallesPagoParaEdicionDesdeBackend(int registroId)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/detalle-edicion?registroId=" + registroId);
+        JsonObject data = dataObj(resp);
+
+        List<Object[]> prestamos = new ArrayList<>();
+        for (JsonElement el : data.getAsJsonArray("prestamos")) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[5];
+            row[0] = textoDe(o, "soliNum");
+            row[1] = o.get("dues").getAsInt();
+            row[2] = dobleDe(o, "monthlyFeeValue");
+            row[3] = dobleDe(o, "amountPar");
+            row[4] = o.get("rdId").getAsLong();
+            prestamos.add(row);
+        }
+
+        List<Object[]> abonos = new ArrayList<>();
+        for (JsonElement el : data.getAsJsonArray("abonos")) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[5];
+            row[0] = textoDe(o, "soliNum");
+            row[1] = o.get("dues").getAsInt();
+            row[2] = dobleDe(o, "monthly");
+            row[3] = dobleDe(o, "amountPar");
+            row[4] = o.get("rdId").getAsLong();
+            abonos.add(row);
+        }
+
+        Map<String, Object> resultado = new HashMap<>();
+        resultado.put("prestamos", prestamos);
+        resultado.put("abonos", abonos);
+        resultado.put("empleadoNombre", textoDe(data, "empleadoNombre"));
+        resultado.put("empleadoDni", textoDe(data, "empleadoDni"));
+        return resultado;
+    }
+
+    private Map<String, Object> obtenerDetallesPagoParaEdicionDirecto(int registroId) {
         Map<String, Object> resultado = new HashMap<>();
         List<Object[]> prestamos = new ArrayList<>();
         List<Object[]> abonos = new ArrayList<>();
@@ -2074,6 +2742,33 @@ public class RegistroDao {
      * @return true si se actualizó correctamente
      */
     public boolean actualizarMontoDetallePago(long idRegisterDetail, boolean esPrestamo,
+                                               double montoAnterior, double montoNuevo,
+                                               String usuario, String motivo) {
+        try {
+            return actualizarMontoDetallePagoDesdeBackend(idRegisterDetail, esPrestamo,
+                    montoAnterior, montoNuevo, usuario, motivo);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return actualizarMontoDetallePagoDirecto(idRegisterDetail, esPrestamo,
+                montoAnterior, montoNuevo, usuario, motivo);
+    }
+
+    private boolean actualizarMontoDetallePagoDesdeBackend(long idRegisterDetail, boolean esPrestamo,
+            double montoAnterior, double montoNuevo, String usuario, String motivo)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("idRegisterDetail", idRegisterDetail);
+        body.addProperty("esPrestamo", esPrestamo);
+        body.addProperty("montoAnterior", montoAnterior);
+        body.addProperty("montoNuevo", montoNuevo);
+        body.addProperty("usuario", usuario);
+        body.addProperty("motivo", motivo);
+        JsonObject resp = ApiBackend.put(BASE + "/detalle/monto", body);
+        return dataObj(resp).get("actualizado").getAsBoolean();
+    }
+
+    private boolean actualizarMontoDetallePagoDirecto(long idRegisterDetail, boolean esPrestamo,
                                                double montoAnterior, double montoNuevo,
                                                String usuario, String motivo) {
         try {
@@ -2204,6 +2899,28 @@ public class RegistroDao {
      * @return true si se eliminó correctamente
      */
     public boolean eliminarDetallePago(long idRegisterDetail, boolean esPrestamo,
+                                        double monto, String usuario, String motivo) {
+        try {
+            return eliminarDetallePagoDesdeBackend(idRegisterDetail, esPrestamo, monto, usuario, motivo);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return eliminarDetallePagoDirecto(idRegisterDetail, esPrestamo, monto, usuario, motivo);
+    }
+
+    private boolean eliminarDetallePagoDesdeBackend(long idRegisterDetail, boolean esPrestamo,
+            double monto, String usuario, String motivo) throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("idRegisterDetail", idRegisterDetail);
+        body.addProperty("esPrestamo", esPrestamo);
+        body.addProperty("monto", monto);
+        body.addProperty("usuario", usuario);
+        body.addProperty("motivo", motivo);
+        JsonObject resp = ApiBackend.post(BASE + "/detalle/eliminar", body);
+        return dataObj(resp).get("eliminado").getAsBoolean();
+    }
+
+    private boolean eliminarDetallePagoDirecto(long idRegisterDetail, boolean esPrestamo,
                                         double monto, String usuario, String motivo) {
         try {
             conn.setAutoCommit(false);
@@ -2577,6 +3294,70 @@ public class RegistroDao {
      * @return Lista de cuotas pendientes [loanDetailId, SoliNum, Dues, MonthlyFeeValue, payment, pendiente, State]
      */
     public List<Object[]> buscarCuotasPrestamosPendientesEmpleado(int empleadoId) {
+        try {
+            return cuotasPrestamosDesdeBackend("/cuotas/prestamos-pendientes?empleadoId=" + empleadoId, false);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarCuotasPrestamosPendientesEmpleadoDirecto(empleadoId);
+    }
+
+    /**
+     * Cuotas de prestamo del backend con la MISMA forma de Object[] del DAO:
+     * [id, SoliNum, Dues, MonthlyFeeValue, payment, pendiente, State
+     * (, totalCuotas si conTotal)].
+     */
+    private List<Object[]> cuotasPrestamosDesdeBackend(String pathConQuery, boolean conTotal)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + pathConQuery);
+        List<Object[]> cuotas = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[conTotal ? 8 : 7];
+            row[0] = o.get("id").getAsLong();
+            row[1] = textoDe(o, "soliNum");
+            row[2] = o.get("dues").getAsInt();
+            row[3] = dobleDe(o, "monthlyFeeValue");
+            row[4] = dobleDe(o, "payment");
+            row[5] = dobleDe(o, "pendiente");
+            row[6] = textoDe(o, "state");
+            if (conTotal) {
+                row[7] = o.get("totalCuotas").getAsInt();
+            }
+            cuotas.add(row);
+        }
+        return cuotas;
+    }
+
+    /**
+     * Cuotas de abono del backend con la MISMA forma de Object[] del DAO:
+     * [id, SoliNum, concepto, dues, monthly, payment, pendiente, state
+     * (, totalCuotas si conTotal)].
+     */
+    private List<Object[]> cuotasAbonosDesdeBackend(String pathConQuery, boolean conTotal)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + pathConQuery);
+        List<Object[]> cuotas = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[conTotal ? 9 : 8];
+            row[0] = o.get("id").getAsLong();
+            row[1] = textoDe(o, "soliNum");
+            row[2] = textoDe(o, "concepto");
+            row[3] = o.get("dues").getAsInt();
+            row[4] = dobleDe(o, "monthly");
+            row[5] = dobleDe(o, "payment");
+            row[6] = dobleDe(o, "pendiente");
+            row[7] = textoDe(o, "state");
+            if (conTotal) {
+                row[8] = o.get("totalCuotas").getAsInt();
+            }
+            cuotas.add(row);
+        }
+        return cuotas;
+    }
+
+    private List<Object[]> buscarCuotasPrestamosPendientesEmpleadoDirecto(int empleadoId) {
         List<Object[]> cuotas = new ArrayList<>();
         String sql = "SELECT ld.ID, l.SoliNum, ld.Dues, ld.MonthlyFeeValue, ld.payment, " +
                 "(ld.MonthlyFeeValue - COALESCE(ld.payment, 0)) AS pendiente, ld.State " +
@@ -2613,6 +3394,15 @@ public class RegistroDao {
      * @return Lista de cuotas pendientes [abonoDetailId, SoliNum, concepto, dues, monthly, payment, pendiente, State]
      */
     public List<Object[]> buscarCuotasAbonosPendientesEmpleado(int empleadoId) {
+        try {
+            return cuotasAbonosDesdeBackend("/cuotas/abonos-pendientes?empleadoId=" + empleadoId, false);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarCuotasAbonosPendientesEmpleadoDirecto(empleadoId);
+    }
+
+    private List<Object[]> buscarCuotasAbonosPendientesEmpleadoDirecto(int empleadoId) {
         List<Object[]> cuotas = new ArrayList<>();
         String sql = "SELECT ad.id, a.SoliNum, COALESCE(sc.description, 'Sin concepto') AS concepto, " +
                 "ad.dues, ad.monthly, ad.payment, " +
@@ -2652,6 +3442,15 @@ public class RegistroDao {
      * @return Lista de cuotas [loanDetailId, SoliNum, Dues, MonthlyFeeValue, payment, pendiente, State, totalCuotas]
      */
     public List<Object[]> buscarCuotasPrestamoPorSolicitud(String soliNum) {
+        try {
+            return cuotasPrestamosDesdeBackend("/cuotas/prestamos-por-solicitud?soliNum=" + enc(soliNum), true);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarCuotasPrestamoPorSolicitudDirecto(soliNum);
+    }
+
+    private List<Object[]> buscarCuotasPrestamoPorSolicitudDirecto(String soliNum) {
         List<Object[]> cuotas = new ArrayList<>();
         String sql = "SELECT ld.ID, l.SoliNum, ld.Dues, ld.MonthlyFeeValue, COALESCE(ld.payment, 0) AS payment, " +
                 "(ld.MonthlyFeeValue - COALESCE(ld.payment, 0)) AS pendiente, ld.State, l.Dues AS totalCuotas " +
@@ -2688,6 +3487,15 @@ public class RegistroDao {
      * @return Lista de cuotas [abonoDetailId, SoliNum, concepto, dues, monthly, payment, pendiente, State, totalCuotas]
      */
     public List<Object[]> buscarCuotasAbonoPorSolicitud(String soliNum) {
+        try {
+            return cuotasAbonosDesdeBackend("/cuotas/abonos-por-solicitud?soliNum=" + enc(soliNum), true);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarCuotasAbonoPorSolicitudDirecto(soliNum);
+    }
+
+    private List<Object[]> buscarCuotasAbonoPorSolicitudDirecto(String soliNum) {
         List<Object[]> cuotas = new ArrayList<>();
         String sql = "SELECT ad.id, a.SoliNum, COALESCE(sc.description, 'Sin concepto') AS concepto, " +
                 "ad.dues, ad.monthly, COALESCE(ad.payment, 0) AS payment, " +
@@ -2727,6 +3535,15 @@ public class RegistroDao {
      * @return Lista de cuotas [loanDetailId, SoliNum, Dues, MonthlyFeeValue, payment, pendiente, State]
      */
     public List<Object[]> buscarTodasCuotasPrestamosEmpleado(int empleadoId) {
+        try {
+            return cuotasPrestamosDesdeBackend("/cuotas/prestamos-todas?empleadoId=" + empleadoId, false);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarTodasCuotasPrestamosEmpleadoDirecto(empleadoId);
+    }
+
+    private List<Object[]> buscarTodasCuotasPrestamosEmpleadoDirecto(int empleadoId) {
         List<Object[]> cuotas = new ArrayList<>();
         String sql = "SELECT ld.ID, l.SoliNum, ld.Dues, ld.MonthlyFeeValue, COALESCE(ld.payment, 0) AS payment, " +
                 "(ld.MonthlyFeeValue - COALESCE(ld.payment, 0)) AS pendiente, ld.State " +
@@ -2762,6 +3579,15 @@ public class RegistroDao {
      * @return Lista de cuotas [abonoDetailId, SoliNum, concepto, dues, monthly, payment, pendiente, State]
      */
     public List<Object[]> buscarTodasCuotasAbonosEmpleado(int empleadoId) {
+        try {
+            return cuotasAbonosDesdeBackend("/cuotas/abonos-todas?empleadoId=" + empleadoId, false);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarTodasCuotasAbonosEmpleadoDirecto(empleadoId);
+    }
+
+    private List<Object[]> buscarTodasCuotasAbonosEmpleadoDirecto(int empleadoId) {
         List<Object[]> cuotas = new ArrayList<>();
         String sql = "SELECT ad.id, a.SoliNum, COALESCE(sc.description, 'Sin concepto') AS concepto, " +
                 "ad.dues, ad.monthly, COALESCE(ad.payment, 0) AS payment, " +
@@ -2804,6 +3630,28 @@ public class RegistroDao {
      * @return true si se agregó correctamente
      */
     public boolean agregarDetallePrestamoARegistro(int registroId, long loanDetailId, double monto,
+                                                    String usuario, String motivo) {
+        try {
+            return agregarDetalleARegistroDesdeBackend("/detalle/prestamo", registroId, loanDetailId, monto, usuario, motivo);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return agregarDetallePrestamoARegistroDirecto(registroId, loanDetailId, monto, usuario, motivo);
+    }
+
+    private boolean agregarDetalleARegistroDesdeBackend(String path, int registroId, long cuotaDetailId,
+            double monto, String usuario, String motivo) throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("registroId", registroId);
+        body.addProperty("cuotaDetailId", cuotaDetailId);
+        body.addProperty("monto", monto);
+        body.addProperty("usuario", usuario);
+        body.addProperty("motivo", motivo);
+        JsonObject resp = ApiBackend.post(BASE + path, body);
+        return dataObj(resp).get("agregado").getAsBoolean();
+    }
+
+    private boolean agregarDetallePrestamoARegistroDirecto(int registroId, long loanDetailId, double monto,
                                                     String usuario, String motivo) {
         try {
             conn.setAutoCommit(false);
@@ -2892,6 +3740,16 @@ public class RegistroDao {
     public boolean agregarDetalleAbonoARegistro(int registroId, long abonoDetailId, double monto,
                                                  String usuario, String motivo) {
         try {
+            return agregarDetalleARegistroDesdeBackend("/detalle/abono", registroId, abonoDetailId, monto, usuario, motivo);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return agregarDetalleAbonoARegistroDirecto(registroId, abonoDetailId, monto, usuario, motivo);
+    }
+
+    private boolean agregarDetalleAbonoARegistroDirecto(int registroId, long abonoDetailId, double monto,
+                                                 String usuario, String motivo) {
+        try {
             conn.setAutoCommit(false);
 
             // Obtener AbonoID, SoliNum y dues para historial
@@ -2972,6 +3830,60 @@ public class RegistroDao {
      * @return Map con toda la información del pago
      */
     public Map<String, Object> obtenerDetallesCompletoPago(int registroId) {
+        try {
+            return obtenerDetallesCompletoPagoDesdeBackend(registroId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerDetallesCompletoPagoDirecto(registroId);
+    }
+
+    private Map<String, Object> obtenerDetallesCompletoPagoDesdeBackend(int registroId)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/detalle-completo?registroId=" + registroId);
+        JsonObject data = dataObj(resp);
+
+        List<Object[]> prestamos = new ArrayList<>();
+        for (JsonElement el : data.getAsJsonArray("prestamos")) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[8];
+            row[0] = textoDe(o, "soliNum");
+            row[1] = o.get("dues").getAsInt();
+            row[2] = dobleDe(o, "monthlyFeeValue");
+            row[3] = dobleDe(o, "totalPagadoCuota");
+            row[4] = dobleDe(o, "amountPar");
+            row[5] = o.get("rdId").getAsLong();
+            row[6] = o.get("ldId").getAsLong();
+            row[7] = textoDe(o, "state");
+            prestamos.add(row);
+        }
+
+        List<Object[]> abonos = new ArrayList<>();
+        for (JsonElement el : data.getAsJsonArray("abonos")) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[9];
+            row[0] = textoDe(o, "soliNum");
+            row[1] = textoDe(o, "concepto");
+            row[2] = o.get("dues").getAsInt();
+            row[3] = dobleDe(o, "monthly");
+            row[4] = dobleDe(o, "totalPagadoCuota");
+            row[5] = dobleDe(o, "amountPar");
+            row[6] = o.get("rdId").getAsLong();
+            row[7] = o.get("adId").getAsLong();
+            row[8] = textoDe(o, "state");
+            abonos.add(row);
+        }
+
+        Map<String, Object> resultado = new HashMap<>();
+        resultado.put("prestamos", prestamos);
+        resultado.put("abonos", abonos);
+        resultado.put("empleadoNombre", textoDe(data, "empleadoNombre"));
+        resultado.put("empleadoDni", textoDe(data, "empleadoDni"));
+        resultado.put("empleadoId", data.get("empleadoId").getAsInt());
+        return resultado;
+    }
+
+    private Map<String, Object> obtenerDetallesCompletoPagoDirecto(int registroId) {
         Map<String, Object> resultado = new HashMap<>();
         List<Object[]> prestamos = new ArrayList<>();
         List<Object[]> abonos = new ArrayList<>();
@@ -3076,6 +3988,43 @@ public class RegistroDao {
      * @return Lista [loanDetailId, SoliNum, Dues, MonthlyFeeValue, payment, pendiente, State, voucherCodigo, voucherId, rdId, amountParVoucher]
      */
     public List<Object[]> buscarCuotasPrestamosConVoucher(String soliNum, int empleadoId, boolean mostrarTodas) {
+        try {
+            return buscarCuotasPrestamosConVoucherDesdeBackend(soliNum, empleadoId, mostrarTodas);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarCuotasPrestamosConVoucherDirecto(soliNum, empleadoId, mostrarTodas);
+    }
+
+    private List<Object[]> buscarCuotasPrestamosConVoucherDesdeBackend(String soliNum, int empleadoId, boolean mostrarTodas)
+            throws IOException, InterruptedException {
+        String path = BASE + "/cuotas/prestamos-con-voucher?empleadoId=" + empleadoId
+                + "&mostrarTodas=" + mostrarTodas;
+        if (soliNum != null && !soliNum.trim().isEmpty()) {
+            path += "&soliNum=" + enc(soliNum);
+        }
+        JsonObject resp = ApiBackend.get(path);
+        List<Object[]> cuotas = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[11];
+            row[0] = o.get("id").getAsLong();
+            row[1] = textoDe(o, "soliNum");
+            row[2] = o.get("dues").getAsInt();
+            row[3] = dobleDe(o, "monthlyFeeValue");
+            row[4] = dobleDe(o, "payment");
+            row[5] = dobleDe(o, "pendiente");
+            row[6] = textoDe(o, "state");
+            row[7] = textoDe(o, "voucherCodigo");
+            row[8] = enteroONulo(o, "voucherId");
+            row[9] = largoONulo(o, "rdId");
+            row[10] = dobleDe(o, "amountPar");
+            cuotas.add(row);
+        }
+        return cuotas;
+    }
+
+    private List<Object[]> buscarCuotasPrestamosConVoucherDirecto(String soliNum, int empleadoId, boolean mostrarTodas) {
         List<Object[]> cuotas = new ArrayList<>();
 
         String sql = "SELECT ld.ID, l.SoliNum, ld.Dues, ld.MonthlyFeeValue, COALESCE(ld.payment, 0) AS payment, " +
@@ -3132,6 +4081,44 @@ public class RegistroDao {
      * @return Lista [abonoDetailId, SoliNum, concepto, dues, monthly, payment, pendiente, State, voucherCodigo, voucherId, rdId, amountParVoucher]
      */
     public List<Object[]> buscarCuotasAbonosConVoucher(String soliNum, int empleadoId, boolean mostrarTodas) {
+        try {
+            return buscarCuotasAbonosConVoucherDesdeBackend(soliNum, empleadoId, mostrarTodas);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return buscarCuotasAbonosConVoucherDirecto(soliNum, empleadoId, mostrarTodas);
+    }
+
+    private List<Object[]> buscarCuotasAbonosConVoucherDesdeBackend(String soliNum, int empleadoId, boolean mostrarTodas)
+            throws IOException, InterruptedException {
+        String path = BASE + "/cuotas/abonos-con-voucher?empleadoId=" + empleadoId
+                + "&mostrarTodas=" + mostrarTodas;
+        if (soliNum != null && !soliNum.trim().isEmpty()) {
+            path += "&soliNum=" + enc(soliNum);
+        }
+        JsonObject resp = ApiBackend.get(path);
+        List<Object[]> cuotas = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[12];
+            row[0] = o.get("id").getAsLong();
+            row[1] = textoDe(o, "soliNum");
+            row[2] = textoDe(o, "concepto");
+            row[3] = o.get("dues").getAsInt();
+            row[4] = dobleDe(o, "monthly");
+            row[5] = dobleDe(o, "payment");
+            row[6] = dobleDe(o, "pendiente");
+            row[7] = textoDe(o, "state");
+            row[8] = textoDe(o, "voucherCodigo");
+            row[9] = enteroONulo(o, "voucherId");
+            row[10] = largoONulo(o, "rdId");
+            row[11] = dobleDe(o, "amountPar");
+            cuotas.add(row);
+        }
+        return cuotas;
+    }
+
+    private List<Object[]> buscarCuotasAbonosConVoucherDirecto(String soliNum, int empleadoId, boolean mostrarTodas) {
         List<Object[]> cuotas = new ArrayList<>();
 
         String sql = "SELECT ad.id, a.SoliNum, COALESCE(sc.description, 'Sin concepto') AS concepto, " +
@@ -3194,6 +4181,32 @@ public class RegistroDao {
      * @return true si se transfirió correctamente
      */
     public boolean transferirPagoPrestamoAVoucher(long rdIdOrigen, long loanDetailId, int registroIdDestino,
+                                                   double montoTransferir, String usuario, String motivo) {
+        try {
+            return transferirPagoAVoucherDesdeBackend("/transferencia/prestamo", rdIdOrigen,
+                    loanDetailId, registroIdDestino, montoTransferir, usuario, motivo);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return transferirPagoPrestamoAVoucherDirecto(rdIdOrigen, loanDetailId, registroIdDestino,
+                montoTransferir, usuario, motivo);
+    }
+
+    private boolean transferirPagoAVoucherDesdeBackend(String path, long rdIdOrigen, long cuotaDetailId,
+            int registroIdDestino, double montoTransferir, String usuario, String motivo)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("rdIdOrigen", rdIdOrigen);
+        body.addProperty("cuotaDetailId", cuotaDetailId);
+        body.addProperty("registroIdDestino", registroIdDestino);
+        body.addProperty("montoTransferir", montoTransferir);
+        body.addProperty("usuario", usuario);
+        body.addProperty("motivo", motivo);
+        JsonObject resp = ApiBackend.post(BASE + path, body);
+        return dataObj(resp).get("transferido").getAsBoolean();
+    }
+
+    private boolean transferirPagoPrestamoAVoucherDirecto(long rdIdOrigen, long loanDetailId, int registroIdDestino,
                                                    double montoTransferir, String usuario, String motivo) {
         try {
             conn.setAutoCommit(false);
@@ -3280,7 +4293,7 @@ public class RegistroDao {
             }
 
             // Verificar si el voucher origen quedó vacío y eliminarlo
-            eliminarVoucherSiVacio(voucherOrigenId, usuario);
+            eliminarVoucherSiVacioDirecto(voucherOrigenId, usuario);
 
             // Registrar en historial
             guardarHistorialCorreccion("TRANSFERIR_PRESTAMO_VOUCHER",
@@ -3318,6 +4331,18 @@ public class RegistroDao {
      * @return true si se transfirió correctamente
      */
     public boolean transferirPagoAbonoAVoucher(long rdIdOrigen, long abonoDetailId, int registroIdDestino,
+                                                double montoTransferir, String usuario, String motivo) {
+        try {
+            return transferirPagoAVoucherDesdeBackend("/transferencia/abono", rdIdOrigen,
+                    abonoDetailId, registroIdDestino, montoTransferir, usuario, motivo);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return transferirPagoAbonoAVoucherDirecto(rdIdOrigen, abonoDetailId, registroIdDestino,
+                montoTransferir, usuario, motivo);
+    }
+
+    private boolean transferirPagoAbonoAVoucherDirecto(long rdIdOrigen, long abonoDetailId, int registroIdDestino,
                                                 double montoTransferir, String usuario, String motivo) {
         try {
             conn.setAutoCommit(false);
@@ -3404,7 +4429,7 @@ public class RegistroDao {
             }
 
             // Verificar si el voucher origen quedó vacío y eliminarlo
-            eliminarVoucherSiVacio(voucherOrigenId, usuario);
+            eliminarVoucherSiVacioDirecto(voucherOrigenId, usuario);
 
             // Registrar en historial
             guardarHistorialCorreccion("TRANSFERIR_ABONO_VOUCHER",
@@ -3438,6 +4463,24 @@ public class RegistroDao {
      * @return true si se eliminó el voucher, false si no estaba vacío
      */
     public boolean eliminarVoucherSiVacio(int registroId, String usuario) {
+        try {
+            return eliminarVoucherSiVacioDesdeBackend(registroId, usuario);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return eliminarVoucherSiVacioDirecto(registroId, usuario);
+    }
+
+    private boolean eliminarVoucherSiVacioDesdeBackend(int registroId, String usuario)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("registroId", registroId);
+        body.addProperty("usuario", usuario);
+        JsonObject resp = ApiBackend.post(BASE + "/voucher/eliminar-si-vacio", body);
+        return dataObj(resp).get("eliminado").getAsBoolean();
+    }
+
+    private boolean eliminarVoucherSiVacioDirecto(int registroId, String usuario) {
         try {
             // Verificar si tiene detalles
             String sqlContarDetalles = "SELECT COUNT(*) AS total FROM registerdetails WHERE idRegistro = ?";
@@ -3498,6 +4541,25 @@ public class RegistroDao {
      * @return true si se eliminó correctamente
      */
     public boolean eliminarVoucherCompleto(int registroId, String usuario, String motivo) {
+        try {
+            return eliminarVoucherCompletoDesdeBackend(registroId, usuario, motivo);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return eliminarVoucherCompletoDirecto(registroId, usuario, motivo);
+    }
+
+    private boolean eliminarVoucherCompletoDesdeBackend(int registroId, String usuario, String motivo)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("registroId", registroId);
+        body.addProperty("usuario", usuario);
+        body.addProperty("motivo", motivo);
+        JsonObject resp = ApiBackend.post(BASE + "/voucher/eliminar-completo", body);
+        return dataObj(resp).get("eliminado").getAsBoolean();
+    }
+
+    private boolean eliminarVoucherCompletoDirecto(int registroId, String usuario, String motivo) {
         try {
             conn.setAutoCommit(false);
 
@@ -3640,6 +4702,26 @@ public class RegistroDao {
      * Obtiene lista de códigos de solicitudes de préstamos para autocompletado
      */
     public List<String> obtenerCodigosSolicitudesPrestamos() {
+        try {
+            return codigosDesdeBackend("/codigos/prestamos");
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerCodigosSolicitudesPrestamosDirecto();
+    }
+
+    /** Listas de codigos (autocompletado) desde el backend. */
+    private List<String> codigosDesdeBackend(String pathConQuery)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + pathConQuery);
+        List<String> codigos = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            codigos.add(el.getAsString());
+        }
+        return codigos;
+    }
+
+    private List<String> obtenerCodigosSolicitudesPrestamosDirecto() {
         List<String> codigos = new ArrayList<>();
         String sql = "SELECT DISTINCT l.SoliNum FROM loan l " +
                      "WHERE l.SoliNum IS NOT NULL AND l.SoliNum != '' " +
@@ -3660,6 +4742,15 @@ public class RegistroDao {
      * Obtiene lista de códigos de solicitudes de abonos para autocompletado
      */
     public List<String> obtenerCodigosSolicitudesAbonos() {
+        try {
+            return codigosDesdeBackend("/codigos/abonos");
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerCodigosSolicitudesAbonosDirecto();
+    }
+
+    private List<String> obtenerCodigosSolicitudesAbonosDirecto() {
         List<String> codigos = new ArrayList<>();
         String sql = "SELECT DISTINCT a.SoliNum FROM abono a " +
                      "WHERE a.SoliNum IS NOT NULL AND a.SoliNum != '' " +
@@ -3680,6 +4771,15 @@ public class RegistroDao {
      * Obtiene lista de códigos de tickets/vouchers para autocompletado
      */
     public List<String> obtenerCodigosTickets() {
+        try {
+            return codigosDesdeBackend("/codigos/tickets");
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerCodigosTicketsDirecto();
+    }
+
+    private List<String> obtenerCodigosTicketsDirecto() {
         List<String> codigos = new ArrayList<>();
         String sql = "SELECT DISTINCT r.codigo FROM registro r " +
                      "WHERE r.codigo IS NOT NULL AND r.codigo != '' " +
@@ -3701,6 +4801,15 @@ public class RegistroDao {
      * Obtiene lista de códigos de préstamos para un empleado específico
      */
     public List<String> obtenerCodigosSolicitudesPrestamosPorEmpleado(int empleadoId) {
+        try {
+            return codigosDesdeBackend("/codigos/prestamos-empleado?empleadoId=" + empleadoId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerCodigosSolicitudesPrestamosPorEmpleadoDirecto(empleadoId);
+    }
+
+    private List<String> obtenerCodigosSolicitudesPrestamosPorEmpleadoDirecto(int empleadoId) {
         List<String> codigos = new ArrayList<>();
         String sql = "SELECT DISTINCT l.SoliNum FROM loan l " +
                      "WHERE l.EmployeeID = ? AND l.SoliNum IS NOT NULL AND l.SoliNum != '' " +
@@ -3723,6 +4832,15 @@ public class RegistroDao {
      * Obtiene lista de códigos de abonos para un empleado específico
      */
     public List<String> obtenerCodigosSolicitudesAbonosPorEmpleado(int empleadoId) {
+        try {
+            return codigosDesdeBackend("/codigos/abonos-empleado?empleadoId=" + empleadoId);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerCodigosSolicitudesAbonosPorEmpleadoDirecto(empleadoId);
+    }
+
+    private List<String> obtenerCodigosSolicitudesAbonosPorEmpleadoDirecto(int empleadoId) {
         List<String> codigos = new ArrayList<>();
         String sql = "SELECT DISTINCT a.SoliNum FROM abono a " +
                      "WHERE a.Employee_id = ? AND a.SoliNum IS NOT NULL AND a.SoliNum != '' " +
@@ -3751,6 +4869,36 @@ public class RegistroDao {
      * @return Lista [id, tipo, solicitud, cuota, pago_anterior, pago_nuevo, usuario, motivo, fecha]
      */
     public List<Object[]> obtenerUltimosCambios(int limite) {
+        try {
+            return obtenerUltimosCambiosDesdeBackend(limite);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return obtenerUltimosCambiosDirecto(limite);
+    }
+
+    private List<Object[]> obtenerUltimosCambiosDesdeBackend(int limite)
+            throws IOException, InterruptedException {
+        JsonObject resp = ApiBackend.get(BASE + "/ultimos-cambios?limite=" + limite);
+        List<Object[]> cambios = new ArrayList<>();
+        for (JsonElement el : dataArr(resp)) {
+            JsonObject o = el.getAsJsonObject();
+            Object[] row = new Object[9];
+            row[0] = o.get("id").getAsLong();
+            row[1] = textoDe(o, "tipo");
+            row[2] = textoDe(o, "solicitud");
+            row[3] = o.get("cuota").getAsInt();
+            row[4] = dobleDe(o, "pagoAnterior");
+            row[5] = dobleDe(o, "pagoNuevo");
+            row[6] = textoDe(o, "usuario");
+            row[7] = textoDe(o, "motivo");
+            row[8] = timestampDe(o, "fechaCorreccion");
+            cambios.add(row);
+        }
+        return cambios;
+    }
+
+    private List<Object[]> obtenerUltimosCambiosDirecto(int limite) {
         List<Object[]> cambios = new ArrayList<>();
         String sql = "SELECT id, tipo, solicitud, cuota, pago_anterior, pago_nuevo, usuario, motivo, fecha_correccion " +
                 "FROM historial_correcciones " +
@@ -3787,6 +4935,24 @@ public class RegistroDao {
      * @return true si se revirtió correctamente
      */
     public boolean revertirCambio(long historialId, String usuario) {
+        try {
+            return revertirCambioDesdeBackend(historialId, usuario);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return revertirCambioDirecto(historialId, usuario);
+    }
+
+    private boolean revertirCambioDesdeBackend(long historialId, String usuario)
+            throws IOException, InterruptedException {
+        JsonObject body = new JsonObject();
+        body.addProperty("historialId", historialId);
+        body.addProperty("usuario", usuario);
+        JsonObject resp = ApiBackend.post(BASE + "/cambios/revertir", body);
+        return dataObj(resp).get("revertido").getAsBoolean();
+    }
+
+    private boolean revertirCambioDirecto(long historialId, String usuario) {
         System.out.println("=== INICIANDO revertirCambio para historialId: " + historialId + " ===");
         try {
             // Obtener datos del historial

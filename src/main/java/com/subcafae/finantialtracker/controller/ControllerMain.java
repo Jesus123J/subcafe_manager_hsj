@@ -54,6 +54,7 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
         viewMain.jMenuMangeLoan.addMouseListener(this);
         viewMain.jMenuManageWorker.addMouseListener(this);
         viewMain.jMenuManageUser.addMouseListener(this);
+        viewMain.jMenuEstadisticas.addMouseListener(this);
         viewMain.jMenu2.addMouseListener(this);
 
         viewMain.jButton3.addActionListener(this);
@@ -180,6 +181,9 @@ public class ControllerMain extends ModelMain implements ActionListener, MouseLi
             }
             if (e.getSource().equals(viewMain.jMenuManageWorker)) {
                 centerInternalComponent(componentManageWorker);
+            }
+            if (e.getSource().equals(viewMain.jMenuEstadisticas)) {
+                showEstadisticasEmpleado();
             }
         } catch (Exception ex) {
             System.out.println("Error -> " + ex.getMessage());

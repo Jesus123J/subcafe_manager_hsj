@@ -51,6 +51,20 @@
             <type>jar</type>
         </dependency>
 
+        <!-- Gson para consumir la API REST del backend (Proyeto_2026/backend) -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+
+        <!-- PDFBox para enviar PDFs directo a la impresora (voucher de pago) -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+
         <!-- JasperReports para generación de reportes -->
         <dependency>
             <groupId>net.sf.jasperreports</groupId>
@@ -78,6 +92,13 @@
             <artifactId>flatlaf-fonts-roboto</artifactId>
             <version>2.137</version>
         </dependency>
+        <!-- JFreeChart para graficos en estadisticas de empleado -->
+        <dependency>
+            <groupId>org.jfree</groupId>
+            <artifactId>jfreechart</artifactId>
+            <version>1.5.4</version>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>

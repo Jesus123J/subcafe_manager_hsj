@@ -4,6 +4,10 @@
  */
 package com.subcafae.finantialtracker.data.dao;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.subcafae.finantialtracker.data.conexion.ApiBackend;
 import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.ServiceConceptTb;
 import java.sql.Connection;
@@ -27,7 +31,142 @@ public class ServiceConceptDao {
         this.connection = Conexion.getConnection();
     }
 
+    // ═══ Backend primero, fallback a JDBC directo ══════════════════════
+
     public void insert(ServiceConceptTb entity) throws SQLException {
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("id", entity.getId());
+            body.addProperty("description", entity.getDescription());
+            body.addProperty("salePrice", entity.getSalePrice());
+            body.addProperty("costPrice", entity.getCostPrice());
+            body.addProperty("priority", entity.getPriority());
+            body.addProperty("unid", entity.getUnid());
+            body.addProperty("priorityConcept", entity.getPriorityConcept());
+            body.addProperty("createdBy", entity.getCreatedBy());
+            body.addProperty("createdAt", entity.getCreatedAt());
+            body.addProperty("modifiedBy", entity.getModifiedBy());
+            body.addProperty("modifiedAt", entity.getModifiedAt());
+            ApiBackend.post("/integracion/ft/conceptos", body);
+            JOptionPane.showMessageDialog(null, "Se registro el Concepto", "GÉSTION DE BONO", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        insertDirecto(entity);
+    }
+
+    public boolean deleteServiceConceptIfNotUsed(String codigo) throws SQLException {
+        try {
+            JsonObject data = ApiBackend
+                    .delete("/integracion/ft/conceptos/codigo/" + codigo)
+                    .getAsJsonObject("data");
+            boolean borrado = data.get("borrado").getAsBoolean();
+            if (!borrado) {
+                JOptionPane.showMessageDialog(null, "No se puede eliminar, el servicio está referenciado en abono.", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+            }
+            return borrado;
+        } catch (ApiBackend.NoEncontradoException e) {
+            JOptionPane.showMessageDialog(null, "No se encontró el código en service_concept.", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+            return false;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return deleteServiceConceptIfNotUsedDirecto(codigo);
+    }
+
+    public ServiceConceptTb findServiceConceptByCodigo(String codigo) {
+        try {
+            JsonObject data = ApiBackend
+                    .get("/integracion/ft/conceptos/codigo/" + codigo)
+                    .getAsJsonObject("data");
+            return jsonToConcepto(data);
+        } catch (ApiBackend.NoEncontradoException e) {
+            // Si no se encuentra, imprime el mensaje (mismo aviso que el DAO original)
+            JOptionPane.showMessageDialog(null, "No se encontró el concepto con el código proporcionado", "GENERAL", JOptionPane.INFORMATION_MESSAGE);
+            return null;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findServiceConceptByCodigoDirecto(codigo);
+    }
+
+    public List<ServiceConceptTb> getAllServiceConcepts() throws SQLException {
+        try {
+            JsonArray data = ApiBackend
+                    .get("/integracion/ft/conceptos/completos")
+                    .getAsJsonArray("data");
+            List<ServiceConceptTb> serviceConceptList = new ArrayList<>();
+            for (JsonElement el : data) {
+                serviceConceptList.add(jsonToConcepto(el.getAsJsonObject()));
+            }
+            return serviceConceptList;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getAllServiceConceptsDirecto();
+    }
+
+    // Metodo para obtener codigo y descripcion de conceptos para autocompletado
+    // Formato: "codigo - descripcion"
+    public List<String> getAllConceptDescriptions() {
+        try {
+            JsonArray data = ApiBackend
+                    .get("/integracion/ft/conceptos/descripciones")
+                    .getAsJsonArray("data");
+            List<String> descriptions = new ArrayList<>();
+            for (JsonElement el : data) {
+                JsonObject fila = el.getAsJsonObject();
+                String codigo = texto(fila, "codigo");
+                String desc = texto(fila, "description");
+                if (codigo != null && !codigo.isBlank() && desc != null && !desc.isBlank()) {
+                    descriptions.add(codigo + " - " + desc);
+                }
+            }
+            return descriptions;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getAllConceptDescriptionsDirecto();
+    }
+
+    // ─── Mapeo del JSON del backend a entidades ────────────────────────
+
+    private static ServiceConceptTb jsonToConcepto(JsonObject o) {
+        ServiceConceptTb serviceConcept = new ServiceConceptTb();
+        serviceConcept.setId(entero(o, "id"));
+        serviceConcept.setCodigo(texto(o, "codigo"));
+        serviceConcept.setDescription(texto(o, "description"));
+        serviceConcept.setSalePrice(decimal(o, "salePrice"));
+        serviceConcept.setCostPrice(decimal(o, "costPrice"));
+        serviceConcept.setPriority(entero(o, "priority"));
+        serviceConcept.setUnid(entero(o, "unid"));
+        serviceConcept.setPriorityConcept(texto(o, "priorityConcept"));
+        serviceConcept.setCreatedBy(entero(o, "createdBy"));
+        serviceConcept.setCreatedAt(texto(o, "createdAt"));
+        serviceConcept.setModifiedBy(entero(o, "modifiedBy"));
+        serviceConcept.setModifiedAt(texto(o, "modifiedAt"));
+        return serviceConcept;
+    }
+
+    private static String texto(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? null : v.getAsString();
+    }
+
+    private static int entero(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? 0 : v.getAsInt();
+    }
+
+    private static double decimal(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? 0.0 : v.getAsDouble();
+    }
+
+    // ═══ Fallback: JDBC directo (logica original, NO borrar) ═══════════
+
+    private void insertDirecto(ServiceConceptTb entity) throws SQLException {
         String query = "INSERT INTO service_concept (ID, description, sale_price, cost_price, priority, unid ,"
                 + "priority_concept, createdBy, createdAt, modifiedBy, modifiedAt) "
                 + "VALUES (?, ?, ?, ?, ? , ?, ?, ?, ?, ?, ?)";
@@ -49,7 +188,7 @@ public class ServiceConceptDao {
         }
     }
 
-    public boolean deleteServiceConceptIfNotUsed(String codigo) throws SQLException {
+    private boolean deleteServiceConceptIfNotUsedDirecto(String codigo) throws SQLException {
         String findServiceConceptIdQuery = "SELECT ID FROM service_concept WHERE codigo = ?";
         String checkUsageQuery = "SELECT COUNT(*) FROM abono WHERE service_concept_id = ?";
         String deleteQuery = "DELETE FROM service_concept WHERE ID = ?";
@@ -82,7 +221,7 @@ public class ServiceConceptDao {
         }
     }
 
-    public ServiceConceptTb findServiceConceptByCodigo(String codigo) {
+    private ServiceConceptTb findServiceConceptByCodigoDirecto(String codigo) {
         String sql = "SELECT * FROM service_concept WHERE codigo = ? ORDER BY ID ASC LIMIT 1";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -117,7 +256,7 @@ public class ServiceConceptDao {
         return null;
     }
 
-    public List<ServiceConceptTb> getAllServiceConcepts() throws SQLException {
+    private List<ServiceConceptTb> getAllServiceConceptsDirecto() throws SQLException {
         List<ServiceConceptTb> serviceConceptList = new ArrayList<>();
         String query = "SELECT * FROM service_concept";
 
@@ -143,9 +282,7 @@ public class ServiceConceptDao {
         return serviceConceptList;
     }
 
-    // Metodo para obtener codigo y descripcion de conceptos para autocompletado
-    // Formato: "codigo - descripcion"
-    public List<String> getAllConceptDescriptions() {
+    private List<String> getAllConceptDescriptionsDirecto() {
         List<String> descriptions = new ArrayList<>();
         String sql = "SELECT codigo, description FROM service_concept ORDER BY codigo ASC";
 

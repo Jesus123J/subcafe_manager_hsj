@@ -4,15 +4,34 @@
  */
 package com.subcafae.finantialtracker.data.dao;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.subcafae.finantialtracker.data.conexion.ApiBackend;
 import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.EmployeeTb;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import javax.swing.JOptionPane;
 
+/**
+ * CRUD de empleados.
+ *
+ * Fuente primaria: el backend REST (rutas /integracion/ft/empleados-full/**,
+ * espejo exacto de este DAO). Fallback: JDBC directo (metodos xxxDirecto()),
+ * para que la app siga funcionando cuando el backend no esta corriendo.
+ */
 public class EmployeeDao {
+
+    private static final String BASE = "/integracion/ft/empleados-full";
+    private static final DateTimeFormatter FECHA_HORA =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final Connection connection;
 
@@ -21,6 +40,19 @@ public class EmployeeDao {
     }
 
     public boolean updateEmploymentStatusByDNI(String dni, String newStatus) {
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("estado", newStatus);
+            JsonObject data = ApiBackend.put(BASE + "/" + encodar(dni) + "/estado", body)
+                    .getAsJsonObject("data");
+            return data.get("actualizado").getAsBoolean();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return updateEmploymentStatusByDNIDirecto(dni, newStatus);
+    }
+
+    private boolean updateEmploymentStatusByDNIDirecto(String dni, String newStatus) {
         String sql = "UPDATE employees SET employment_status = ?, employment_status_code = ?, updated_at = CURRENT_TIMESTAMP WHERE national_id = ?";
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
@@ -48,6 +80,26 @@ public class EmployeeDao {
     }
 
     public boolean deleteEmployeeIfNotUsed(String dni) throws SQLException {
+        try {
+            JsonObject data = ApiBackend.delete(BASE + "/" + encodar(dni))
+                    .getAsJsonObject("data");
+            boolean eliminado = data.get("eliminado").getAsBoolean();
+            if (!eliminado) {
+                // Mismos dialogos que la version JDBC original
+                if ("NO_ENCONTRADO".equals(textoDe(data, "motivo"))) {
+                    JOptionPane.showMessageDialog(null, "No se encontró el empleado con el DNI proporcionado.", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(null, "No se puede eliminar, el empleado tiene préstamos o abonos registrados.", "GESTIÓN TRABAJADOR", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+            return eliminado;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return deleteEmployeeIfNotUsedDirecto(dni);
+    }
+
+    private boolean deleteEmployeeIfNotUsedDirecto(String dni) throws SQLException {
         String findEmployeeIdQuery = "SELECT employee_id FROM employees WHERE national_id = ?";
         String checkLoanUsageQuery = "SELECT COUNT(*) FROM loan WHERE EmployeeID = ?";
         String checkUserUsageQuery = "SELECT COUNT(*) FROM user se\n"
@@ -95,7 +147,18 @@ public class EmployeeDao {
     }
 
     public List<EmployeeTb> getEmployeesByDateRange(Date fechaInicio, Date fechaFin) {
-        
+        try {
+            JsonObject resp = ApiBackend.get(BASE + "/rango?inicio=" + fechaInicio.toLocalDate()
+                    + "&fin=" + fechaFin.toLocalDate());
+            return listaDesdeJson(resp);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getEmployeesByDateRangeDirecto(fechaInicio, fechaFin);
+    }
+
+    private List<EmployeeTb> getEmployeesByDateRangeDirecto(Date fechaInicio, Date fechaFin) {
+
         List<EmployeeTb> listaEmpleados = new ArrayList<>();
         String sql = "SELECT e.* FROM employees e "
                 + "WHERE e.start_date BETWEEN ? AND ? "
@@ -122,6 +185,23 @@ public class EmployeeDao {
 
     // Crear empleado
     public int create(EmployeeTb employee) throws SQLException {
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("fullName", employee.getFullName());
+            body.addProperty("nationalId", employee.getNationalId());
+            body.addProperty("gender", employee.getGender());
+            body.addProperty("employmentStatus", employee.getEmploymentStatus());
+            body.addProperty("employmentStatusCode", employee.getEmploymentStatusCode());
+            body.addProperty("startDate", employee.getStartDate().toString());
+            JsonObject data = ApiBackend.post(BASE, body).getAsJsonObject("data");
+            return data.get("id").getAsInt();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return createDirecto(employee);
+    }
+
+    private int createDirecto(EmployeeTb employee) throws SQLException {
         String sql = "INSERT INTO employees (fullName, national_id,"
                 + "gender, employment_status, employment_status_code, start_date) "
                 + "VALUES (?,?, ?, ?, ?, ?)";
@@ -150,6 +230,18 @@ public class EmployeeDao {
     }
 
     public Optional<EmployeeTb> findById(Integer id) throws SQLException {
+        try {
+            JsonObject resp = ApiBackend.get(BASE + "/por-id/" + id);
+            return Optional.of(empleadoDesdeJson(resp.getAsJsonObject("data")));
+        } catch (ApiBackend.NoEncontradoException e) {
+            return Optional.empty(); // el backend confirmo que no existe
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findByIdDirecto(id);
+    }
+
+    private Optional<EmployeeTb> findByIdDirecto(Integer id) throws SQLException {
         String sql = "SELECT * FROM employees WHERE employee_id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, id);
@@ -164,6 +256,18 @@ public class EmployeeDao {
 
     // Buscar por ID
     public Optional<EmployeeTb> findById(String dni) throws SQLException {
+        try {
+            JsonObject resp = ApiBackend.get(BASE + "/por-dni/" + encodar(dni));
+            return Optional.of(empleadoDesdeJson(resp.getAsJsonObject("data")));
+        } catch (ApiBackend.NoEncontradoException e) {
+            return Optional.empty(); // el backend confirmo que no existe
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findByIdDirecto(dni);
+    }
+
+    private Optional<EmployeeTb> findByIdDirecto(String dni) throws SQLException {
         String sql = "SELECT * FROM employees WHERE national_id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, dni);
@@ -178,6 +282,15 @@ public class EmployeeDao {
 
     // Obtener todos (excluyendo empleados que son usuarios admin/super admin)
     public List<EmployeeTb> findAll() throws SQLException {
+        try {
+            return listaDesdeJson(ApiBackend.get(BASE));
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findAllDirecto();
+    }
+
+    private List<EmployeeTb> findAllDirecto() throws SQLException {
         List<EmployeeTb> employees = new ArrayList<>();
         String sql = "SELECT e.* FROM employees e "
                 + "WHERE e.employee_id NOT IN ("
@@ -209,6 +322,15 @@ public class EmployeeDao {
     }
 
     public List<EmployeeTb> findEmployeesByFullName(String fullName) throws SQLException {
+        try {
+            return listaDesdeJson(ApiBackend.get(BASE + "/buscar?nombre=" + encodar(fullName)));
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findEmployeesByFullNameDirecto(fullName);
+    }
+
+    private List<EmployeeTb> findEmployeesByFullNameDirecto(String fullName) throws SQLException {
         String sql = "SELECT e.* FROM employees e "
                 + "WHERE e.fullName LIKE ? "
                 + "AND e.employee_id NOT IN ("
@@ -232,6 +354,23 @@ public class EmployeeDao {
     }
 
     public boolean updateEmployee(String originalDni, String newDni, String fullName, String gender, String employmentStatus, Date startDate) {
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("nuevoDni", newDni);
+            body.addProperty("fullName", fullName);
+            body.addProperty("gender", gender);
+            body.addProperty("employmentStatus", employmentStatus);
+            body.addProperty("startDate", startDate.toLocalDate().toString());
+            JsonObject data = ApiBackend.put(BASE + "/" + encodar(originalDni), body)
+                    .getAsJsonObject("data");
+            return data.get("actualizado").getAsBoolean();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return updateEmployeeDirecto(originalDni, newDni, fullName, gender, employmentStatus, startDate);
+    }
+
+    private boolean updateEmployeeDirecto(String originalDni, String newDni, String fullName, String gender, String employmentStatus, Date startDate) {
         String sqlEmployee = "UPDATE employees SET national_id = ?, fullName = ?, gender = ?, employment_status = ?, employment_status_code = ?, start_date = ?, updated_at = CURRENT_TIMESTAMP WHERE national_id = ?";
         String sqlLoanEmployee = "UPDATE loan SET EmployeeID = ? WHERE EmployeeID = ?";
         String sqlLoanGuarantor = "UPDATE loan SET GuarantorId = ? WHERE GuarantorId = ?";
@@ -297,6 +436,26 @@ public class EmployeeDao {
 
     // Método para obtener lista de empleados con formato "DNI - Nombre" para autocompletado
     public List<String> getAllEmployeeDniNames() {
+        try {
+            JsonObject resp = ApiBackend.get(BASE + "/dni-nombres");
+            List<String> dniNames = new ArrayList<>();
+            for (JsonElement elem : resp.get("data").getAsJsonArray()) {
+                JsonObject fila = elem.getAsJsonObject();
+                String dni = textoDe(fila, "dni");
+                String name = textoDe(fila, "nombre");
+                // Mismo filtro de blancos que la version JDBC original
+                if (dni != null && !dni.isBlank() && name != null && !name.isBlank()) {
+                    dniNames.add(dni + " - " + name);
+                }
+            }
+            return dniNames;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getAllEmployeeDniNamesDirecto();
+    }
+
+    private List<String> getAllEmployeeDniNamesDirecto() {
         List<String> dniNames = new ArrayList<>();
         String sql = "SELECT national_id, fullName FROM employees ORDER BY fullName ASC";
 
@@ -317,6 +476,15 @@ public class EmployeeDao {
 
     // Método para obtener los últimos N empleados
     public List<EmployeeTb> getLastEmployees(int limit) {
+        try {
+            return listaDesdeJson(ApiBackend.get(BASE + "/ultimos?limite=" + limit));
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getLastEmployeesDirecto(limit);
+    }
+
+    private List<EmployeeTb> getLastEmployeesDirecto(int limit) {
         List<EmployeeTb> employees = new ArrayList<>();
         String sql = "SELECT e.* FROM employees e "
                 + "WHERE e.employee_id NOT IN ("
@@ -333,5 +501,56 @@ public class EmployeeDao {
             e.printStackTrace();
         }
         return employees;
+    }
+
+    // ─── Helpers para el camino backend ────────────────────────────────
+
+    /** Codifica un valor para usarlo en path o query string de la API. */
+    private static String encodar(String valor) {
+        return URLEncoder.encode(valor, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    private static String textoDe(JsonObject obj, String campo) {
+        JsonElement v = obj.get(campo);
+        return v == null || v.isJsonNull() ? null : v.getAsString();
+    }
+
+    private static List<EmployeeTb> listaDesdeJson(JsonObject resp) {
+        List<EmployeeTb> lista = new ArrayList<>();
+        for (JsonElement elem : resp.get("data").getAsJsonArray()) {
+            lista.add(empleadoDesdeJson(elem.getAsJsonObject()));
+        }
+        return lista;
+    }
+
+    /**
+     * Reconstruye un EmployeeTb desde el JSON del backend (mismas keys que
+     * las columnas de la tabla employees; fechas como "yyyy-MM-dd" y
+     * "yyyy-MM-dd HH:mm:ss" gracias al DATE_FORMAT del repository).
+     */
+    private static EmployeeTb empleadoDesdeJson(JsonObject obj) {
+        EmployeeTb employee = new EmployeeTb();
+        JsonElement id = obj.get("employee_id");
+        if (id != null && !id.isJsonNull()) {
+            employee.setEmployeeId(id.getAsInt());
+        }
+        employee.setFullName(textoDe(obj, "fullName"));
+        employee.setNationalId(textoDe(obj, "national_id"));
+        employee.setGender(textoDe(obj, "gender"));
+        employee.setEmploymentStatus(textoDe(obj, "employment_status"));
+        employee.setEmploymentStatusCode(textoDe(obj, "employment_status_code"));
+        String startDate = textoDe(obj, "start_date");
+        if (startDate != null) {
+            employee.setStartDate(LocalDate.parse(startDate));
+        }
+        String createdAt = textoDe(obj, "created_at");
+        if (createdAt != null) {
+            employee.setCreatedAt(LocalDateTime.parse(createdAt, FECHA_HORA));
+        }
+        String updatedAt = textoDe(obj, "updated_at");
+        if (updatedAt != null) {
+            employee.setUpdatedAt(LocalDateTime.parse(updatedAt, FECHA_HORA));
+        }
+        return employee;
     }
 }

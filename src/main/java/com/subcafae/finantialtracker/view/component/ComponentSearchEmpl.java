@@ -216,6 +216,7 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
         jComboBox1.setEditable(true);
         jComboBox1.setSelectedItem(null);
         jComboBox1.setEnabled(true);
+        jComboBox1.setMaximumRowCount(12);
 
         // Editor de texto
         JTextField editor = (JTextField) jComboBox1.getEditor().getEditorComponent();
@@ -238,32 +239,29 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
         jLabel3.setText("<html><span style='color: #E0E0E0;'>Buscar Empleado:</span><br>" +
             "<span style='font-size: 9px; color: #A0A0A0;'>(" + totalEmpleados + " empleados disponibles - Escriba DNI o nombre)</span></html>");
 
-        // Listener de teclado.
-        // NOTA: usamos DocumentListener (no KeyListener) para captar TODA forma
-        // de input — letras, espacio, acentos, paste, IME — uniformemente.
-        // Antes habia un bug: editor.getText().trim() removia el espacio
-        // que el usuario acababa de tipear al final, asi "JUAN DE LA TORRE"
-        // se convertia en "JUANDELATORRE". Solucion: NO usar trim() y NO
-        // sobrescribir el texto del editor.
-        ((javax.swing.text.JTextComponent) editor).getDocument().addDocumentListener(
-                new javax.swing.event.DocumentListener() {
-            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
-            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
-            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) {}
+        // Guarda anti-reentrada: mutar modelo/seleccion de un combo editable
+        // toca el Document del editor y re-dispara el DocumentListener en
+        // loop (congelaba la UI). Ademas setModel/setSelectedIndex disparan
+        // el ActionListener de seleccion — con la bandera activa se ignoran,
+        // sino el rebuild auto-seleccionaba un empleado mientras se tipeaba.
+        final boolean[] actualizandoModelo = {false};
 
-            private void onChange() {
-                SwingUtilities.invokeLater(() -> filtrarYActualizar());
-            }
-
-            private void filtrarYActualizar() {
+        // Debounce: filtrar recien 150ms despues de la ultima tecla, con un
+        // solo setModel por rebuild (mismo patron que ModelMain).
+        final javax.swing.Timer filtroTimer = new javax.swing.Timer(150, ev -> {
+            actualizandoModelo[0] = true;
+            try {
                 String userText = editor.getText();             // preserva casing y espacios
                 String texto = userText.toLowerCase();          // solo para comparacion
                 editor.setForeground(java.awt.Color.BLACK);
 
                 if (userText.isEmpty()) {
                     jComboBox1.hidePopup();
-                    jComboBox1.setSelectedItem(null);
                     jComboBox1.setModel(new DefaultComboBoxModel<>());
+                    jComboBox1.setSelectedItem(null);
+                    if (!editor.getText().isEmpty()) {
+                        editor.setText("");
+                    }
                     jLabel3.setText("<html><span style='color: #34495e;'>Buscar Empleado:</span><br>"
                             + "<span style='font-size: 9px; color: #95a5a6;'>(" + totalEmpleados + " empleados disponibles)</span></html>");
                     return;
@@ -275,12 +273,12 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
                         .collect(Collectors.toList());
 
                 // Setear el model — guardamos el caret antes para restaurarlo si setModel
-                // o el cambio de selectedItem mueven el caret del editor.
+                // o el cambio de seleccion mueven el caret del editor.
                 int caretPos = editor.getCaretPosition();
                 DefaultComboBoxModel<String> modelo = new DefaultComboBoxModel<>();
                 filtrados.forEach(emp -> modelo.addElement(emp.getNationalId() + " - " + emp.getFullName()));
-                jComboBox1.setSelectedItem(null);
                 jComboBox1.setModel(modelo);
+                jComboBox1.setSelectedIndex(-1);
 
                 // Restaurar texto del usuario solo si fue alterado.
                 if (!editor.getText().equals(userText)) {
@@ -292,10 +290,27 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
                         + "<span style='font-size: 9px; color: " + (filtrados.isEmpty() ? "#e74c3c" : "#27ae60") + ";'>"
                         + "(" + filtrados.size() + " resultado" + (filtrados.size() != 1 ? "s" : "") + " encontrado" + (filtrados.size() != 1 ? "s" : "") + ")</span></html>");
 
-                if (!filtrados.isEmpty()) {
-                    if (!jComboBox1.isPopupVisible()) jComboBox1.showPopup();
-                } else {
+                if (jComboBox1.isShowing()) {
                     jComboBox1.hidePopup();
+                    if (!filtrados.isEmpty()) {
+                        jComboBox1.showPopup();
+                    }
+                }
+            } finally {
+                actualizandoModelo[0] = false;
+            }
+        });
+        filtroTimer.setRepeats(false);
+
+        ((javax.swing.text.JTextComponent) editor).getDocument().addDocumentListener(
+                new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { onChange(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) {}
+
+            private void onChange() {
+                if (!actualizandoModelo[0]) {
+                    filtroTimer.restart();
                 }
             }
         });
@@ -316,8 +331,13 @@ public final class ComponentSearchEmpl extends javax.swing.JInternalFrame {
             }
         });
 
-        // Cuando selecciona desde el popup
+        // Cuando selecciona desde el popup. La bandera filtra los action
+        // events que dispara el propio rebuild del modelo (setModel /
+        // setSelectedIndex) — sin esto se auto-seleccionaba al tipear.
         jComboBox1.addActionListener(e -> {
+            if (actualizandoModelo[0]) {
+                return;
+            }
             if (jComboBox1.isPopupVisible()) {
                 Object valorSeleccionado = jComboBox1.getSelectedItem();
                 if (valorSeleccionado != null) {

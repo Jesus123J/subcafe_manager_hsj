@@ -8,9 +8,14 @@ package com.subcafae.finantialtracker.data.dao;
  *
  * @author Jesus Gutierrez
  */
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.subcafae.finantialtracker.data.conexion.ApiBackend;
 import com.subcafae.finantialtracker.data.conexion.Conexion;
 import com.subcafae.finantialtracker.data.entity.AbonoDetailsTb;
 import com.subcafae.finantialtracker.data.entity.AbonoTb;
+import java.io.IOException;
 import java.sql.*;
 import java.time.Year;
 import java.util.ArrayList;
@@ -25,7 +30,347 @@ public class AbonoDao {
         this.connection = Conexion.getConnection();
     }
 
+    // ═══ Backend primero, fallback a JDBC directo ══════════════════════
+
     public void renounceAbono(String soliNum, Integer id, String fecha) throws SQLException {
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("modifiedBy", id);
+            body.addProperty("modifiedAt", fecha);
+            JsonObject data = ApiBackend
+                    .put("/integracion/ft/abonos/soli/" + soliNum + "/renuncia", body)
+                    .getAsJsonObject("data");
+            if (data.get("renunciado").getAsBoolean()) {
+                JOptionPane.showMessageDialog(null, "Se cambió el estado a Renunciado (REN)");
+            } else {
+                JOptionPane.showMessageDialog(null, "El número de solicitud ya se encuentra pagado");
+            }
+            return;
+        } catch (ApiBackend.NoEncontradoException e) {
+            JOptionPane.showMessageDialog(null, "No se encontró el número de solicitud buscado");
+            return;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        renounceAbonoDirecto(soliNum, id, fecha);
+    }
+
+    public boolean deleteAbonoIfNotUsed(String soliNum) throws SQLException {
+        try {
+            JsonObject data = ApiBackend
+                    .delete("/integracion/ft/abonos/soli/" + soliNum)
+                    .getAsJsonObject("data");
+            boolean borrado = data.get("borrado").getAsBoolean();
+            if (!borrado) {
+                JOptionPane.showMessageDialog(null, "No se puede eliminar, el abono tiene cuotas con estado 'Pagado' o 'Parcial'", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+            }
+            return borrado;
+        } catch (ApiBackend.NoEncontradoException e) {
+            JOptionPane.showMessageDialog(null, "No se encontró el bono con el SoliNum proporcionado.", "REPORTE DE ABONO", JOptionPane.INFORMATION_MESSAGE);
+            return false;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return deleteAbonoIfNotUsedDirecto(soliNum);
+    }
+
+    public boolean hasPendingAbono(String id, String idConcep) {
+        try {
+            JsonObject data = ApiBackend
+                    .get("/integracion/ft/abonos/pendiente?employeeId=" + id + "&conceptoId=" + idConcep)
+                    .getAsJsonObject("data");
+            return data.get("pendiente").getAsBoolean();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return hasPendingAbonoDirecto(id, idConcep);
+    }
+
+    // Método para insertar un nuevo abono
+    public Integer insertAbono(AbonoTb abono) throws SQLException {
+        try {
+            return insertAbonoBackend(abono);
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return insertAbonoDirecto(abono);
+    }
+
+    private Integer insertAbonoBackend(AbonoTb abono) throws IOException, InterruptedException {
+        if (hasPendingAbono(abono.getEmployeeId(), abono.getServiceConceptId())) {
+            return -1; // No se permite la inserción
+        }
+        JsonObject body = new JsonObject();
+        body.addProperty("soliNum", abono.getSoliNum());
+        body.addProperty("serviceConceptId", abono.getServiceConceptId());
+        body.addProperty("employeeId", abono.getEmployeeId());
+        body.addProperty("dues", abono.getDues());
+        body.addProperty("monthly", abono.getMonthly());
+        body.addProperty("paymentDate", abono.getPaymentDate());
+        body.addProperty("status", abono.getStatus());
+        body.addProperty("discountFrom", abono.getDiscountFrom());
+        body.addProperty("createdBy", abono.getCreatedBy());
+        body.addProperty("createdAt", abono.getCreatedAt());
+        body.addProperty("modifiedBy", abono.getModifiedBy());
+        body.addProperty("modifiedAt", abono.getModifiedAt());
+        if (abono.getLoteId() != null) {
+            body.addProperty("loteId", abono.getLoteId());
+        }
+        JsonObject data = ApiBackend.post("/integracion/ft/abonos", body).getAsJsonObject("data");
+        return data.get("id").getAsInt();
+    }
+
+    // Método para actualizar un abono existente
+    public boolean updateAbono(AbonoTb abono) throws SQLException {
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("soliNum", abono.getSoliNum());
+            body.addProperty("serviceConceptId", abono.getServiceConceptId());
+            body.addProperty("employeeId", abono.getEmployeeId());
+            body.addProperty("dues", abono.getDues());
+            body.addProperty("monthly", abono.getMonthly());
+            body.addProperty("paymentDate", abono.getPaymentDate());
+            body.addProperty("status", abono.getStatus());
+            body.addProperty("discountFrom", abono.getDiscountFrom());
+            body.addProperty("createdBy", abono.getCreatedBy());
+            body.addProperty("createdAt", abono.getCreatedAt());
+            body.addProperty("modifiedBy", abono.getModifiedBy());
+            body.addProperty("modifiedAt", abono.getModifiedAt());
+            JsonObject data = ApiBackend
+                    .put("/integracion/ft/abonos/" + abono.getId(), body)
+                    .getAsJsonObject("data");
+            return data.get("actualizado").getAsBoolean();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return updateAbonoDirecto(abono);
+    }
+
+    // Método para eliminar un abono por su ID
+    public boolean deleteAbono(int id) throws SQLException {
+        try {
+            JsonObject data = ApiBackend
+                    .delete("/integracion/ft/abonos/" + id)
+                    .getAsJsonObject("data");
+            return data.get("borrado").getAsBoolean();
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return deleteAbonoDirecto(id);
+    }
+
+    // Método para buscar un abono por su ID
+    public AbonoTb findAbonoById(int id) throws SQLException {
+        try {
+            JsonObject data = ApiBackend
+                    .get("/integracion/ft/abonos/" + id)
+                    .getAsJsonObject("data");
+            return jsonToAbono(data);
+        } catch (ApiBackend.NoEncontradoException e) {
+            return null; // el backend confirmo que el abono no existe
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findAbonoByIdDirecto(id);
+    }
+
+    // Método para listar todos los abonos
+    public List<AbonoTb> findAllAbonos() throws SQLException {
+        try {
+            return jsonToAbonos(ApiBackend.get("/integracion/ft/abonos").getAsJsonArray("data"));
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findAllAbonosDirecto();
+    }
+
+    /**
+     * Obtiene la lista de fechas (año/mes) con abonos por concepto y código
+     * de empleado, en formato "Mes yyyy (n abonos)".
+     */
+    public List<String> getAvailableDates(Integer idConcept, String codeEm) throws SQLException {
+        try {
+            JsonArray data = ApiBackend
+                    .get("/integracion/ft/abonos/fechas-disponibles?conceptoId=" + idConcept
+                            + "&codigoEmpleado=" + codeEm)
+                    .getAsJsonArray("data");
+            String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+            List<String> fechas = new ArrayList<>();
+            for (JsonElement el : data) {
+                JsonObject fila = el.getAsJsonObject();
+                int anio = entero(fila, "anio");
+                int mes = entero(fila, "mes");
+                int total = entero(fila, "total");
+                fechas.add(meses[mes - 1] + " " + anio + " (" + total + " abonos)");
+            }
+            return fechas;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getAvailableDatesDirecto(idConcept, codeEm);
+    }
+
+    public List<AbonoTb> getListAbonoTByConcepAndCodeEmRange(Integer idConcept, String codeEm, Date start, Date end) throws SQLException {
+        try {
+            return jsonToAbonos(ApiBackend
+                    .get("/integracion/ft/abonos/por-concepto/rango?conceptoId=" + idConcept
+                            + "&codigoEmpleado=" + codeEm
+                            + "&inicio=" + start + "&fin=" + end)
+                    .getAsJsonArray("data"));
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getListAbonoTByConcepAndCodeEmRangeDirecto(idConcept, codeEm, start, end);
+    }
+
+    public List<AbonoTb> getListAbonoTByConcepAndCodeEm(Integer idConcept, String codeEm, Date start) throws SQLException {
+        try {
+            String path = "/integracion/ft/abonos/por-concepto?conceptoId=" + idConcept
+                    + "&codigoEmpleado=" + codeEm;
+            if (start != null) {
+                path += "&fecha=" + start;
+            }
+            return jsonToAbonos(ApiBackend.get(path).getAsJsonArray("data"));
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getListAbonoTByConcepAndCodeEmDirecto(idConcept, codeEm, start);
+    }
+
+    public List<AbonoTb> findAllAbonos(Date start, Date finaly) throws SQLException {
+        try {
+            return jsonToAbonos(ApiBackend
+                    .get("/integracion/ft/abonos/rango?inicio=" + start + "&fin=" + finaly)
+                    .getAsJsonArray("data"));
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findAllAbonosDirecto(start, finaly);
+    }
+
+    public List<AbonoDetailsTb> getListAbonoBySoli(String soli) throws SQLException {
+        try {
+            JsonArray data = ApiBackend
+                    .get("/integracion/ft/abonos/soli/" + soli.trim() + "/detalles")
+                    .getAsJsonArray("data");
+            List<AbonoDetailsTb> abonoDetails = new ArrayList<>();
+            for (JsonElement el : data) {
+                abonoDetails.add(jsonToDetalle(el.getAsJsonObject()));
+            }
+            return abonoDetails;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getListAbonoBySoliDirecto(soli);
+    }
+
+    public List<AbonoTb> findAbonosByEmployeeAndCurrentYear(String employeeId) throws SQLException {
+        try {
+            return jsonToAbonos(ApiBackend
+                    .get("/integracion/ft/abonos/pendientes/" + employeeId)
+                    .getAsJsonArray("data"));
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return findAbonosByEmployeeAndCurrentYearDirecto(employeeId);
+    }
+
+    // Metodo para obtener los ultimos N abonos sin filtro de fecha
+    public List<AbonoTb> getLastAbonos(int limit) throws SQLException {
+        try {
+            return jsonToAbonos(ApiBackend
+                    .get("/integracion/ft/abonos/ultimos?limite=" + limit)
+                    .getAsJsonArray("data"));
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getLastAbonosDirecto(limit);
+    }
+
+    // Metodo para obtener todos los numeros de solicitud de abonos
+    public List<String> getAllSoliNums() {
+        try {
+            JsonArray data = ApiBackend
+                    .get("/integracion/ft/abonos/solinums")
+                    .getAsJsonArray("data");
+            List<String> soliNums = new ArrayList<>();
+            for (JsonElement el : data) {
+                if (!el.isJsonNull()) {
+                    soliNums.add(el.getAsString());
+                }
+            }
+            return soliNums;
+        } catch (Exception e) {
+            System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
+        }
+        return getAllSoliNumsDirecto();
+    }
+
+    // ─── Mapeo del JSON del backend a entidades ────────────────────────
+
+    private static List<AbonoTb> jsonToAbonos(JsonArray data) {
+        List<AbonoTb> abonos = new ArrayList<>();
+        for (JsonElement el : data) {
+            abonos.add(jsonToAbono(el.getAsJsonObject()));
+        }
+        return abonos;
+    }
+
+    private static AbonoTb jsonToAbono(JsonObject o) {
+        AbonoTb abono = new AbonoTb();
+        abono.setId(entero(o, "id"));
+        abono.setSoliNum(texto(o, "soliNum"));
+        abono.setServiceConceptId(texto(o, "serviceConceptId"));
+        abono.setEmployeeId(texto(o, "employeeId"));
+        abono.setDues(entero(o, "dues"));
+        abono.setMonthly(decimal(o, "monthly"));
+        abono.setPaymentDate(texto(o, "paymentDate"));
+        abono.setStatus(texto(o, "status"));
+        abono.setDiscountFrom(texto(o, "discountFrom"));
+        abono.setCreatedBy(entero(o, "createdBy"));
+        abono.setCreatedAt(texto(o, "createdAt"));
+        abono.setModifiedBy(entero(o, "modifiedBy"));
+        abono.setModifiedAt(texto(o, "modifiedAt"));
+        // lote_id no se mapea, igual que mapResultSetToAbono original
+        return abono;
+    }
+
+    private static AbonoDetailsTb jsonToDetalle(JsonObject o) {
+        AbonoDetailsTb detalle = new AbonoDetailsTb();
+        JsonElement id = o.get("id");
+        detalle.setId(id == null || id.isJsonNull() ? 0L : id.getAsLong());
+        detalle.setAbonoID(entero(o, "abonoId"));
+        detalle.setDues(entero(o, "dues"));
+        detalle.setMonthly(decimal(o, "monthly"));
+        detalle.setPayment(decimal(o, "payment"));
+        detalle.setPaymentDate(texto(o, "paymentDate"));
+        detalle.setState(texto(o, "state"));
+        detalle.setCreatedBy(texto(o, "createdBy"));
+        detalle.setCreatedAt(texto(o, "createdAt"));
+        detalle.setModifiedBy(texto(o, "modifiedBy"));
+        detalle.setModifiedAt(texto(o, "modifiedAt"));
+        return detalle;
+    }
+
+    private static String texto(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? null : v.getAsString();
+    }
+
+    private static int entero(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? 0 : v.getAsInt();
+    }
+
+    private static double decimal(JsonObject o, String campo) {
+        JsonElement v = o.get(campo);
+        return v == null || v.isJsonNull() ? 0.0 : v.getAsDouble();
+    }
+
+    // ═══ Fallback: JDBC directo (logica original, NO borrar) ═══════════
+
+    private void renounceAbonoDirecto(String soliNum, Integer id, String fecha) throws SQLException {
         String updateQuery = "UPDATE abono SET status = 'REN', modifiedBy = ?, modifiedAt = ? WHERE SoliNum = ? AND status = 'Pendiente'";
         String statusQuery = "SELECT * FROM abono WHERE SoliNum = ?";
 
@@ -51,7 +396,7 @@ public class AbonoDao {
         }
     }
 
-    public boolean deleteAbonoIfNotUsed(String soliNum) throws SQLException {
+    private boolean deleteAbonoIfNotUsedDirecto(String soliNum) throws SQLException {
         String findAbonoIdQuery = "SELECT ID FROM abono WHERE SoliNum = ?";
         String checkUsageQuery = "SELECT COUNT(*) FROM abonodetail WHERE AbonoID = ? AND state IN ('Pagado', 'Parcial')";
         String deleteQuery = "DELETE FROM abono WHERE ID = ?";
@@ -94,7 +439,7 @@ public class AbonoDao {
         }
     }
 
-    public boolean hasPendingAbono(String id, String idConcep) {
+    private boolean hasPendingAbonoDirecto(String id, String idConcep) {
         String sql = "SELECT COUNT(*) FROM abono WHERE Employee_id = ? AND status = 'Pendiente' AND service_concept_id = ?";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -111,11 +456,9 @@ public class AbonoDao {
         return false; // Si no hay registros "Pendiente" o hay un error, retorna false
     }
 
-    // Método para insertar un nuevo abono
-    // Método para insertar un nuevo abono
-    public Integer insertAbono(AbonoTb abono) throws SQLException {
+    private Integer insertAbonoDirecto(AbonoTb abono) throws SQLException {
 
-        if (hasPendingAbono(abono.getEmployeeId(), abono.getServiceConceptId())) {
+        if (hasPendingAbonoDirecto(abono.getEmployeeId(), abono.getServiceConceptId())) {
             return -1; // No se permite la inserción
         }
 
@@ -163,8 +506,7 @@ public class AbonoDao {
         }
     }
 
-    // Método para actualizar un abono existente
-    public boolean updateAbono(AbonoTb abono) throws SQLException {
+    private boolean updateAbonoDirecto(AbonoTb abono) throws SQLException {
         String sql = "UPDATE abono SET SoliNum = ?, service_concept_id = ?, Employee_id = ?, dues = ?, monthly = ?, "
                 + "paymentDate = ?, status = ?, discount_from = ?, createdBy = ?, createdAt = ?, modifiedBy = ?, modifiedAt = ? "
                 + "WHERE ID = ?";
@@ -186,8 +528,7 @@ public class AbonoDao {
         }
     }
 
-    // Método para eliminar un abono por su ID
-    public boolean deleteAbono(int id) throws SQLException {
+    private boolean deleteAbonoDirecto(int id) throws SQLException {
         String sql = "DELETE FROM abono WHERE ID = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, id);
@@ -195,8 +536,7 @@ public class AbonoDao {
         }
     }
 
-    // Método para buscar un abono por su ID
-    public AbonoTb findAbonoById(int id) throws SQLException {
+    private AbonoTb findAbonoByIdDirecto(int id) throws SQLException {
         String sql = "SELECT * FROM abono WHERE ID = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, id);
@@ -208,8 +548,7 @@ public class AbonoDao {
         return null;
     }
 
-    // Método para listar todos los abonos
-    public List<AbonoTb> findAllAbonos() throws SQLException {
+    private List<AbonoTb> findAllAbonosDirecto() throws SQLException {
         String sql = "SELECT * FROM abono";
         List<AbonoTb> abonos = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
@@ -220,14 +559,7 @@ public class AbonoDao {
         return abonos;
     }
 
-    /**
-     * Obtiene la lista de abonos por concepto y código de empleado.
-     * @param idConcept ID del concepto de servicio
-     * @param codeEm Código de tipo de empleado (ej: "2028" para CAS, "2154" para Nombrado)
-     * @param start Fecha de inicio para filtrar (opcional, puede ser null para traer todos)
-     * @return Lista de abonos que coinciden con los criterios
-     */
-    public List<String> getAvailableDates(Integer idConcept, String codeEm) throws SQLException {
+    private List<String> getAvailableDatesDirecto(Integer idConcept, String codeEm) throws SQLException {
         List<String> fechas = new ArrayList<>();
         String sql = "SELECT YEAR(ab.CreatedAt) AS anio, MONTH(ab.CreatedAt) AS mes, COUNT(*) AS total "
                 + "FROM financialtracker1.abono ab "
@@ -252,7 +584,7 @@ public class AbonoDao {
         return fechas;
     }
 
-    public List<AbonoTb> getListAbonoTByConcepAndCodeEmRange(Integer idConcept, String codeEm, Date start, Date end) throws SQLException {
+    private List<AbonoTb> getListAbonoTByConcepAndCodeEmRangeDirecto(Integer idConcept, String codeEm, Date start, Date end) throws SQLException {
         List<AbonoTb> abonos = new ArrayList<>();
         String sql = "SELECT ab.* FROM financialtracker1.abono ab "
                 + "LEFT JOIN financialtracker1.employees em ON em.employee_id = ab.Employee_id "
@@ -274,7 +606,7 @@ public class AbonoDao {
         return abonos;
     }
 
-    public List<AbonoTb> getListAbonoTByConcepAndCodeEm(Integer idConcept, String codeEm, Date start) throws SQLException {
+    private List<AbonoTb> getListAbonoTByConcepAndCodeEmDirecto(Integer idConcept, String codeEm, Date start) throws SQLException {
         List<AbonoTb> abonos = new ArrayList<>();
         String sql;
         PreparedStatement stmt;
@@ -314,7 +646,7 @@ public class AbonoDao {
         return abonos;
     }
 
-    public List<AbonoTb> findAllAbonos(Date start, Date finaly) throws SQLException {
+    private List<AbonoTb> findAllAbonosDirecto(Date start, Date finaly) throws SQLException {
         String sql = "SELECT * FROM abono WHERE DATE(CreatedAt) BETWEEN ? AND ? ORDER BY CreatedAt ASC";
 
         List<AbonoTb> abonos = new ArrayList<>();
@@ -335,7 +667,7 @@ public class AbonoDao {
         return abonos;
     }
 
-    public List<AbonoDetailsTb> getListAbonoBySoli(String soli) throws SQLException {
+    private List<AbonoDetailsTb> getListAbonoBySoliDirecto(String soli) throws SQLException {
         String sql = "SELECT abDe.* FROM financialtracker1.abonodetail abDe "
                 + "LEFT JOIN financialtracker1.abono bon ON abDe.AbonoID = bon.ID "
                 + "WHERE bon.SoliNum = ?;";
@@ -389,7 +721,7 @@ public class AbonoDao {
         return abono;
     }
 
-    public List<AbonoTb> findAbonosByEmployeeAndCurrentYear(String employeeId) throws SQLException {
+    private List<AbonoTb> findAbonosByEmployeeAndCurrentYearDirecto(String employeeId) throws SQLException {
 
         String sql = "SELECT * FROM abono WHERE Employee_id = ? AND status = 'Pendiente' ";
 
@@ -425,8 +757,7 @@ public class AbonoDao {
         return abonos;
     }
 
-    // Metodo para obtener los ultimos N abonos sin filtro de fecha
-    public List<AbonoTb> getLastAbonos(int limit) throws SQLException {
+    private List<AbonoTb> getLastAbonosDirecto(int limit) throws SQLException {
         String sql = "SELECT * FROM abono ORDER BY ID DESC LIMIT ?";
         List<AbonoTb> abonos = new ArrayList<>();
 
@@ -440,8 +771,7 @@ public class AbonoDao {
         return abonos;
     }
 
-    // Metodo para obtener todos los numeros de solicitud de abonos
-    public List<String> getAllSoliNums() {
+    private List<String> getAllSoliNumsDirecto() {
         List<String> soliNums = new ArrayList<>();
         String sql = "SELECT SoliNum FROM abono WHERE SoliNum IS NOT NULL ORDER BY ID DESC";
 
