@@ -476,23 +476,29 @@ public class EmployeeDao {
 
     // Método para obtener los últimos N empleados
     public List<EmployeeTb> getLastEmployees(int limit) {
+        return getLastEmployees(limit, 0);
+    }
+
+    /** Pagina de "ultimos" para el scroll infinito (offset = filas ya cargadas). */
+    public List<EmployeeTb> getLastEmployees(int limit, int offset) {
         try {
-            return listaDesdeJson(ApiBackend.get(BASE + "/ultimos?limite=" + limit));
+            return listaDesdeJson(ApiBackend.get(BASE + "/ultimos?limite=" + limit + "&offset=" + offset));
         } catch (Exception e) {
             System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
         }
-        return getLastEmployeesDirecto(limit);
+        return getLastEmployeesDirecto(limit, offset);
     }
 
-    private List<EmployeeTb> getLastEmployeesDirecto(int limit) {
+    private List<EmployeeTb> getLastEmployeesDirecto(int limit, int offset) {
         List<EmployeeTb> employees = new ArrayList<>();
         String sql = "SELECT e.* FROM employees e "
                 + "WHERE e.employee_id NOT IN ("
                 + "SELECT u.idEmployee FROM user u WHERE u.state = '9'"
-                + ") ORDER BY e.employee_id DESC LIMIT ?";
+                + ") ORDER BY e.employee_id DESC LIMIT ? OFFSET ?";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, limit);
+            stmt.setInt(2, offset);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 employees.add(mapResultSetToEmployee(rs));

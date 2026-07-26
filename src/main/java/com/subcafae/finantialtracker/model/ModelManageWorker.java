@@ -322,6 +322,9 @@ public class ModelManageWorker extends EmployeeDao {
         }
     }
 
+    // Scroll infinito de la lista de "ultimos" empleados (se instala una vez).
+    private com.subcafae.finantialtracker.util.ScrollInfinito scrollUltimosEmpleados;
+
     // Mostrar últimos empleados
     public void tableListLast(int limit) {
         try {
@@ -335,6 +338,24 @@ public class ModelManageWorker extends EmployeeDao {
                     employeeTb.getEmploymentStatus()
                 });
             }
+            // Scroll infinito: al acercarse al final se pide la siguiente
+            // pagina de "ultimos" a la API.
+            if (scrollUltimosEmpleados == null) {
+                scrollUltimosEmpleados = com.subcafae.finantialtracker.util.ScrollInfinito.instalar(
+                        componentManageWorker.jTableListEmployee, limit,
+                        (offset, pagina) -> {
+                            List<Object[]> filas = new java.util.ArrayList<>();
+                            for (EmployeeTb e : getLastEmployees(pagina, offset)) {
+                                filas.add(new Object[]{
+                                    e.getFullName(),
+                                    e.getNationalId(),
+                                    e.getEmploymentStatus()
+                                });
+                            }
+                            return filas;
+                        });
+            }
+            scrollUltimosEmpleados.activar(model.getRowCount(), listEmployee.size());
         } catch (Exception e) {
             System.out.println("Error -> " + e.getMessage());
             JOptionPane.showMessageDialog(null, "Ocurrió un problema al cargar la lista de empleados", "GESTIÓN TRABAJADOR", JOptionPane.ERROR_MESSAGE);

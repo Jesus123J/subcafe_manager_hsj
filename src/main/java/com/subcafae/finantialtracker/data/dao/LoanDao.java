@@ -395,8 +395,13 @@ public class LoanDao extends LoanDetailsDao {
 
     // Metodo para obtener los ultimos N prestamos sin filtro de fecha
     public List<Loan> getLastLoans(int limit) {
+        return getLastLoans(limit, 0);
+    }
+
+    /** Pagina de "ultimos" para el scroll infinito (offset = filas ya cargadas). */
+    public List<Loan> getLastLoans(int limit, int offset) {
         try {
-            JsonObject resp = ApiBackend.get("/integracion/ft/prestamos/resumen/ultimos?limite=" + limit);
+            JsonObject resp = ApiBackend.get("/integracion/ft/prestamos/resumen/ultimos?limite=" + limit + "&offset=" + offset);
             List<Loan> loans = new ArrayList<>();
             for (JsonElement e : resp.getAsJsonArray("data")) {
                 loans.add(loanResumenDesdeJson(e.getAsJsonObject()));
@@ -405,10 +410,10 @@ public class LoanDao extends LoanDetailsDao {
         } catch (Exception e) {
             System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
         }
-        return getLastLoansDirecto(limit);
+        return getLastLoansDirecto(limit, offset);
     }
 
-    private List<Loan> getLastLoansDirecto(int limit) {
+    private List<Loan> getLastLoansDirecto(int limit, int offset) {
         List<Loan> loans = new ArrayList<>();
         String sql = "SELECT \n"
                 + "    l.ID, l.ModifiedAt, l.SoliNum, \n"
@@ -435,10 +440,11 @@ public class LoanDao extends LoanDetailsDao {
                 + "    FROM loandetail ld \n"
                 + "    WHERE ld.ID = (SELECT MIN(ID) FROM loandetail WHERE LoanID = ld.LoanID) \n"
                 + ") dd ON dd.LoanID = l.ID \n"
-                + "ORDER BY l.ID DESC LIMIT ?";
+                + "ORDER BY l.ID DESC LIMIT ? OFFSET ?";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, limit);
+            statement.setInt(2, offset);
 
             ResultSet rs = statement.executeQuery();
 

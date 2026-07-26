@@ -586,6 +586,9 @@ public class ModelManageBond {
         ViewMain.loading.setVisible(true);
     }
 
+    // Scroll infinito de la lista de "ultimos" abonos (se instala una vez).
+    private com.subcafae.finantialtracker.util.ScrollInfinito scrollUltimosAbonos;
+
     // Metodo para mostrar los ultimos N abonos sin filtro de fecha
     public void insertListTableBonoLast(int limit) {
 
@@ -614,6 +617,14 @@ public class ModelManageBond {
                             System.out.println("Error al agregar fila: " + ex.getMessage());
                         }
                     }
+                    // Scroll infinito: al acercarse al final se pide la
+                    // siguiente pagina de "ultimos" a la API.
+                    if (scrollUltimosAbonos == null) {
+                        scrollUltimosAbonos = com.subcafae.finantialtracker.util.ScrollInfinito.instalar(
+                                componentManageBond.jTableListBonos, limit,
+                                (offset, pagina) -> cargarPaginaAbonos(pagina, offset));
+                    }
+                    scrollUltimosAbonos.activar(model.getRowCount(), listAbono.size());
                     ViewMain.loading.dispose();
                 });
             } catch (Exception ex) {
@@ -627,6 +638,47 @@ public class ModelManageBond {
         }).start();
 
         ViewMain.loading.setVisible(true);
+    }
+
+    /**
+     * Pagina de abonos para el scroll infinito. A diferencia de la carga
+     * inicial (que consulta el empleado fila por fila), aqui se resuelven
+     * conceptos y nombres con UNA llamada cada uno y lookup en memoria.
+     * No se salta filas: si falta el concepto/nombre va vacio.
+     */
+    private List<Object[]> cargarPaginaAbonos(int pagina, int offset) throws Exception {
+        List<ServiceConceptTb> conceptos = new ServiceConceptDao().getAllServiceConcepts();
+        java.util.Map<Integer, String> nombres = new java.util.HashMap<>();
+        for (EmployeeTb e : new EmployeeDao().findAll()) {
+            if (e.getEmployeeId() != null) {
+                nombres.putIfAbsent(e.getEmployeeId(), e.getFullName());
+            }
+        }
+        List<Object[]> filas = new java.util.ArrayList<>();
+        for (AbonoTb abonoTb : abonoDao.getLastAbonos(pagina, offset)) {
+            String concepto = "";
+            try {
+                int conceptoId = Integer.parseInt(abonoTb.getServiceConceptId());
+                concepto = conceptos.stream()
+                        .filter(c -> c.getId() == conceptoId)
+                        .findFirst().map(ServiceConceptTb::getDescription).orElse("");
+            } catch (Exception ignored) {
+            }
+            String nombre = "";
+            try {
+                nombre = nombres.getOrDefault(Integer.valueOf(abonoTb.getEmployeeId()), "");
+            } catch (Exception ignored) {
+            }
+            filas.add(new Object[]{
+                abonoTb.getSoliNum(),
+                concepto,
+                nombre,
+                abonoTb.getDues(),
+                abonoTb.getMonthly(),
+                abonoTb.getStatus()
+            });
+        }
+        return filas;
     }
 
     /**

@@ -502,6 +502,9 @@ public class ModelManageLoan extends LoanDao {
         }
     }
 
+    // Scroll infinito de la lista de "ultimos" prestamos (se instala una vez).
+    private com.subcafae.finantialtracker.util.ScrollInfinito scrollUltimosPrestamos;
+
     // Metodo para mostrar los ultimos N registros sin filtro de fecha
     public void insertTabletLast(int limit) {
 
@@ -518,34 +521,22 @@ public class ModelManageLoan extends LoanDao {
                     DefaultTableModel model = (DefaultTableModel) componentManageLoan.jTableLoanList.getModel();
                     model.setRowCount(0);
                     for (Loan loan : list) {
-                        System.out.print(" ff " + loan.getAmountWithdrawn());
-                        if (loan.getRequestedAmount() != loan.getAmountWithdrawn()) {
-                            if (loan.getRefinanciado() == null) {
-                                if (!loan.getAmountWithdrawn().toString().equals("0.00")) {
-                                    Double daod = Double.parseDouble(loan.getRequestedAmount().toString()) - Double.parseDouble(loan.getAmountWithdrawn().toString());
-                                    loan.setRefinanciado(BigDecimal.valueOf(daod));
-                                }
-                            }
-                        }
-                        model.addRow(new Object[]{
-                            loan.getModificado() == null ? "" : loan.getModificado(),
-                            loan.getSoliNum(),
-                            loan.getSolicitorName(),
-                            loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
-                            loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
-                            loan.getRequestedAmount(),
-                            loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
-                            loan.getCantCuota(),
-                            loan.getInterTo() == null ? "" : loan.getInterTo(),
-                            loan.getFondoTo() == null ? "" : loan.getFondoTo(),
-                            loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
-                            loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
-                            loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
-                            loan.getValor() == null ? "" : loan.getValor(),
-                            loan.getState(),
-                            loan.getPaymentResponsibility()
-                        });
+                        model.addRow(filaPrestamo(loan));
                     }
+                    // Scroll infinito: al acercarse al final se pide la
+                    // siguiente pagina de "ultimos" a la API.
+                    if (scrollUltimosPrestamos == null) {
+                        scrollUltimosPrestamos = com.subcafae.finantialtracker.util.ScrollInfinito.instalar(
+                                componentManageLoan.jTableLoanList, limit,
+                                (offset, pagina) -> {
+                                    List<Object[]> filas = new java.util.ArrayList<>();
+                                    for (Loan loan : getLastLoans(pagina, offset)) {
+                                        filas.add(filaPrestamo(loan));
+                                    }
+                                    return filas;
+                                });
+                    }
+                    scrollUltimosPrestamos.activar(model.getRowCount(), list.size());
                 });
             } catch (Exception ex) {
                 System.out.println("Error -> " + ex.getMessage());
@@ -557,6 +548,36 @@ public class ModelManageLoan extends LoanDao {
         }).start();
 
         ViewMain.loading.setVisible(true);
+    }
+
+    /** Mapea un prestamo (resumen) a la fila de jTableLoanList. */
+    private Object[] filaPrestamo(Loan loan) {
+        if (loan.getRequestedAmount() != loan.getAmountWithdrawn()) {
+            if (loan.getRefinanciado() == null) {
+                if (!loan.getAmountWithdrawn().toString().equals("0.00")) {
+                    Double daod = Double.parseDouble(loan.getRequestedAmount().toString()) - Double.parseDouble(loan.getAmountWithdrawn().toString());
+                    loan.setRefinanciado(BigDecimal.valueOf(daod));
+                }
+            }
+        }
+        return new Object[]{
+            loan.getModificado() == null ? "" : loan.getModificado(),
+            loan.getSoliNum(),
+            loan.getSolicitorName(),
+            loan.getGuarantorName() == null ? "" : loan.getGuarantorName(),
+            loan.getRefinanciado() == null ? "" : loan.getRefinanciado(),
+            loan.getRequestedAmount(),
+            loan.getAmountWithdrawn().toString().equalsIgnoreCase("0.00") ? loan.getRequestedAmount() : loan.getAmountWithdrawn(),
+            loan.getCantCuota(),
+            loan.getInterTo() == null ? "" : loan.getInterTo(),
+            loan.getFondoTo() == null ? "" : loan.getFondoTo(),
+            loan.getCuotaMenSin() == null ? "" : loan.getCuotaMenSin(),
+            loan.getCuotaInter() == null ? "" : loan.getCuotaInter(),
+            loan.getCuotaFond() == null ? "" : loan.getCuotaFond(),
+            loan.getValor() == null ? "" : loan.getValor(),
+            loan.getState(),
+            loan.getPaymentResponsibility()
+        };
     }
 
     public void insertTablet(java.util.Date dateStart, java.util.Date dateFinaly) {

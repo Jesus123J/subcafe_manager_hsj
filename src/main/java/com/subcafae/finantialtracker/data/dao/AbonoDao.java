@@ -278,14 +278,19 @@ public class AbonoDao {
 
     // Metodo para obtener los ultimos N abonos sin filtro de fecha
     public List<AbonoTb> getLastAbonos(int limit) throws SQLException {
+        return getLastAbonos(limit, 0);
+    }
+
+    /** Pagina de "ultimos" para el scroll infinito (offset = filas ya cargadas). */
+    public List<AbonoTb> getLastAbonos(int limit, int offset) throws SQLException {
         try {
             return jsonToAbonos(ApiBackend
-                    .get("/integracion/ft/abonos/ultimos?limite=" + limit)
+                    .get("/integracion/ft/abonos/ultimos?limite=" + limit + "&offset=" + offset)
                     .getAsJsonArray("data"));
         } catch (Exception e) {
             System.out.println("Backend no disponible, usando conexion directa: " + e.getMessage());
         }
-        return getLastAbonosDirecto(limit);
+        return getLastAbonosDirecto(limit, offset);
     }
 
     // Metodo para obtener todos los numeros de solicitud de abonos
@@ -757,12 +762,13 @@ public class AbonoDao {
         return abonos;
     }
 
-    private List<AbonoTb> getLastAbonosDirecto(int limit) throws SQLException {
-        String sql = "SELECT * FROM abono ORDER BY ID DESC LIMIT ?";
+    private List<AbonoTb> getLastAbonosDirecto(int limit, int offset) throws SQLException {
+        String sql = "SELECT * FROM abono ORDER BY ID DESC LIMIT ? OFFSET ?";
         List<AbonoTb> abonos = new ArrayList<>();
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, limit);
+            stmt.setInt(2, offset);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 abonos.add(mapResultSetToAbono(rs));
