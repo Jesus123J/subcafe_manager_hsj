@@ -39,6 +39,7 @@ import com.subcafae.finantialtracker.view.component.ComponentManageBond;
 import com.subcafae.finantialtracker.view.component.ComponentManageLoan;
 import com.subcafae.finantialtracker.view.component.ComponentManageUser;
 import com.subcafae.finantialtracker.view.component.ComponentManageWorker;
+import com.subcafae.finantialtracker.view.component.ComponentDeudasTienda;
 import com.subcafae.finantialtracker.view.component.ComponentSearchEmpl;
 import com.sun.jna.platform.win32.WinBase;
 import java.awt.Color;
@@ -100,6 +101,7 @@ public class ModelMain {
     protected ComponentManageLoan componentManageLoan;
     protected ComponentManageUser componentManageUser;
     protected ComponentManageWorker componentManageWorker;
+    protected ComponentDeudasTienda componentDeudasTienda;
     public ViewMain viewMain;
     protected ComponentLogin componentLogin = new ComponentLogin();
     public DefaultTableModel model;
@@ -121,6 +123,7 @@ public class ModelMain {
             this.componentManageLoan = new ComponentManageLoan();
             this.componentManageUser = new ComponentManageUser();
             this.componentManageWorker = new ComponentManageWorker();
+            this.componentDeudasTienda = new ComponentDeudasTienda();
 
             TextFieldValidator.applyIntegerFilter(viewMain.jTextFieldChequeVoucher);
             TextFieldValidator.applyDecimalFilter(viewMain.jTextFieldMountVoucher);

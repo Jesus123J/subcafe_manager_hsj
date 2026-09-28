@@ -19,6 +19,10 @@ El sistema permite al área administrativa del hospital:
 - **Abonos / Bonos**: aplicación de pagos a deudas, control de saldos y conceptos.
 - **Usuarios y permisos**: login con filtrado de cuentas administrativas en búsquedas.
 - **Reportes**: generación de PDF (JasperReports) y Excel para historial de pagos, deuda y abonos.
+- **Deudas Tienda** (menú `DEUDAS TIENDA`): vista en tiempo real, solo lectura, de las compras a crédito
+  que los trabajadores hacen en la tienda Sub Cafe (mismo MySQL: tablas `clientes`,
+  `creditos_trabajadores`, `cierre_creditos_detalle`). Se refresca cada 10 s. El descuento por planilla
+  (creación del `abono`) aún no está activado; por ahora solo se visualiza el proceso.
 - **Conexión robusta**: reintentos automáticos contra servidor remoto y fallback a localhost, con configuración externa por archivo de propiedades.
 
 ### Stack
@@ -79,9 +83,10 @@ El formato de tag actual del proyecto es `Subcafae-HSJvX.Y.Z`. Las versiones pre
 src/main/java/com/subcafae/finantialtracker/
 ├── config/        Configuración de la app
 ├── controller/    Controladores (Main, ManageBond, ManageLoan, ManageWorker, User)
+│                  (ControllerMain abre también ComponentDeudasTienda)
 ├── data/
 │   ├── conexion/  Conexión a MariaDB con reconexión automática
-│   ├── dao/       Acceso a datos (Abono, Loan, Employee, Registro, etc.)
+│   ├── dao/       Acceso a datos (Abono, Loan, Employee, Registro, DeudaTienda, etc.)
 │   └── entity/    Entidades del dominio
 ├── model/         Lógica de negocio (ModelMain y modelos por módulo)
 ├── report/        Generadores de PDF/Excel (HistoryPayment, ReporteAbono, ReporteDeuda)
