@@ -48,7 +48,14 @@ public class ComponentDeudasTienda extends JInternalFrame {
 
     private static final int INTERVALO_MS = 10_000;
     private static final SimpleDateFormat FMT_FECHA = new SimpleDateFormat("dd/MM/yyyy HH:mm");
-    private static final DecimalFormat FMT_MONTO = new DecimalFormat("S/. #,##0.00");
+    // OJO: el "." de "S/." no puede ir dentro del patron de DecimalFormat
+    // (lo toma como separador decimal). El prefijo se agrega en soles().
+    private static final DecimalFormat FMT_NUMERO = new DecimalFormat("#,##0.00",
+            java.text.DecimalFormatSymbols.getInstance(java.util.Locale.US));
+
+    private static String soles(BigDecimal v) {
+        return "S/. " + FMT_NUMERO.format(v == null ? BigDecimal.ZERO : v);
+    }
 
     private final DeudaTiendaDao dao = new DeudaTiendaDao();
     private final Timer timer = new Timer(INTERVALO_MS, e -> refrescar());
@@ -263,7 +270,7 @@ public class ComponentDeudasTienda extends JInternalFrame {
     // ───────────────────────── Datos ─────────────────────────
 
     private static String monto(Object o) {
-        return o == null ? "" : FMT_MONTO.format((BigDecimal) o);
+        return o == null ? "" : soles((BigDecimal) o);
     }
 
     private static String fecha(Object o) {
@@ -312,9 +319,9 @@ public class ComponentDeudasTienda extends JInternalFrame {
 
     private void pintarResumen(DeudaTiendaDao.Resumen r) {
         setKpi(lblDeudores, String.valueOf(r.deudores));
-        setKpi(lblPendiente, FMT_MONTO.format(r.pendienteMes) + " (" + r.consumosMes + " compras)");
-        setKpi(lblAcumulado, FMT_MONTO.format(r.deudaAcumulada));
-        setKpi(lblTotal, FMT_MONTO.format(r.deudaTotal));
+        setKpi(lblPendiente, soles(r.pendienteMes) + " (" + r.consumosMes + " compras)");
+        setKpi(lblAcumulado, soles(r.deudaAcumulada));
+        setKpi(lblTotal, soles(r.deudaTotal));
     }
 
     private void pintarDeudores(List<Object[]> filas) {
