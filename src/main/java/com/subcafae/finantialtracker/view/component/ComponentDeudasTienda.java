@@ -35,7 +35,8 @@ import javax.swing.table.DefaultTableModel;
 
 /**
  * DEUDAS TIENDA (Sub Cafe) — vista en tiempo real de lo que los trabajadores
- * compraron a credito en la tienda. Lee la misma base de datos; no escribe.
+ * compraron a credito en la tienda. Consume la API REST del backend de la
+ * tienda (no lee sus tablas); no escribe nada.
  *
  * Pestanas:
  *   1. Deudores      : trabajador, pendiente del mes, acumulado, total + sus compras
@@ -148,7 +149,7 @@ public class ComponentDeudasTienda extends JInternalFrame {
         btnActualizar.putClientProperty("JButton.buttonType", "roundRect");
         barra.add(btnActualizar);
         barra.add(chkAuto);
-        JLabel nota = new JLabel("Solo lectura: las deudas se registran en la tienda (POS Sub Cafe). "
+        JLabel nota = new JLabel("Solo lectura via API del backend de la tienda (" + dao.getBaseUrl() + "). "
                 + "El descuento en planilla se activara mas adelante.");
         nota.setForeground(new Color(113, 128, 150));
         nota.setFont(nota.getFont().deriveFont(Font.PLAIN, 11f));
@@ -300,7 +301,8 @@ public class ComponentDeudasTienda extends JInternalFrame {
                 try {
                     Object[] r = get();
                     if (r == null) {
-                        lblEstado.setText("La tienda aun no ha creado sus tablas en esta base de datos (arranque el backend de la tienda).");
+                        lblEstado.setText("Sin conexion con el backend de la tienda (" + dao.getBaseUrl() + "): "
+                                + dao.getUltimoError());
                         return;
                     }
                     pintarResumen((DeudaTiendaDao.Resumen) r[0]);

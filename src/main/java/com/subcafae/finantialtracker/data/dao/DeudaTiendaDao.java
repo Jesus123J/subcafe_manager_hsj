@@ -1,21 +1,28 @@
 package com.subcafae.finantialtracker.data.dao;
 
-import com.subcafae.finantialtracker.data.conexion.Conexion;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.subcafae.finantialtracker.data.api.TiendaApiClient;
+import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
- * Lectura de las DEUDAS DE LA TIENDA (Sub Cafe) que viven en la misma base
- * de datos (tablas clientes, creditos_trabajadores, cierre_creditos_detalle
- * y vistas v_deudores / v_creditos_del_mes creadas por el backend de la tienda).
+ * DEUDAS DE LA TIENDA (Sub Cafe) leidas SOLO a traves del backend REST de la
+ * tienda (ver {@link TiendaApiClient}). FinantialTracker no toca las tablas
+ * de la tienda: lo que se muestra es exactamente lo que expone la API.
  *
- * Solo lectura: FinantialTracker no modifica las tablas de la tienda.
- * Las fechas se convierten a hora de Lima (-05:00) para mostrarlas.
+ * Endpoints usados:
+ *   GET /deudores/resumen        totales
+ *   GET /deudores?q=             trabajadores con deuda viva
+ *   GET /deudores/{clienteId}    estado de cuenta (movimientos)
+ *   GET /creditos                todos los consumos a credito (ultimas compras)
+ *   GET /creditos/cierres        cierres mensuales
+ *   GET /deudores/cierres/{id}   detalle de un cierre por trabajador
  */
 public class DeudaTiendaDao {
 
@@ -28,34 +35,38 @@ public class DeudaTiendaDao {
         public long consumosMes;
     }
 
-    private Connection cn() {
-        return Conexion.getConnection();
+    private final TiendaApiClient api = new TiendaApiClient();
+    private volatile String ultimoError;
+
+    public String getBaseUrl() {
+        return api.getBaseUrl();
     }
 
-    /** true si la tienda ya creo sus tablas en esta base de datos. */
+    /** Ultimo motivo por el que la tienda no respondio (para mostrar en pantalla). */
+    public String getUltimoError() {
+        return ultimoError;
+    }
+
+    /** true si el backend de la tienda responde y acepta el login. */
     public boolean tiendaInstalada() {
-        String sql = "SELECT COUNT(*) FROM information_schema.tables "
-                + "WHERE table_schema = DATABASE() AND table_name = 'v_deudores'";
-        try (PreparedStatement st = cn().prepareStatement(sql); ResultSet rs = st.executeQuery()) {
-            return rs.next() && rs.getInt(1) > 0;
-        } catch (SQLException e) {
+        try {
+            api.get("/deudores/resumen");
+            ultimoError = null;
+            return true;
+        } catch (IOException e) {
+            ultimoError = e.getMessage();
             return false;
         }
     }
 
-    public Resumen resumen() throws SQLException {
-        String sql = "SELECT COUNT(*), COALESCE(SUM(pendiente_mes),0), COALESCE(SUM(deuda_acumulada),0), "
-                + "COALESCE(SUM(deuda_total),0), COALESCE(SUM(consumos_mes),0) FROM v_deudores";
+    public Resumen resumen() throws IOException {
+        JsonNode d = api.get("/deudores/resumen");
         Resumen r = new Resumen();
-        try (PreparedStatement st = cn().prepareStatement(sql); ResultSet rs = st.executeQuery()) {
-            if (rs.next()) {
-                r.deudores = rs.getLong(1);
-                r.pendienteMes = rs.getBigDecimal(2);
-                r.deudaAcumulada = rs.getBigDecimal(3);
-                r.deudaTotal = rs.getBigDecimal(4);
-                r.consumosMes = rs.getLong(5);
-            }
-        }
+        r.deudores = d.path("deudores").asLong(0);
+        r.pendienteMes = dec(d.path("pendiente_mes"));
+        r.deudaAcumulada = dec(d.path("deuda_acumulada"));
+        r.deudaTotal = dec(d.path("deuda_total"));
+        r.consumosMes = d.path("consumos_mes").asLong(0);
         return r;
     }
 
@@ -64,54 +75,29 @@ public class DeudaTiendaDao {
      * Columnas: cliente_id, dni, nombre, condicion, empleado_id, pendiente_mes,
      *           consumos_mes, ultimo_consumo, deuda_acumulada, deuda_total
      */
-    public List<Object[]> deudores(String filtro) throws SQLException {
-        String sql = "SELECT cliente_id, dni, nombre_completo, condicion_laboral, empleado_id, "
-                + "pendiente_mes, consumos_mes, CONVERT_TZ(ultimo_consumo, @@session.time_zone, '-05:00'), "
-                + "deuda_acumulada, deuda_total "
-                + "FROM v_deudores WHERE (? = '' OR dni LIKE ? OR nombre_completo LIKE ?) "
-                + "ORDER BY deuda_total DESC";
+    public List<Object[]> deudores(String filtro) throws IOException {
         String f = filtro == null ? "" : filtro.trim();
+        JsonNode lista = api.get("/deudores" + (f.isEmpty() ? "" : "?q=" + TiendaApiClient.enc(f)));
         List<Object[]> out = new ArrayList<>();
-        try (PreparedStatement st = cn().prepareStatement(sql)) {
-            st.setString(1, f);
-            st.setString(2, "%" + f + "%");
-            st.setString(3, "%" + f + "%");
-            try (ResultSet rs = st.executeQuery()) {
-                while (rs.next()) {
-                    out.add(new Object[]{
-                        rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
-                        rs.getObject(5), rs.getBigDecimal(6), rs.getInt(7), rs.getTimestamp(8),
-                        rs.getBigDecimal(9), rs.getBigDecimal(10)
-                    });
-                }
-            }
+        for (JsonNode n : lista) {
+            out.add(new Object[]{
+                txt(n, "cliente_id"), txt(n, "dni"), txt(n, "nombre_completo"), txt(n, "condicion_laboral"),
+                entero(n.path("empleado_id")), dec(n.path("pendiente_mes")), n.path("consumos_mes").asInt(0),
+                fecha(n.path("ultimo_consumo")), dec(n.path("deuda_acumulada")), dec(n.path("deuda_total"))
+            });
         }
         return out;
     }
 
     /**
      * Compras / consumos a credito de un trabajador (mas reciente primero).
-     * Columnas: fecha, descripcion, monto, origen (POS/MANUAL), estado, registrado_por, periodo
+     * Columnas: fecha, descripcion, monto, origen (Venta POS/Manual), estado, registrado_por, periodo
      */
-    public List<Object[]> movimientos(String clienteId) throws SQLException {
-        String sql = "SELECT CONVERT_TZ(cr.fecha, @@session.time_zone, '-05:00'), cr.descripcion, cr.monto, "
-                + "cr.venta_id IS NOT NULL, cr.cerrado, u.nombre_completo, "
-                + "CONCAT(LPAD(cr.periodo_mes, 2, '0'), '/', cr.periodo_anio) "
-                + "FROM creditos_trabajadores cr LEFT JOIN usuarios u ON u.id = cr.registrado_por "
-                + "WHERE cr.cliente_id = ? ORDER BY cr.fecha DESC";
+    public List<Object[]> movimientos(String clienteId) throws IOException {
+        JsonNode d = api.get("/deudores/" + clienteId);
         List<Object[]> out = new ArrayList<>();
-        try (PreparedStatement st = cn().prepareStatement(sql)) {
-            st.setString(1, clienteId);
-            try (ResultSet rs = st.executeQuery()) {
-                while (rs.next()) {
-                    out.add(new Object[]{
-                        rs.getTimestamp(1), rs.getString(2), rs.getBigDecimal(3),
-                        rs.getBoolean(4) ? "Venta POS" : "Manual",
-                        rs.getBoolean(5) ? "Cerrado" : "Pendiente",
-                        rs.getString(6), rs.getString(7)
-                    });
-                }
-            }
+        for (JsonNode m : d.path("movimientos")) {
+            out.add(filaMovimiento(m));
         }
         return out;
     }
@@ -120,25 +106,20 @@ public class DeudaTiendaDao {
      * Ultimas compras a credito de toda la tienda (tiempo real).
      * Columnas: fecha, dni, trabajador, descripcion, monto, origen, estado
      */
-    public List<Object[]> recientes(int limite) throws SQLException {
-        String sql = "SELECT CONVERT_TZ(cr.fecha, @@session.time_zone, '-05:00'), c.dni, "
-                + "CONCAT(c.apellidos, ' ', c.nombres), cr.descripcion, cr.monto, "
-                + "cr.venta_id IS NOT NULL, cr.cerrado "
-                + "FROM creditos_trabajadores cr JOIN clientes c ON c.id = cr.cliente_id "
-                + "ORDER BY cr.fecha DESC LIMIT ?";
+    public List<Object[]> recientes(int limite) throws IOException {
+        JsonNode lista = api.get("/creditos");
+        List<JsonNode> nodos = new ArrayList<>();
+        lista.forEach(nodos::add);
+        nodos.sort(Comparator.comparing((JsonNode n) -> txt(n, "fecha")).reversed());
         List<Object[]> out = new ArrayList<>();
-        try (PreparedStatement st = cn().prepareStatement(sql)) {
-            st.setInt(1, limite);
-            try (ResultSet rs = st.executeQuery()) {
-                while (rs.next()) {
-                    out.add(new Object[]{
-                        rs.getTimestamp(1), rs.getString(2), rs.getString(3), rs.getString(4),
-                        rs.getBigDecimal(5),
-                        rs.getBoolean(6) ? "Venta POS" : "Manual",
-                        rs.getBoolean(7) ? "Cerrado" : "Pendiente"
-                    });
-                }
-            }
+        for (JsonNode m : nodos) {
+            if (out.size() >= limite) break;
+            out.add(new Object[]{
+                fecha(m.path("fecha")), txt(m, "clienteDni"), txt(m, "clienteNombre"), txt(m, "descripcion"),
+                dec(m.path("monto")),
+                m.hasNonNull("ventaId") ? "Venta POS" : "Manual",
+                m.path("cerrado").asBoolean(false) ? "Cerrado" : "Pendiente"
+            });
         }
         return out;
     }
@@ -147,35 +128,68 @@ public class DeudaTiendaDao {
      * Cierres mensuales de la tienda: lo que ira a planilla por trabajador.
      * Columnas: periodo, fecha_cierre, dni, trabajador, empleado_id, consumos, monto, estado FT
      */
-    public List<Object[]> cierres() throws SQLException {
-        String sql = "SELECT CONCAT(LPAD(cm.mes, 2, '0'), '/', cm.anio), "
-                + "CONVERT_TZ(cm.fecha_cierre, @@session.time_zone, '-05:00'), c.dni, "
-                + "CONCAT(c.apellidos, ' ', c.nombres), c.empleado_id, cd.cantidad_consumos, cd.monto, "
-                + "cd.ft_abono_id, cd.ft_error, a.SoliNum, a.status "
-                + "FROM cierre_creditos_detalle cd "
-                + "JOIN cierres_mensuales_creditos cm ON cm.id = cd.cierre_id "
-                + "JOIN clientes c ON c.id = cd.cliente_id "
-                + "LEFT JOIN abono a ON a.ID = cd.ft_abono_id "
-                + "ORDER BY cm.anio DESC, cm.mes DESC, cd.monto DESC";
+    public List<Object[]> cierres() throws IOException {
         List<Object[]> out = new ArrayList<>();
-        try (PreparedStatement st = cn().prepareStatement(sql); ResultSet rs = st.executeQuery()) {
-            while (rs.next()) {
-                Object abonoId = rs.getObject(8);
-                String error = rs.getString(9);
+        for (JsonNode c : api.get("/creditos/cierres")) {
+            String periodo = String.format("%02d/%d", c.path("mes").asInt(), c.path("anio").asInt());
+            Timestamp fechaCierre = fecha(c.path("fecha_cierre"));
+            for (JsonNode d : api.get("/deudores/cierres/" + txt(c, "id"))) {
                 String estado;
-                if (abonoId != null) {
-                    estado = "Abono " + rs.getString(10) + " (" + rs.getString(11) + ")";
-                } else if (error != null) {
-                    estado = "Error: " + error;
+                if (d.hasNonNull("ft_abono_id")) {
+                    estado = "Abono " + txt(d, "ft_solicitud") + " (" + txt(d, "ft_estado") + ")";
+                } else if (d.hasNonNull("ft_error")) {
+                    estado = "Error: " + txt(d, "ft_error");
                 } else {
                     estado = "Solo en tienda (union desactivada)";
                 }
                 out.add(new Object[]{
-                    rs.getString(1), rs.getTimestamp(2), rs.getString(3), rs.getString(4),
-                    rs.getObject(5), rs.getInt(6), rs.getBigDecimal(7), estado
+                    periodo, fechaCierre, txt(d, "dni"), txt(d, "nombre_completo"), entero(d.path("empleado_id")),
+                    d.path("cantidad_consumos").asInt(0), dec(d.path("monto")), estado
                 });
             }
         }
         return out;
+    }
+
+    // ───────────────────────── helpers JSON ─────────────────────────
+
+    private static Object[] filaMovimiento(JsonNode m) {
+        String periodo = m.hasNonNull("periodoMes")
+                ? String.format("%02d/%d", m.path("periodoMes").asInt(), m.path("periodoAnio").asInt()) : "";
+        return new Object[]{
+            fecha(m.path("fecha")), txt(m, "descripcion"), dec(m.path("monto")),
+            m.hasNonNull("ventaId") ? "Venta POS" : "Manual",
+            m.path("cerrado").asBoolean(false) ? "Cerrado" : "Pendiente",
+            txt(m, "registradoPor"), periodo
+        };
+    }
+
+    private static String txt(JsonNode n, String campo) {
+        JsonNode v = n.path(campo);
+        return v.isMissingNode() || v.isNull() ? null : v.asText();
+    }
+
+    private static Integer entero(JsonNode v) {
+        return v.isMissingNode() || v.isNull() ? null : v.asInt();
+    }
+
+    private static BigDecimal dec(JsonNode v) {
+        if (v.isMissingNode() || v.isNull()) return BigDecimal.ZERO;
+        return v.isNumber() ? v.decimalValue() : new BigDecimal(v.asText("0"));
+    }
+
+    /** El backend manda fechas ISO-8601 con zona (America/Lima). */
+    private static Timestamp fecha(JsonNode v) {
+        if (v.isMissingNode() || v.isNull()) return null;
+        String s = v.asText();
+        try {
+            return Timestamp.from(OffsetDateTime.parse(s).toInstant());
+        } catch (Exception e) {
+            try {
+                return Timestamp.valueOf(LocalDateTime.parse(s));
+            } catch (Exception e2) {
+                return null;
+            }
+        }
     }
 }
