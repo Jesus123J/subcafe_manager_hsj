@@ -18,13 +18,18 @@ public class Conexion {
     private static final String USER_REMOTO = "root";
     private static final String PASSWORD_REMOTO = "123456789";
 
+    // Configuracion de esta computadora en la red local (fallback)
+    private static final String URL_RED_LOCAL = "jdbc:mariadb://192.168.1.113:3306/financialtracker1?useUnicode=true&characterEncoding=UTF-8&useSSL=false&connectTimeout=3000&socketTimeout=30000&autoReconnect=true";
+    private static final String USER_RED_LOCAL = "root";
+    private static final String PASSWORD_RED_LOCAL = "123456";
+
     // Configuracion localhost (fallback)
-    private static final String URL_LOCAL = "jdbc:mariadb://localhost:3306/FinancialTracker1?useUnicode=true&characterEncoding=UTF-8&useSSL=false&connectTimeout=3000&socketTimeout=30000&autoReconnect=true";
+    private static final String URL_LOCAL = "jdbc:mariadb://localhost:3306/financialtracker1?useUnicode=true&characterEncoding=UTF-8&useSSL=false&connectTimeout=3000&socketTimeout=30000&autoReconnect=true";
     private static final String USER_LOCAL = "root";
     private static final String PASSWORD_LOCAL = "123456";
 
     // Configuracion localhost 2 (fallback)
-    private static final String URL_LOCAL_2 = "jdbc:mariadb://localhost:3306/FinancialTracker1?useUnicode=true&characterEncoding=UTF-8&useSSL=false&connectTimeout=3000&socketTimeout=30000&autoReconnect=true";
+    private static final String URL_LOCAL_2 = "jdbc:mariadb://localhost:3306/financialtracker1?useUnicode=true&characterEncoding=UTF-8&useSSL=false&connectTimeout=3000&socketTimeout=30000&autoReconnect=true";
     private static final String USER_LOCAL_2 = "root";
     private static final String PASSWORD_LOCAL_2 = "123456789";
 
@@ -69,8 +74,9 @@ public class Conexion {
                 + "Se intento:\n"
                 + " 1. Archivo database.properties (en la carpeta del JAR)\n"
                 + " 2. Servidor remoto del hospital (192.168.97.10)\n"
-                + " 3. Localhost (root / 123456)\n"
-                + " 4. Localhost (root / 123456789)\n\n"
+                + " 3. Red local (192.168.1.113, root / 123456)\n"
+                + " 4. Localhost (root / 123456)\n"
+                + " 5. Localhost (root / 123456789)\n\n"
                 + "Para usar tu BD local, crea un archivo database.properties\n"
                 + "al lado del .exe/.jar con tus credenciales:\n\n"
                 + "  db.url=jdbc:mariadb://localhost:3306/financialtracker1\n"
@@ -110,11 +116,15 @@ public class Conexion {
         conn = intentarConexion(URL_REMOTO, USER_REMOTO, PASSWORD_REMOTO, "servidor remoto (192.168.97.10)");
         if (conn != null) return conn;
 
-        // 3. Localhost
+        // 3. Esta computadora en la red local
+        conn = intentarConexion(URL_RED_LOCAL, USER_RED_LOCAL, PASSWORD_RED_LOCAL, "red local (192.168.1.113)");
+        if (conn != null) return conn;
+
+        // 4. Localhost
         conn = intentarConexion(URL_LOCAL, USER_LOCAL, PASSWORD_LOCAL, "localhost");
         if (conn != null) return conn;
 
-        // 4. Localhost 2
+        // 5. Localhost 2
         conn = intentarConexion(URL_LOCAL_2, USER_LOCAL_2, PASSWORD_LOCAL_2, "localhost_2");
         if (conn != null) return conn;
 

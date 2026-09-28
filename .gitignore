@@ -13,3 +13,6 @@ hs_err_pid*.log
 
 # Claude tmp files
 tmpclaude-*-cwd
+
+# Config local de BD (override por maquina, no versionar)
+/database.properties

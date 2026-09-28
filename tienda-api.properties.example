@@ -1,0 +1,5 @@
+# Copiar como tienda-api.properties junto al .exe/.jar para cambiar la conexion
+# a la API de la tienda Sub Cafe (menu DEUDAS TIENDA). Si no existe, se usa localhost.
+tienda.api.url=http://localhost:8080/api
+tienda.api.user=admin
+tienda.api.pass=admin123

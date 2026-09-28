@@ -58,6 +58,13 @@
             <version>6.20.0</version>
         </dependency>
 
+        <!-- JSON para hablar con la API REST de la tienda (misma version que trae JasperReports) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.13.3</version>
+        </dependency>
+
         <!-- Conexión con MariaDB -->
         <dependency>
             <groupId>org.mariadb.jdbc</groupId>

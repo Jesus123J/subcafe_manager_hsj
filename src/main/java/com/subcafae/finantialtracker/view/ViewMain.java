@@ -29,8 +29,18 @@ public class ViewMain extends javax.swing.JFrame {
 
         setMinimumSize(new Dimension(900, 600));
 
+        // Menu "DEUDAS TIENDA": deudas de trabajadores registradas por la tienda
+        // (Sub Cafe) en esta misma base de datos. Se agrega por codigo para no
+        // tocar el .form generado por NetBeans; va antes de "CERRAR SESION".
+        jMenuDeudasTienda = new javax.swing.JMenu("DEUDAS TIENDA");
+        jMenuDeudasTienda.setIcon(new javax.swing.ImageIcon(getClass().getResource("/IconMenuBar/coin.png")));
+        jMenuBar1.add(jMenuDeudasTienda, Math.max(0, jMenuBar1.getMenuCount() - 1));
+
         applyModernStyling();
     }
+
+    /** Menu de deudas de la tienda (no generado por NetBeans). */
+    public javax.swing.JMenu jMenuDeudasTienda;
 
     private void applyModernStyling() {
         java.awt.Font headerFont = new java.awt.Font("Roboto", java.awt.Font.BOLD, 12);
